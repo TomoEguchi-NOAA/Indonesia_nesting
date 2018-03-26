@@ -10,6 +10,7 @@ library(rjags)
 library(bayesplot)
 
 save.RData <- T
+save.fig <- F
 
 MCMC.params <- list(n.chains = 3,
                     n.iter = 50000)
@@ -126,9 +127,10 @@ p.1 <- ggplot() +
 toc <- Sys.time()
 dif.time <- toc - tic
 
-ggsave(plot = p.1,
-       filename = 'figures/predicted_counts_JM.png',
-       dpi = 600)
+if (save.fig)
+  ggsave(plot = p.1,
+         filename = 'figures/predicted_counts_JM.png',
+         dpi = 600)
 
 if (save.RData)
   save(data.1.JM.2005, summary.zm, Xs.stats, Xs.year, ys.stats, zm,
