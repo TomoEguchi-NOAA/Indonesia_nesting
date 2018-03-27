@@ -3,8 +3,8 @@
 # these are functions that are used in this project. 
 # TomosFunctions.R is needed also. 
 
-sysInfo <- Sys.info()
-ifelse(sysInfo[1] == 'Linux',
+#sysInfo <- Sys.info()
+ifelse(Sys.info()[1] == 'Linux',
        source('~/Documents/R/TomosFunctions.R'),
        source('~/R/TomosFunctions.R'))
 
