@@ -3,9 +3,6 @@
 model{
 	for (t in 2:T){
 		# process
-		#predX[t] <- theta * X[t-1] + phi2 * m[t] * m[t]
-		#predX[t] <- theta * X[t-1] * m[t]
-        
         predX[t] <- theta * X[t-1]
 
         tau.pro[t] <- ifelse(m[t] < 9 && m[t] > 4, tau.pro1, tau.pro2)

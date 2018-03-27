@@ -48,7 +48,8 @@ inits.function <- function(){
 }
 
 load.module('dic')
-params <- c('theta', 'sigma.pro1', 'sigma.pro2', 'sigma.obs', 'mu')
+params <- c('theta', 'sigma.pro1', 'sigma.pro2', 
+            'sigma.obs', 'mu', "predY")
 
 jm <- jags.model(file = 'models/model_SSAR1_month.txt',
                  data = bugs.data,
@@ -74,8 +75,7 @@ g.diag <- gelman.diag(zm)
 #mcmc_dens(zm, 'sigma.obs')
 
 # then sample y
-params <- c('theta', 'sigma.pro1', 'sigma.pro2',
-            'sigma.obs', 'y', 'X', 'deviance')
+params <- c(params, 'y', 'X', 'deviance')
 zm <- coda.samples(jm,
                    variable.names = params,
                    n.iter = MCMC.params$n.iter)
