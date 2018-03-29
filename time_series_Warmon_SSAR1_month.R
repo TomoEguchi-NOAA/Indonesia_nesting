@@ -124,12 +124,23 @@ p.1 <- ggplot() +
 toc <- Sys.time()
 dif.time <- toc - tic
 
+results.Warmon_SSAR1_month <- list(data.1 = data.1,
+                                   summary.zm = summary.zm,
+                                   Xs.stats = Xs.stats,
+                                   Xs.year = Xs.year,
+                                   ys.stats = ys.stats,
+                                   zm = zm,
+                                   tic = tic,
+                                   toc = toc,
+                                   dif.time = dif.time,
+                                   Sys = Sys,
+                                   MCMC.params = MCMC.params,
+                                   g.diag = g.diag)
 if (save.fig)
   ggsave(plot = p.1,
-         filename = 'figures/predicted_counts_Warmon.png',
+         filename = 'figures/predicted_counts_SSAR1_Warmon.png',
          dpi = 600)
 
 if (save.RData)
-  save(data.1, summary.zm, Xs.stats, Xs.year, ys.stats, zm,
-       tic, toc, dif.time, Sys, MCMC.params, g.diag,
+  save(results.Warmon_SSAR1_month,
        file = paste0('RData/SSAR1_month_Warmon_', Sys.Date(), '.RData'))
