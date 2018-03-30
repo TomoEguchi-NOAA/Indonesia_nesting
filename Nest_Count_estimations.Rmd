@@ -5,7 +5,7 @@ output: html_notebook
 
 This analysis tries to fill in missing nest counts data. A parametric model is fitted to years with complete data. The estimated parameters are used to fill in years without complete data.
 
-```{r}
+```{r echo=FALSE}
 # Get data first and manipulate them:
 rm(list=ls())
 source('Dc_Indonesia_nesting_fcns.R')
@@ -64,9 +64,9 @@ p2 <- ggplot(data.1.JM.2001) +
 p2
 ```
 
-Using the cyclic nature of nesting, we should be able to fit a model to fill in the missing data points. We need to make some assumptions about how data were collected, unless we have a measure of effort every year. 
+Using the cyclic nature of nesting, we should be able to fit a model to fill in the missing data points. We need to make some assumptions about how data were collected, unless we have a measure of effort every year.  
 
-```{r cache=TRUE, echo=TRUE, results='hide', fig.keep='all'}
+```{r cache=TRUE, echo=FALSE, results='hide', fig.keep='all'}
 # run a Bayesian AR1
 n.chains <- 3
 n.iter <- 10000
@@ -140,7 +140,7 @@ p3
 
 This, however, puts CIs of estimated observations negative, which is not really good. So, an alternative maybe to put lower bound on ys. Here is another look. 
 
-```{r}
+```{r echo=FALSE}
 jm <- jags.model(file = 'models/model_AR1_Trunc.txt',
                  data = bugs.data,
                  n.chains = n.chains,
@@ -154,11 +154,9 @@ zm <- coda.samples(jm,
 # these should be done without pulling out ys - not meaningful with ys
 gelman.diag(zm)
 
-mcmc_dens(zm, 'c')
-mcmc_dens(zm, 'theta')
-mcmc_dens(zm, 'sigma')
-            
-params <- c('c', 'theta', 'sigma', 'y', 'deviance')
+p.dens <- mcmc_dens(zm, c('c', 'theta', 'sigma'))
+
+params <- c(params, 'y', 'deviance')
 zm <- coda.samples(jm,
                    variable.names = params,
                    n.iter = n.iter)
@@ -195,97 +193,99 @@ p3 <- ggplot() +
   labs(x = 'Time', y = '# nests')  +
   theme(axis.text = element_text(size = 12),
         text = element_text(size = 12))
+
+p.dens
 p3
 
 ```
 
-But... the confidence intervals for the winter time are just to high! There is only one variance term and it includes the entire year so summer and winter variability is not considered separately. To do that... we need to add another variance term in the model. Why not move on to the Bayesian...?
+But... the confidence intervals for the winter time are just to high! There is only one variance term and it includes the entire year so summer and winter variability is not considered separately. To do that... we need to add another variance term in the model. Why not move to the Bayesian state-space approach...?
 
-Here is a state-space approach using AR(1) process and using month as the indicator for picking one of two variances in the process.
+Here is a state-space approach using AR(1) process and using month as the indicator for picking one of two variances in the process. Because it takes a bit of time to run these, output has been saved as an RData file. Bring it in and make some plots here.
 
 ```{r}
-n.chains <- 5
-n.iter <- 50000
-n.update <- 10000
+load("RData/SSAR1_month_JM_2018-03-29.RData")
 
-# add month to the data
-bugs.data <- list(y = data.1.JM.2005$count,
-                  m = data.1.JM.2005$MONTH,
-                  T = 156)
-
-inits.function <- function(){
-  mu <- rnorm(1, 0, 10)
-  theta <- rnorm(1, 0, 1)
-  phi <- rnorm(1, 0, 1)
-  A <- list(mu = mu, theta = theta) 
-  return(A)
-}
-
-params <- c('theta', 'sigma.pro1', 'sigma.pro2', 'sigma.obs', 'mu')
-#load.module('glm')
-jm <- jags.model(file = 'models/model_SSAR1_month.txt',
-                 data = bugs.data,
-                 inits = inits.function,
-                 n.chains = n.chains,
-                 n.adapt = n.iter)
-
-# check for convergence first.
-zm <- coda.samples(jm,
-                   variable.names = params,
-                   n.iter = n.iter)
-gelman.diag(zm)
-
-# plot posterior densities using bayesplot functions:
-mcmc_dens(zm, 'theta')
-#mcmc_trace(zm, 'theta')
-mcmc_dens(zm, 'sigma.pro1')
-mcmc_dens(zm, 'sigma.pro2')
-mcmc_dens(zm, 'sigma.obs')
-
-# then sample y and X
-params <- c('theta', 'sigma.pro1', 'sigma.pro2', 
-            'sigma.obs', 'y', 'X', 'deviance')
-zm <- coda.samples(jm,
-                   variable.names = params,
-                   n.iter = n.iter)
-
-summary.zm <- summary(zm)
+JM.summary.zm <- summary(results.JM_SSAR1_month$zm)
 
 # extract ys
-ys.stats <- data.frame(summary.zm$quantiles[grep(pattern = 'y[/[]',
-                                                 row.names(summary.zm$quantiles)),
+JM.ys.stats <- data.frame(JM.summary.zm$quantiles[grep(pattern = 'y[/[]',
+                                                 row.names(JM.summary.zm$quantiles)),
                                             c('2.5%', '50%', '97.5%')])
-colnames(ys.stats) <- c('low_y', 'mode_y', 'high_y')
-ys.stats$time <- data.1.JM.2005$Frac.Year
-ys.stats$obsY <- data.1.JM.2005$count
+
+colnames(JM.ys.stats) <- c('low_y', 'mode_y', 'high_y')
+JM.ys.stats$time <- results.JM_SSAR1_month$data.1$Frac.Year
+JM.ys.stats$obsY <- results.JM_SSAR1_month$data.1$count
 
 # extract Xs - the state model
-Xs.stats <- data.frame(summary.zm$quantiles[grep(pattern = 'X[/[]',
-                                                 row.names(summary.zm$quantiles)),
+JM.Xs.stats <- data.frame(JM.summary.zm$quantiles[grep(pattern = 'X[/[]',
+                                                 row.names(JM.summary.zm$quantiles)),
                                             c('2.5%', '50%', '97.5%')])
-colnames(Xs.stats) <- c('low_X', 'mode_X', 'high_X')
-Xs.stats$time <- data.1.JM.2005$Frac.Year
-Xs.stats$obsY <- data.1.JM.2005$count
+colnames(JM.Xs.stats) <- c('low_X', 'mode_X', 'high_X')
+JM.Xs.stats$time <- results.JM_SSAR1_month$data.1$Frac.Year
+JM.Xs.stats$obsY <- results.JM_SSAR1_month$data.1$count
 
-ggplot() +
-  geom_point(data = Xs.stats,
-             aes(x = time, y = mode_X), color = "blue") +
-  geom_line(data = Xs.stats,
-            aes(x = time, y = mode_X), color = 'blue') +
-  geom_line(data = Xs.stats,
-            aes(x = time, y = high_X), color = "blue", 
+mcmc_dens(results.JM_SSAR1_month$zm, c("theta", "sigma.pro1", "sigma.pro2"))
+
+ggplot(data = JM.Xs.stats) +
+  geom_point(aes(x = time, y = mode_X), color = "blue") +
+  geom_line(aes(x = time, y = mode_X), color = 'blue') +
+  geom_line(aes(x = time, y = high_X), color = "blue", 
             linetype = 2) +
-  geom_point(data = Xs.stats,
-             aes(x = time, y = mode_X), color = "red",
+  geom_point(aes(x = time, y = mode_X), color = "red",
              alpha = 0.5) + 
-  geom_line(data = Xs.stats,
-            aes(x = time, y = mode_X), color = "red",
+  geom_line(aes(x = time, y = mode_X), color = "red",
             alpha = 0.5) + 
-  geom_point(data = ys.stats,
-             aes(x = time, y = obsY), color = "green",
+  geom_point(aes(x = time, y = obsY), color = "green",
+             alpha = 0.5) + 
+  geom_line(aes(x = time, y = obsY), color = "green",
              alpha = 0.5) 
 
+rm(list = c('results.JM_SSAR1_month'))
 #save(zm, summary.zm, ys.stats, Xs.stats, data.1.JM.2005, 
 #     file = 'RData/SSAR1_month.RData')
+```
+
+I used a similar approach to the Warmon dataset also but changed the time frames for two variances; one variance for Jan through September and another for October, November, and December.
+
+```{r}
+load("RData/SSAR1_month_Warmon_2018-03-29.RData")
+
+W.summary.zm <- summary(results.Warmon_SSAR1_month$zm)
+
+# extract ys
+W.ys.stats <- data.frame(W.summary.zm$quantiles[grep(pattern = 'y[/[]',
+                                                 row.names(W.summary.zm$quantiles)),
+                                            c('2.5%', '50%', '97.5%')])
+
+colnames(W.ys.stats) <- c('low_y', 'mode_y', 'high_y')
+W.ys.stats$time <- results.Warmon_SSAR1_month$data.1$Frac.Year
+W.ys.stats$obsY <- results.Warmon_SSAR1_month$data.1$count
+
+# extract Xs - the state model
+W.Xs.stats <- data.frame(W.summary.zm$quantiles[grep(pattern = 'X[/[]',
+                                                 row.names(W.summary.zm$quantiles)),
+                                            c('2.5%', '50%', '97.5%')])
+colnames(W.Xs.stats) <- c('low_X', 'mode_X', 'high_X')
+W.Xs.stats$time <- results.Warmon_SSAR1_month$data.1$Frac.Year
+W.Xs.stats$obsY <- results.Warmon_SSAR1_month$data.1$count
+
+mcmc_dens(results.Warmon_SSAR1_month$zm, c("theta", "sigma.pro1", "sigma.pro2"))
+
+ggplot(data = W.Xs.stats) +
+  geom_point(aes(x = time, y = mode_X), color = "blue") +
+  geom_line(aes(x = time, y = mode_X), color = 'blue') +
+  geom_line(aes(x = time, y = high_X), color = "blue", 
+            linetype = 2) +
+  geom_point(aes(x = time, y = mode_X), color = "red",
+             alpha = 0.5) + 
+  geom_line(aes(x = time, y = mode_X), color = "red",
+            alpha = 0.5) + 
+  geom_point(aes(x = time, y = obsY), color = "green",
+             alpha = 0.5) + 
+  geom_line(aes(x = time, y = obsY), color = "green",
+             alpha = 0.5) 
+
+rm(list = c('results.Warmon_SSAR1_month'))
 ```
 

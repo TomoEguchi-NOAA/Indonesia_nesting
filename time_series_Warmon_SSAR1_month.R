@@ -53,7 +53,7 @@ params <- c('theta', 'sigma.pro1', 'sigma.pro2',
 
 jm <- jags.model(file = 'models/model_SSAR1_month_Warmon.txt',
                  data = bugs.data,
-                 inits = inits.function,
+                 #inits = inits.function,
                  n.chains = MCMC.params$n.chains,
                  n.adapt = MCMC.params$n.iter)
 
