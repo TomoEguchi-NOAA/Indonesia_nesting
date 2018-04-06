@@ -18,9 +18,6 @@ MCMC.params <- list(n.chains = 3,
 # get JM data first:
 data.0.JM <- read.csv('data/NestCounts_JM_09Feb2018.csv')
 
-#data.0 <- read.csv("data/NestCount_Warmon_27March2018.csv")
-
-
 # create time-duration filed (in yrs)
 # define dates with begin and end dates:
 data.0.JM %>% reshape2::melt(id.vars = "YEAR",
@@ -31,12 +28,12 @@ data.1.JM$MONTH <- unlist(lapply(data.1.JM$month, FUN = mmm2month))
 data.1.JM <- mutate(data.1.JM, f.month = as.factor(MONTH),
                     f.year = as.factor(YEAR))%>%
   mutate(Frac.Year = YEAR + (MONTH-0.5)/12) %>%
+  mutate(log.count = log(count)) %>%
   reshape::sort_df(.,vars = "Frac.Year")
 
 data.1.JM.2005 <- filter(data.1.JM, YEAR > 2004)
 
-bugs.data <- list(y = data.1.JM.2005$count,
-                  m = data.1.JM.2005$MONTH,
+bugs.data <- list(y = data.1.JM.2005$log.count,
                   T = 156)
 
 inits.function <- function(){
@@ -51,9 +48,9 @@ inits.function <- function(){
 }
 
 load.module('dic')
-params <- c('theta', 'sigma.pro1', 'sigma.pro2', 'sigma.obs', 'mu')
+params <- c('theta', 'sigma.pro', 'sigma.obs', 'mu')
 
-jm <- jags.model(file = 'models/model_SSAR1_month.txt',
+jm <- jags.model(file = 'models/model_SSAR1_logN_GamObs.txt',
                  data = bugs.data,
                  #inits = inits.function,
                  n.chains = MCMC.params$n.chains,
@@ -77,8 +74,7 @@ g.diag <- gelman.diag(zm)
 #mcmc_dens(zm, 'sigma.obs')
 
 # then sample y
-params <- c('theta', 'sigma.pro1', 'sigma.pro2',
-            'sigma.obs', 'y', 'X', 'deviance')
+params <- c(params, 'y', 'X', 'deviance')
 zm <- coda.samples(jm,
                    variable.names = params,
                    n.iter = MCMC.params$n.iter)
@@ -115,13 +111,13 @@ p.1 <- ggplot() +
   #geom_line(data = Xs.stats,
   #          aes(x = time, y = mode_X), color = 'blue') +
   geom_line(data = Xs.stats,
-            aes(x = time, y = high_X), color = "red",
+            aes(x = time, y = exp(high_X)), color = "red",
             linetype = 2) +
   geom_point(data = Xs.stats,
-             aes(x = time, y = mode_X), color = "red",
+             aes(x = time, y = exp(mode_X)), color = "red",
              alpha = 0.5) +
   geom_line(data = Xs.stats,
-            aes(x = time, y = mode_X), color = "red",
+            aes(x = time, y = exp(mode_X)), color = "red",
             alpha = 0.5) +
   geom_point(data = ys.stats,
              aes(x = time, y = obsY), color = "green",
@@ -129,25 +125,24 @@ p.1 <- ggplot() +
 
 toc <- Sys.time()
 dif.time <- toc - tic
-
-results.JM_SSAR1_month <- list(data.1 = data.1.JM.2005,
-                               summary.zm = summary.zm,
-                               Xs.stats = Xs.stats,
-                               Xs.year = Xs.year,
-                               ys.stats = ys.stats,
-                               zm = zm,
-                               tic = tic,
-                               toc = toc,
-                               dif.time = dif.time,
-                               Sys = Sys,
-                               MCMC.params = MCMC.params,
-                               g.diag = g.diag,
-                               jm = jm)
+results.JM_SSAR1_logN_GamObs <- list(data.1 = data.1.JM.2005,
+                                    summary.zm = summary.zm,
+                                    Xs.stats = Xs.stats,
+                                    Xs.year = Xs.year,
+                                    ys.stats = ys.stats,
+                                    zm = zm,
+                                    tic = tic,
+                                    toc = toc,
+                                    dif.time = dif.time,
+                                    Sys = Sys,
+                                    MCMC.params = MCMC.params,
+                                    g.diag = g.diag,
+                                    jm = jm)
 if (save.fig)
   ggsave(plot = p.1,
-         filename = 'figures/predicted_counts_JM.png',
+         filename = 'figures/predicted_SSAR1_logN_GamObs_JM.png',
          dpi = 600)
 
 if (save.RData)
-  save(results.JM_SSAR1_month,
-       file = paste0('RData/SSAR1_month_JM_', Sys.Date(), '.RData'))
+  save(results.JM_SSAR1_logN_GamObs,
+       file = paste0('RData/SSAR1_logN_GamObs_', Sys.Date(), '.RData'))

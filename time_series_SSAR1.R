@@ -3,23 +3,21 @@
 
 rm(list=ls())
 
-tic <- Sys.time()
-Sys <- Sys.info()
 source('Dc_Indonesia_nesting_fcns.R')
 library(rjags)
 library(bayesplot)
 
+Sys <- Sys.info()
+tic <- Sys.time()
+
 save.RData <- T
-save.fig <- F
+save.fig <- T
 
 MCMC.params <- list(n.chains = 3,
                     n.iter = 50000)
 
 # get JM data first:
 data.0.JM <- read.csv('data/NestCounts_JM_09Feb2018.csv')
-
-#data.0 <- read.csv("data/NestCount_Warmon_27March2018.csv")
-
 
 # create time-duration filed (in yrs)
 # define dates with begin and end dates:
@@ -30,19 +28,16 @@ data.1.JM$MONTH <- unlist(lapply(data.1.JM$month, FUN = mmm2month))
 
 data.1.JM <- mutate(data.1.JM, f.month = as.factor(MONTH),
                     f.year = as.factor(YEAR))%>%
-  mutate(Frac.Year = YEAR + (MONTH-0.5)/12) %>%
-  reshape::sort_df(.,vars = "Frac.Year")
+  mutate(Frac.Year = YEAR + (MONTH-0.5)/12)
 
 data.1.JM.2005 <- filter(data.1.JM, YEAR > 2004)
 
 bugs.data <- list(y = data.1.JM.2005$count,
-                  m = data.1.JM.2005$MONTH,
                   T = 156)
 
 inits.function <- function(){
   mu <- rnorm(1, 0, 10)
   theta <- rnorm(1, 0, 1)
-  phi <- rnorm(1, 0, 1)
   #sigma.pro <- runif(1, 0, 50)
   #sigma.obs <- runif(1, 0, 50)
   A <- list(mu = mu, theta = theta)
@@ -51,9 +46,9 @@ inits.function <- function(){
 }
 
 load.module('dic')
-params <- c('theta', 'sigma.pro1', 'sigma.pro2', 'sigma.obs', 'mu')
+params <- c('theta', 'sigma.pro', 'sigma.obs')
 
-jm <- jags.model(file = 'models/model_SSAR1_month.txt',
+jm <- jags.model(file = 'models/model_SSAR1.txt',
                  data = bugs.data,
                  #inits = inits.function,
                  n.chains = MCMC.params$n.chains,
@@ -66,19 +61,14 @@ zm <- coda.samples(jm,
 g.diag <- gelman.diag(zm)
 
 # plot posterior densities using bayesplot functions:
-#mcmc_dens(zm, 'theta')
+mcmc_dens(zm, 'theta')
 #mcmc_trace(zm, 'theta')
-#mcmc_dens(zm, 'phi1')
-#mcmc_dens(zm, 'phi2')
-#mcmc_trace(zm, 'phi2')
-#mcmc_dens(zm, 'sigma.pro1')
-#mcmc_dens(zm, 'sigma.pro2')
+mcmc_dens(zm, 'sigma.pro')
 #mcmc_trace(zm, 'sigma')
-#mcmc_dens(zm, 'sigma.obs')
+mcmc_dens(zm, 'sigma.obs')
 
 # then sample y
-params <- c('theta', 'sigma.pro1', 'sigma.pro2',
-            'sigma.obs', 'y', 'X', 'deviance')
+params <- c(params, 'deviance', 'y', 'X')
 zm <- coda.samples(jm,
                    variable.names = params,
                    n.iter = MCMC.params$n.iter)
@@ -126,28 +116,16 @@ p.1 <- ggplot() +
   geom_point(data = ys.stats,
              aes(x = time, y = obsY), color = "green",
              alpha = 0.5)
-
+p.1
 toc <- Sys.time()
 dif.time <- toc - tic
 
-results.JM_SSAR1_month <- list(data.1 = data.1.JM.2005,
-                               summary.zm = summary.zm,
-                               Xs.stats = Xs.stats,
-                               Xs.year = Xs.year,
-                               ys.stats = ys.stats,
-                               zm = zm,
-                               tic = tic,
-                               toc = toc,
-                               dif.time = dif.time,
-                               Sys = Sys,
-                               MCMC.params = MCMC.params,
-                               g.diag = g.diag,
-                               jm = jm)
 if (save.fig)
   ggsave(plot = p.1,
-         filename = 'figures/predicted_counts_JM.png',
+         filename = 'figures/predicted_counts_SSAR1_JM.png',
          dpi = 600)
 
 if (save.RData)
-  save(results.JM_SSAR1_month,
-       file = paste0('RData/SSAR1_month_JM_', Sys.Date(), '.RData'))
+  save(data.1.JM.2005, summary.zm, Xs.stats, Xs.year, ys.stats, zm,
+       tic, toc, dif.time, Sys, MCMC.params, g.diag,
+       file = paste0('RData/SSAR1_', Sys.Date(), '.RData'))
