@@ -5,8 +5,8 @@
 
 # As of April 6, 2018, it does not run. The error message is
 # Error in node y[2], Invalid parent values. 
-
-# Why is that? 
+# Why is that? I needed to add T(0,) to dnorm for X[t] and mu
+# this has been fixed. 
 
 model{
 	for (t in 2:T){
