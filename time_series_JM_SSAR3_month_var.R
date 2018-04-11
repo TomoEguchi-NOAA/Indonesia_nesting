@@ -12,7 +12,8 @@ save.RData <- T
 save.fig <- F
 
 MCMC.params <- list(n.chains = 3,
-                    n.iter = 50000)
+                    n.iter = 50000,
+                    n.adapt = 25000)
 
 # get JM data first:
 data.0.JM <- read.csv('data/NestCounts_JM_09Feb2018.csv')
@@ -51,15 +52,19 @@ bugs.data <- list(y = data.2$count,
 # }
 
 load.module('dic')
-params <- c('theta.1', 'theta.2', 'sigma.pro1', 'sigma.pro2', 'sigma.obs', 'mu')
+params <- c('theta1', 'theta2', 'theta3',
+            'sigma.pro1', 'sigma.pro2', 'sigma.obs', 'mu')
 
-jm <- jags.model(file = 'models/model_SSAR1_month_var_theta.txt',
+jm <- jags.model(file = 'models/model_SSAR3_month_var.txt',
                  data = bugs.data,
                  #inits = inits.function,
                  n.chains = MCMC.params$n.chains,
-                 n.adapt = MCMC.params$n.iter)
+                 n.adapt = MCMC.params$n.adapt)
 
-# check for convergence first.
+# check for convergence first. This doesn't work with Xs and ys
+# for Gelman diagnostics - because I think existing data points
+# don't have any varibility in posterior samples so the matrix
+# cannot be inverted to compute variances
 zm <- coda.samples(jm,
                    variable.names = params,
                    n.iter = MCMC.params$n.iter)
@@ -138,30 +143,31 @@ results.JM_SSAR1_month <- list(data.1 = data.2,
                                jm = jm)
 if (save.fig)
   ggsave(plot = p.1,
-         filename = 'figures/predicted_counts_JM_month_var_theta_2000.png',
+         filename = 'figures/predicted_counts_SSAR3_JM_month_var_2000.png',
          dpi = 600)
 
 if (save.RData)
   save(results.JM_SSAR1_month,
-       file = paste0('RData/SSAR1_month_JM_var_theta_',
-                     Sys.Date(), '_2000.RData'))
+       file = paste0('RData/SSAR3_month_JM_var_2000_',
+                     Sys.Date(), '.RData'))
 
 
 # plot posterior densities using bayesplot functions:
 # get the ggplot2 base theme:
 
-base_theme <- ggplot2::theme_get()
-library(bayesplot)
+# base_theme <- ggplot2::theme_get()
+# library(bayesplot)
+#
+# # set back to the base theme:
+# ggplot2::theme_set(base_theme)
+#
+mcmc_dens(zm, c('theta1', 'theta2'))
+mcmc_dens(zm, c('sigma.pro1', 'sigma.pro2'))
 
-# set back to the base theme:
-ggplot2::theme_set(base_theme)
-
-mcmc_dens(zm, c('theta.1', 'theta.2'))
 #mcmc_trace(zm, 'theta')
 #mcmc_dens(zm, 'phi1')
 #mcmc_dens(zm, 'phi2')
 #mcmc_trace(zm, 'phi2')
-mcmc_dens(zm, c('sigma.pro1', 'sigma.pro2'))
 #mcmc_dens(zm, 'sigma.pro2')
 #mcmc_trace(zm, 'sigma')
 #mcmc_dens(zm, 'sigma.obs')
