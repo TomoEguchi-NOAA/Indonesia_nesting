@@ -155,14 +155,14 @@ if (save.RData)
 # plot posterior densities using bayesplot functions:
 # get the ggplot2 base theme:
 
-# base_theme <- ggplot2::theme_get()
-# library(bayesplot)
+base_theme <- ggplot2::theme_get()
+library(bayesplot)
+
+# set back to the base theme:
+ggplot2::theme_set(base_theme)
 #
-# # set back to the base theme:
-# ggplot2::theme_set(base_theme)
-#
-mcmc_dens(zm, c('theta1.1', 'theta1.2', 'theta2.1', 'theta2.2'))
-mcmc_dens(zm, c('sigma.pro1', 'sigma.pro2'))
+#mcmc_dens(zm, c('theta1.1', 'theta1.2', 'theta2.1', 'theta2.2'))
+#mcmc_dens(zm, c('sigma.pro1', 'sigma.pro2'))
 
 #mcmc_trace(zm, 'theta')
 #mcmc_dens(zm, 'phi1')
