@@ -26,12 +26,13 @@ data.1$MONTH <- unlist(lapply(data.1$month, FUN = mmm2month))
 
 data.1 <- mutate(data.1, f.month = as.factor(MONTH),
                     f.year = as.factor(YEAR))%>%
+  filter(YEAR < 2014) %>%
   mutate(Frac.Year = YEAR + (MONTH-0.5)/12) %>%
   reshape::sort_df(.,vars = "Frac.Year")
 
 bugs.data <- list(y = data.1$count,
                   m = data.1$MONTH,
-                  T = 168)
+                  T = nrow(data.1))
 
 # bugs.data <- list(y = data.1$count,
 #                   T = 168)
@@ -49,7 +50,7 @@ inits.function <- function(){
 
 load.module('dic')
 params <- c('theta', 'sigma.pro1', 'sigma.pro2',
-            'sigma.obs', 'mu', 'predY')
+            'sigma.obs')
 
 jm <- jags.model(file = 'models/model_SSAR1_month_Warmon.txt',
                  data = bugs.data,
@@ -124,7 +125,7 @@ p.1 <- ggplot() +
 toc <- Sys.time()
 dif.time <- toc - tic
 
-results.Warmon_SSAR1_month <- list(data.1 = data.1,
+results.Warmon_SSAR1_month_To2013 <- list(data.1 = data.1,
                                    summary.zm = summary.zm,
                                    Xs.stats = Xs.stats,
                                    Xs.year = Xs.year,
@@ -135,12 +136,13 @@ results.Warmon_SSAR1_month <- list(data.1 = data.1,
                                    dif.time = dif.time,
                                    Sys = Sys,
                                    MCMC.params = MCMC.params,
-                                   g.diag = g.diag)
+                                   g.diag = g.diag,
+                                   jm = jm)
 if (save.fig)
   ggsave(plot = p.1,
-         filename = 'figures/predicted_counts_SSAR1_Warmon.png',
+         filename = 'figures/predicted_counts_SSAR1_month_Warmon_To2013.png',
          dpi = 600)
 
 if (save.RData)
-  save(results.Warmon_SSAR1_month,
-       file = paste0('RData/SSAR1_month_Warmon_', Sys.Date(), '.RData'))
+  save(results.Warmon_SSAR1_month_To2013,
+       file = paste0('RData/SSAR1_month_Warmon_', Sys.Date(), '_To2013.RData'))

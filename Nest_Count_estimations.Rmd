@@ -371,8 +371,8 @@ mcmc_dens(results.Warmon_SSAR1_month$zm, c("theta", "sigma.pro1", "sigma.pro2"))
 Analysis converged well - posteriors look fine. Probably one parameter for process variance would do just fine. Reran with a simpler model. 
 
 ```{r}
-load("RData/SSAR1_Warmon_2018-04-17.RData")
-W.summary.zm <- summary(results.Warmon_SSAR1$zm)
+load("RData/SSAR1_month_Warmon_2018-03-29.RData")
+W.summary.zm <- summary(results.Warmon_SSAR1_month$zm)
 
 # extract ys
 W.ys.stats <- data.frame(W.summary.zm$quantiles[grep(pattern = 'y[/[]',

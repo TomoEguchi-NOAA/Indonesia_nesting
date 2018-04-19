@@ -36,7 +36,7 @@ model{
 
     #tau.obs ~ dscaled.gamma(10, 2)
     #sigma.obs <- 1/sqrt(tau.obs)
-    sigma.obs ~ dunif(0, 100)
+    sigma.obs ~ dunif(0, 500)
     tau.obs <- 1/(sigma.obs * sigma.obs)
 
     theta ~  dnorm(0, 10)

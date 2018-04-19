@@ -27,14 +27,12 @@ data.1$MONTH <- unlist(lapply(data.1$month, FUN = mmm2month))
 
 data.1 <- mutate(data.1, f.month = as.factor(MONTH),
                     f.year = as.factor(YEAR))%>%
+  filter(YEAR < 2014) %>%
   mutate(Frac.Year = YEAR + (MONTH-0.5)/12) %>%
   reshape::sort_df(.,vars = "Frac.Year")
 
 bugs.data <- list(y = data.1$count,
                   T = nrow(data.1))
-
-# bugs.data <- list(y = data.1$count,
-#                   T = 168)
 
 inits.function <- function(){
   mu <- rnorm(1, 0, 10)
