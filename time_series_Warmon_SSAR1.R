@@ -10,10 +10,11 @@ library(rjags)
 library(bayesplot)
 
 save.RData <- T
-save.fig <- F
+save.fig <- T
 
 MCMC.params <- list(n.chains = 3,
-                    n.iter = 50000)
+                    n.iter = 50000,
+                    n.adapt = 100000)
 
 data.0 <- read.csv("data/NestCounts_Warmon_27March2018.csv")
 
@@ -30,43 +31,36 @@ data.1 <- mutate(data.1, f.month = as.factor(MONTH),
   reshape::sort_df(.,vars = "Frac.Year")
 
 bugs.data <- list(y = data.1$count,
-                  m = data.1$MONTH,
-                  T = 168)
+                  T = nrow(data.1))
 
 # bugs.data <- list(y = data.1$count,
 #                   T = 168)
 
 inits.function <- function(){
   mu <- rnorm(1, 0, 10)
-  theta1 <- rnorm(1, 0, 10)
-  theta2 <- rnorm(1, 0, 10)
+  theta <- rnorm(1, 0, 1)
   #phi <- rnorm(1, 0, 1)
   #sigma.pro <- runif(1, 0, 50)
   #sigma.obs <- runif(1, 0, 50)
-  A <- list(mu = mu, theta1 = theta1, theta2 = theta2)
+  A <- list(mu = mu, theta = theta)
   #          sigma.pro = sigma.pro, sigma.obs = sigma.obs)
   return(A)
 }
 
 load.module('dic')
-params <- c('theta1', 'theta2', 'sigma.pro1', 'sigma.pro2',
-            'sigma.obs', 'mu', 'predY')
+params <- c('theta', 'sigma.pro',
+            'sigma.obs', 'mu')
 
-jm <- jags.model(file = 'models/model_SSAR2_month_Warmon.txt',
+jm <- jags.model(file = 'models/model_SSAR1.txt',
                  data = bugs.data,
                  #inits = inits.function,
                  n.chains = MCMC.params$n.chains,
-                 n.adapt = MCMC.params$n.iter)
+                 n.adapt = MCMC.params$n.adapt)
 
 # check for convergence first.
 zm <- coda.samples(jm,
                    variable.names = params,
                    n.iter = MCMC.params$n.iter)
-
-# I think theta1 and theta2 are indistinguishable and the samples turned out
-# to be non positive definite - can't compute gelman diagnostic for convergence.
-# This probably means that AR(1) is a better pick.
-
 g.diag <- gelman.diag(zm)
 
 # plot posterior densities using bayesplot functions:
@@ -130,24 +124,25 @@ p.1 <- ggplot() +
 toc <- Sys.time()
 dif.time <- toc - tic
 
-results.Warmon_SSAR1_month <- list(data.1 = data.1,
-                                   summary.zm = summary.zm,
-                                   Xs.stats = Xs.stats,
-                                   Xs.year = Xs.year,
-                                   ys.stats = ys.stats,
-                                   jm = jm,
-                                   zm = zm,
-                                   tic = tic,
-                                   toc = toc,
-                                   dif.time = dif.time,
-                                   Sys = Sys,
-                                   MCMC.params = MCMC.params,
-                                   g.diag = g.diag)
+results.Warmon_SSAR1 <- list(data.1 = data.1,
+                             summary.zm = summary.zm,
+                             Xs.stats = Xs.stats,
+                             Xs.year = Xs.year,
+                             ys.stats = ys.stats,
+                             jm = jm,
+                             zm = zm,
+                             tic = tic,
+                             toc = toc,
+                             dif.time = dif.time,
+                             Sys = Sys,
+                             MCMC.params = MCMC.params,
+                             g.diag = g.diag)
+
 if (save.fig)
   ggsave(plot = p.1,
-         filename = 'figures/predicted_counts_SSAR2_Warmon.png',
+         filename = 'figures/predicted_counts_SSAR1_Warmon.png',
          dpi = 600)
 
 if (save.RData)
-  save(results.Warmon_SSAR1_month,
-       file = paste0('RData/SSAR2_month_Warmon_', Sys.Date(), '.RData'))
+  save(results.Warmon_SSAR1,
+       file = paste0('RData/SSAR1_Warmon_', Sys.Date(), '.RData'))
