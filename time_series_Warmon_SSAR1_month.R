@@ -13,7 +13,8 @@ save.RData <- T
 save.fig <- F
 
 MCMC.params <- list(n.chains = 3,
-                    n.iter = 50000)
+                    n.iter = 50000,
+                    n.adapt = 100000)
 
 data.0 <- read.csv("data/NestCounts_Warmon_27March2018.csv")
 
@@ -56,7 +57,7 @@ jm <- jags.model(file = 'models/model_SSAR1_month_Warmon.txt',
                  data = bugs.data,
                  #inits = inits.function,
                  n.chains = MCMC.params$n.chains,
-                 n.adapt = MCMC.params$n.iter)
+                 n.adapt = MCMC.params$n.adapt)
 
 # check for convergence first.
 zm <- coda.samples(jm,
