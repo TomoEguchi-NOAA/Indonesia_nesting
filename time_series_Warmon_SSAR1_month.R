@@ -27,7 +27,8 @@ data.1$MONTH <- unlist(lapply(data.1$month, FUN = mmm2month))
 
 data.1 <- mutate(data.1, f.month = as.factor(MONTH),
                     f.year = as.factor(YEAR))%>%
-  filter(YEAR < 2014) %>%
+  #filter(YEAR < 2014 & YEAR > 2005) %>%
+  filter(YEAR > 2005) %>%
   mutate(Frac.Year = YEAR + (MONTH-0.5)/12) %>%
   reshape::sort_df(.,vars = "Frac.Year")
 
@@ -110,6 +111,9 @@ p.1 <- ggplot() +
   geom_line(data = Xs.stats,
             aes(x = time, y = high_X), color = "red",
             linetype = 2) +
+  geom_line(data = Xs.stats,
+            aes(x = time, y = low_X), color = "red",
+            linetype = 2) +
   geom_point(data = Xs.stats,
              aes(x = time, y = mode_X), color = "red",
              alpha = 0.5) +
@@ -121,29 +125,32 @@ p.1 <- ggplot() +
              alpha = 0.5)+
   geom_line(data = ys.stats,
              aes(x = time, y = obsY), color = "green",
-             alpha = 0.5)
+             alpha = 0.5) +
+  labs(x = '', y = '# nests')  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 toc <- Sys.time()
 dif.time <- toc - tic
 
-results.Warmon_SSAR1_month_To2013 <- list(data.1 = data.1,
-                                   summary.zm = summary.zm,
-                                   Xs.stats = Xs.stats,
-                                   Xs.year = Xs.year,
-                                   ys.stats = ys.stats,
-                                   zm = zm,
-                                   tic = tic,
-                                   toc = toc,
-                                   dif.time = dif.time,
-                                   Sys = Sys,
-                                   MCMC.params = MCMC.params,
-                                   g.diag = g.diag,
-                                   jm = jm)
+results.Warmon_SSAR1_month_2006To2017 <- list(data.1 = data.1,
+                                              summary.zm = summary.zm,
+                                              Xs.stats = Xs.stats,
+                                              Xs.year = Xs.year,
+                                              ys.stats = ys.stats,
+                                              zm = zm,
+                                              tic = tic,
+                                              toc = toc,
+                                              dif.time = dif.time,
+                                              Sys = Sys,
+                                              MCMC.params = MCMC.params,
+                                              g.diag = g.diag,
+                                              jm = jm)
 if (save.fig)
   ggsave(plot = p.1,
-         filename = 'figures/predicted_counts_SSAR1_month_Warmon_To2013.png',
+         filename = 'figures/predicted_counts_SSAR1_month_Warmon_2006To2017.png',
          dpi = 600)
 
 if (save.RData)
-  save(results.Warmon_SSAR1_month_To2013,
-       file = paste0('RData/SSAR1_month_Warmon_', Sys.Date(), '_To2013.RData'))
+  save(results.Warmon_SSAR1_month_2006To2017,
+       file = paste0('RData/SSAR1_month_Warmon_', Sys.Date(), '_2006To2017.RData'))
