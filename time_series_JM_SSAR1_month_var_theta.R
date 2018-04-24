@@ -12,7 +12,8 @@ save.RData <- T
 save.fig <- F
 
 MCMC.params <- list(n.chains = 3,
-                    n.iter = 50000)
+                    n.iter = 50000,
+                    n.adapt = 100000)
 
 # get JM data first:
 data.0.JM <- read.csv('data/NestCounts_JM_09Feb2018.csv')
@@ -29,7 +30,7 @@ data.1.JM$MONTH <- unlist(lapply(data.1.JM$month, FUN = mmm2month))
 
 data.1.JM %>% mutate(., f.month = as.factor(MONTH),
                      f.year = as.factor(YEAR))%>%
-  filter(YEAR > 1999) %>%
+  filter(YEAR > 2000) %>%
   mutate(Frac.Year = YEAR + (MONTH-0.5)/12) %>%
   reshape::sort_df(.,vars = "Frac.Year") -> data.2
 
@@ -51,13 +52,15 @@ bugs.data <- list(y = data.2$count,
 # }
 
 load.module('dic')
-params <- c('theta.1', 'theta.2', 'sigma.pro1', 'sigma.pro2', 'sigma.obs', 'mu')
+params <- c('theta.1', 'theta.2',
+            'sigma.pro1', 'sigma.pro2',
+            'sigma.obs', 'mu')
 
 jm <- jags.model(file = 'models/model_SSAR1_month_var_theta.txt',
                  data = bugs.data,
                  #inits = inits.function,
                  n.chains = MCMC.params$n.chains,
-                 n.adapt = MCMC.params$n.iter)
+                 n.adapt = MCMC.params$n.adapt)
 
 # check for convergence first.
 zm <- coda.samples(jm,
@@ -122,7 +125,7 @@ p.1 <- ggplot() +
 toc <- Sys.time()
 dif.time <- toc - tic
 
-results.JM_SSAR1_month <- list(data.1 = data.2,
+results.JM_SSAR1_month_var_theta <- list(data.1 = data.2,
                                bugs.data = bugs.data,
                                summary.zm = summary.zm,
                                Xs.stats = Xs.stats,
@@ -138,30 +141,30 @@ results.JM_SSAR1_month <- list(data.1 = data.2,
                                jm = jm)
 if (save.fig)
   ggsave(plot = p.1,
-         filename = 'figures/predicted_counts_JM_month_var_theta_2000.png',
+         filename = 'figures/predicted_counts_JM_month_var_theta_2001.png',
          dpi = 600)
 
 if (save.RData)
-  save(results.JM_SSAR1_month,
-       file = paste0('RData/SSAR1_month_JM_var_theta_',
-                     Sys.Date(), '_2000.RData'))
+  save(results.JM_SSAR1_month_var_theta,
+       file = paste0('RData/SSAR1_month_JM_var_theta_2001_',
+                     Sys.Date(), '.RData'))
 
 
 # plot posterior densities using bayesplot functions:
 # get the ggplot2 base theme:
 
-base_theme <- ggplot2::theme_get()
-library(bayesplot)
-
-# set back to the base theme:
-ggplot2::theme_set(base_theme)
-
-mcmc_dens(zm, c('theta.1', 'theta.2'))
-#mcmc_trace(zm, 'theta')
-#mcmc_dens(zm, 'phi1')
-#mcmc_dens(zm, 'phi2')
-#mcmc_trace(zm, 'phi2')
-mcmc_dens(zm, c('sigma.pro1', 'sigma.pro2'))
-#mcmc_dens(zm, 'sigma.pro2')
-#mcmc_trace(zm, 'sigma')
-#mcmc_dens(zm, 'sigma.obs')
+# base_theme <- ggplot2::theme_get()
+# library(bayesplot)
+#
+# # set back to the base theme:
+# ggplot2::theme_set(base_theme)
+#
+# mcmc_dens(zm, c('theta.1', 'theta.2'))
+# #mcmc_trace(zm, 'theta')
+# #mcmc_dens(zm, 'phi1')
+# #mcmc_dens(zm, 'phi2')
+# #mcmc_trace(zm, 'phi2')
+# mcmc_dens(zm, c('sigma.pro1', 'sigma.pro2'))
+# #mcmc_dens(zm, 'sigma.pro2')
+# #mcmc_trace(zm, 'sigma')
+# #mcmc_dens(zm, 'sigma.obs')

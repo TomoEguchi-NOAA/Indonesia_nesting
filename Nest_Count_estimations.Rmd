@@ -5,8 +5,8 @@ output: html_notebook
 
 This analysis tries to fill in missing nest counts data. A parametric model is fitted to years with complete data. The estimated parameters are used to fill in years without complete data. Ultimately, it aims to look at how the counts are changing over time. 
 
-```{r echo=FALSE}
-# Get data first and manipulate them:
+```{r} 
+# load some libraries and functions. 
 rm(list=ls())
 source('Dc_Indonesia_nesting_fcns.R')
 library(lme4)
@@ -19,7 +19,6 @@ library(bayesplot)
 # # set back to the base theme:
 ggplot2::theme_set(base_theme)
 
-save.fig <- F
 ```
 
 
@@ -47,14 +46,13 @@ data.1.2005.JM <- filter(data.1.JM, YEAR > 2004)
 Take a look at the data:
 
 ```{r warning=FALSE}
-p1 <- ggplot(data.1.JM) + 
+ggplot(data.1.JM) + 
   geom_point(aes(x = MONTH, y = count, color = f.year)) + 
   geom_line(aes(x = MONTH, y = count, color = f.year)) +
   scale_x_continuous(breaks = seq(1, 12, 1)) +
   labs(x = 'Month', y = '# nests')  +
   theme(axis.text = element_text(size = 12),
         text = element_text(size = 12))
-p1
 ```
 
 Take a look at the time series since 2001. 
@@ -62,7 +60,7 @@ Take a look at the time series since 2001.
 ```{r warning=FALSE}
 #data.1.JM %>% mutate(Frac.Year = YEAR + (MONTH-0.5)/12) -> data.1.JM
 data.1.JM.2001 <- filter(data.1.JM, YEAR > 2000)
-p2 <- ggplot(data.1.JM.2001) + 
+ggplot(data.1.JM.2001) + 
   geom_point(aes(x = Frac.Year, y = count)) + 
   geom_line(aes(x = Frac.Year, y = count)) +
   scale_x_continuous(breaks = seq(2000, 2018, 5),
@@ -70,18 +68,52 @@ p2 <- ggplot(data.1.JM.2001) +
   labs(x = 'Time', y = '# nests')  +
   theme(axis.text = element_text(size = 12),
         text = element_text(size = 12))
-p2
 ```
 
 Using the cyclic nature of nesting, we should be able to fit a model to fill in the missing data points. We need to make some assumptions about how data were collected, unless we have a measure of effort every year.  I ran time-series models to compare how they do in terms of filling in the missing data points. Here is a state-space approach using AR(1) process and using month as the indicator for picking one of two variances in the process. Because it takes a bit of time to run these, output has been saved as an RData file. Bring it in and make some plots here. I load results here.
 
-```{r cache=TRUE, echo=FALSE, results='hide', fig.keep='all'}
-load('RData/SSAR1_month_JM_var_theta_2018-04-09.RData')
+First, look at the model statement in JAGS language.
+```{r}
+load("RData/SSAR1_month_JM_2001_2018-04-24.RData")
+results.JM_SSAR1_month$jm
+```
 
+This dataset starts at 2001 and there are three missing values at the beginning. 
+
+```{r}
+results.JM_SSAR1_month$bugs.data
+```
+
+The MCMC run converged fine according to the Gelman diagnostic.
+
+```{r}
+results.JM_SSAR1_month$g.diag
+```
+
+Looks okay although the upper end for sigma.obs may be a bit high. The trace plot for the parameter is below.
+
+```{r}
+mcmc_trace(results.JM_SSAR1_month$zm, c("sigma.obs"))
+```
+
+For the other good behaving parameters, trace plots are much nicer. 
+```{r}
+mcmc_trace(results.JM_SSAR1_month$zm, c("mu", "sigma.pro1", "sigma.pro2"))
+```
+
+The entire posteior of sigma.obs doesn't look too bad.
+
+```{r}
+mcmc_dens(results.JM_SSAR1_month$zm, "sigma.obs")
+```
+
+Then, look at the predicted values as a time-series plot. Red is the estimated missing values and green are observed counts. 5 and 95% confidence limits are shown in dashed line. Although I called mode_X, they should have been median_X because they were 50 percentiles... oops. 
+
+```{r warning=F}
 Xs.stats <- results.JM_SSAR1_month$Xs.stats
 ys.stats <- results.JM_SSAR1_month$ys.stats
 
-p3 <- ggplot() +
+ggplot() +
   #geom_point(data = ys.stats,
   #           aes(x = time, y = mode_y), color = "blue") +
   #geom_line(data = Xs.stats,
@@ -102,23 +134,71 @@ p3 <- ggplot() +
              aes(x = time, y = obsY), color = "green",
              alpha = 0.5) +
   labs(title = '', x = '', y = "Nest counts")
-p3
+
 
 ```
 
-Let's assume this was sufficient... then we can take estimated counts and look at the long-term trend. BUT! What about those years before 2005? 
+We can also use two theta parameters for increasing and decreasing sides each year. 
+
+```{r}
+load('RData/SSAR1_month_JM_var_theta_2001_2018-04-24.RData')
+results.JM_SSAR1_month_var_theta$jm
+```
+
+Let's make sure I used the right data.
+
+```{r}
+results.JM_SSAR1_month_var_theta$bugs.data
+```
+
+
+```{r warning=F}
+Xs.stats <- results.JM_SSAR1_month_var_theta$Xs.stats
+ys.stats <- results.JM_SSAR1_month_var_theta$ys.stats
+
+ggplot() +
+  #geom_point(data = ys.stats,
+  #           aes(x = time, y = mode_y), color = "blue") +
+  #geom_line(data = Xs.stats,
+  #          aes(x = time, y = mode_X), color = 'blue') +
+  geom_line(data = Xs.stats,
+            aes(x = time, y = high_X), color = "red",
+            linetype = 2) +
+  geom_point(data = Xs.stats,
+             aes(x = time, y = mode_X), color = "red",
+             alpha = 0.5, size = 2) +
+  geom_line(data = Xs.stats,
+            aes(x = time, y = mode_X), color = "red",
+            alpha = 0.5) +
+  geom_line(data = Xs.stats,
+            aes(x = time, y = low_X), color = "red",
+            linetype = 2) +
+  geom_point(data = ys.stats,
+             aes(x = time, y = obsY), color = "green",
+             alpha = 0.5) +
+  labs(title = '', x = '', y = "Nest counts")
+
+```
+
+Confidence intervals are a bit better for the two-theta model than the one-theta model.  So, let's assume this was sufficient...  
 
 ```{r echo=FALSE}
+results.JM_SSAR1_month_var_theta$g.diag
+```
 
-load('RData/SSAR1_month_JM_var_theta_2018-04-09_2000.RData')
-
-Xs.stats <- results.JM_SSAR1_month$Xs.stats
-ys.stats <- results.JM_SSAR1_month$ys.stats
-zm <- results.JM_SSAR1_month$zm
+Convergence looks good and posteriors of standard deviations for the process (sigma.pro1 and sigma.pro2) look okay. sigma.pro1 is for May, June, July, and August. 
+```{r}
+zm <- results.JM_SSAR1_month_var_theta$zm
 
 mcmc_dens(zm, c("sigma.pro1", "sigma.pro2"))
-mcmc_dens(zm, c("theta.1", "theta.2"))
 ```
+
+```{r}
+mcmc_dens(zm, c("theta.1", "theta.2"))
+
+```
+
+theta.1 is for January through July. 
 
 Posteriors of those parameters look okay.  How about sigma.obs?
 
@@ -126,35 +206,13 @@ Posteriors of those parameters look okay.  How about sigma.obs?
 mcmc_dens(zm, "sigma.obs")
 ```
 
-NOt great but according to the Gelman diagnostic, the convergence was reached. 
-
-We now look at the time series. 
+Not great but not horrible either. Just to double check the convergence visually, look at the trace of these chains.
 
 ```{r}
-p4 <- ggplot() +
-  #geom_point(data = ys.stats,
-  #           aes(x = time, y = mode_y), color = "blue") +
-  #geom_line(data = Xs.stats,
-  #          aes(x = time, y = mode_X), color = 'blue') +
-  geom_line(data = Xs.stats,
-            aes(x = time, y = high_X), color = "red",
-            linetype = 2) +
-  geom_point(data = Xs.stats,
-             aes(x = time, y = mode_X), color = "red",
-             alpha = 0.5, size = 2) +
-  geom_line(data = Xs.stats,
-            aes(x = time, y = mode_X), color = "red",
-            alpha = 0.5) +
-  geom_line(data = Xs.stats,
-            aes(x = time, y = low_X), color = "red",
-            linetype = 2) +
-  geom_point(data = ys.stats,
-             aes(x = time, y = obsY), color = "green",
-             alpha = 0.5) +
-  labs(title = '', x = '', y = "Nest counts")
-p4
-
+mcmc_trace(zm, "sigma.obs")
 ```
+
+Not so good... but what can we do to improve? ...
 
 Sum within each year to find change in trend over the years.
 ```{r}
@@ -163,12 +221,10 @@ Xs.stats %>% #mutate(f.year = as.factor(year)) %>%
                                low = sum(low_X),
                                high = sum(high_X)) -> Xs.year
 
-p5 <- ggplot(Xs.year) + 
+ggplot(Xs.year) + 
   geom_point(aes(x = year, y = total))+
   geom_errorbar(aes(x = year, ymin = low, ymax = high)) + 
   labs(title = '', x = '', y = "Nest counts")
-p5
-
 ```
 
 Unfortunately, confidence intervals are pretty wide for the last few years because of the missing data points... Adding some older data points looks like this. These data points are from Manjula.
@@ -187,7 +243,7 @@ Manj.data <- data.frame(year = c(1984, 1985, 1993, 1994, 1995,
                        low = NA, high = NA)
 #all.data <- rbind(old.data, Xs.year)
 
-p6 <- ggplot() + 
+ggplot() + 
   geom_point(data = Xs.year,
              aes(x = year, y = total))+
   geom_errorbar(data = Xs.year,
@@ -196,7 +252,6 @@ p6 <- ggplot() +
              aes(x = year, y = total),
              color = 'red') + 
   labs(title = '', x = '', y = "Nest counts")
-p6
 
 ```
 
@@ -218,9 +273,9 @@ Identical result to the paper for JM.
 Now create a similar plot here:
 
 ```{r}
-new.data <- data.frame(year.0 = dataTo2011$year.0)
+new.data.JM <- data.frame(year.0 = dataTo2011$year.0)
 pred.JM <- predict(fitTo2011, 
-                   newdata = new.data, 
+                   newdata = new.data.JM, 
                    se.fit = T)
 
 pred.JM.df <- data.frame(year = dataTo2011$year,
@@ -228,7 +283,7 @@ pred.JM.df <- data.frame(year = dataTo2011$year,
                          se2.high = exp(pred.JM$fit + pred.JM$se.fit * 2),
                          se2.low = exp(pred.JM$fit - pred.JM$se.fit * 2))
 
-p7 <- ggplot() + 
+ggplot() + 
   geom_point(data = Xs.year,
              aes(x = year, y = total))+
   geom_errorbar(data = Xs.year,
@@ -244,7 +299,7 @@ p7 <- ggplot() +
             aes(x = year, y = se2.low)) +
 
   labs(title = '', x = '', y = "Nest counts")
-p7
+
 ```
 
 
@@ -262,10 +317,10 @@ summary(fit.all.yrs)
 As expected, the rate of decline is >6%. But, is that a fair treatment? 
 
 ```{r}
-new.data <- data.frame(year.0 = all.data$year.0)
+new.data.JM <- data.frame(year.0 = all.data$year.0)
 
 pred.JM.all <- predict(fit.all.yrs, 
-                   newdata = new.data, 
+                   newdata = new.data.JM, 
                    se.fit = T)
 
 pred.JM.all.df <- data.frame(year = all.data$year,
@@ -273,7 +328,7 @@ pred.JM.all.df <- data.frame(year = all.data$year,
                          se2.high = exp(pred.JM.all$fit + pred.JM.all$se.fit * 2),
                          se2.low = exp(pred.JM.all$fit - pred.JM.all$se.fit * 2))
 
-p8 <- ggplot() + 
+ggplot() + 
   geom_point(data = all.data,
              aes(x = year, y = total))+
   geom_errorbar(data = all.data,
@@ -289,19 +344,17 @@ p8 <- ggplot() +
             aes(x = year, y = se2.low)) +
 
   labs(title = '', x = '', y = "Nest counts")
-p8
 ```
-
 
 What does a GAM say?
 
 ```{r}
-library(mgcv)
+
 fit.gam.JM <- gam(total ~ s(year.0), 
                  data = all.data)
 sum.gam.JM <- summary(fit.gam.JM)
 sum.gam.JM
-#plot(fit.gam.1)
+
 ```
 
 Estimated degrees of freedom (edf) is about 1, indicating a linear fit may be sufficient. But... what "sufficient" is not very interesting. Take a look at the GAM fit.
@@ -352,42 +405,49 @@ fit.lm.2013 <- lm(log(total) ~ year.0, data = dataSince2013)
 summary(fit.lm.2013)
 ```
 
-The estimated annual rate of increase is >18%. If we incorporate the uncertainty in these estimates, we can extract the posterior samples and compute the range of slopes.
+The estimated annual rate of increase is >20%. If we incorporate the uncertainty in these estimates, we can extract the posterior samples and compute the range of slopes.
 
 ```{r}
-post.samples <- results.JM_SSAR1_month$zm
-X23.2013 <- extract.samples(post.samples, 'X[23]')
-X24.2014 <- extract.samples(post.samples, 'X[24]')
-X25.2015 <- extract.samples(post.samples, 'X[25]')
-X26.2016 <- extract.samples(post.samples, 'X[26]')
-X27.2017 <- extract.samples(post.samples, 'X[27]')
+# extract.samples is a function in TomosFnctions.R
+X23.2013 <- extract.samples(zm, 'X[23]')
+X24.2014 <- extract.samples(zm, 'X[24]')
+X25.2015 <- extract.samples(zm, 'X[25]')
+X26.2016 <- extract.samples(zm, 'X[26]')
+X27.2017 <- extract.samples(zm, 'X[27]')
 
 Xs <- cbind(X23.2013, X24.2014, X25.2015, X26.2016, X27.2017)
 
-index <- purrr::rdunif(n = 1000, a = 1, b = length(X23.2013))
+index <- seq(1, nrow(Xs), by = nrow(Xs)/1000) 
 
 Xs.samples <- Xs[index,]
 
 fit.all <- apply(Xs.samples, MARGIN = 1, 
                  FUN = function(x) {df <- data.frame(total = x,
-                                                    year = 0:4)
+                                                     year = 0:4)
                  fit.1 <- lm(log(total) ~ year, data = df)
                  return(fit.1$coefficients[2])})
 
 fit.all.df <- data.frame(slope = fit.all)
 
-qtiles <- quantile(fit.all, 
-                   probs = c(0.05, 0.25, 0.5, 0.75, 0.95))
+p.pos <- length(fit.all.df$slope[fit.all.df$slope > 0])/length(fit.all)
+# qtiles <- quantile(fit.all, 
+#                    probs = c(0.05, 0.25, 0.5, 0.75, 0.95))
 
 ggplot(data = fit.all.df) + 
   geom_histogram(aes(x = slope),
-                 binwidth = 0.1) #+ 
-  #geom_vline(xintercept = qtiles, color = 'red')
+                 binwidth = 0.1) 
 ```
 
-So, it is more likely that the slope is positive - BUT the uncertainty is exaggerated so the picture is not as rosy as it seems in this plot. 
+So, it is more likely that the slope is positive (p = ```r p.pos```) - BUT the uncertainty is exaggerated so the picture is not as rosy as it seems in this plot. 
 
 #Warmon
+```{r}
+rm(list=ls())
+source('Dc_Indonesia_nesting_fcns.R')
+
+```
+
+
 ```{r}
 data.0.W <- read.csv('data/NestCounts_Warmon_27March2018.csv')
 
@@ -416,14 +476,14 @@ We see a lot of missing values between the mid 2013 and 2016. That's a tough one
 
 
 ```{r warning=FALSE}
-p1 <- ggplot(data.1.W) + 
+ggplot(data.1.W) + 
   geom_point(aes(x = MONTH, y = count, color = f.year)) + 
   geom_line(aes(x = MONTH, y = count, color = f.year)) +
   scale_x_continuous(breaks = seq(1, 12, 1)) +
   labs(x = 'Month', y = '# nests')  +
   theme(axis.text = element_text(size = 12),
         text = element_text(size = 12))
-p1
+
 ```
 
 There are summer and winter peaks: higher values are found between May and September, and between October and April. 2004 and 2005 seem to be outliers with respect to within-year trend. 
@@ -468,9 +528,26 @@ Xs.stats.W <- results.Warmon_SSAR1_month_To2013$Xs.stats
 ys.stats.W <- results.Warmon_SSAR1_month_To2013$ys.stats
 # Gelman-diagnostic seems okay.
 #results.Warmon_SSAR1_month_To2013$g.diag
+```
 
+The model is the same as before with one theta and two process taus, where tau.pro1 is for March, April, September and October and tau.pro2 is for the rest. These two groups correspond to high and low numbers, respectively. 
+
+```{r}
+results.Warmon_SSAR1_month_To2013$jm
+```
+
+The posterior of sigma.pro1 and sigma.pro2 look like these:
+
+```{r}
 mcmc_dens(zm.W, c("sigma.pro1", "sigma.pro2"))
 ```
+
+And the trace.
+
+```{r}
+mcmc_trace(zm.W, c("sigma.pro1", "sigma.pro2"))
+```
+
 
 Then look at the series. 
 ```{r}
@@ -506,7 +583,24 @@ load("RData/SSAR1_month_Warmon_2018-04-23_2006To2013.RData")
 zm.W2 <- results.Warmon_SSAR1_month_2006To2013$zm
 Xs.stats.W2 <- results.Warmon_SSAR1_month_2006To2013$Xs.stats
 ys.stats.W2 <- results.Warmon_SSAR1_month_2006To2013$ys.stats
+```
 
+Make sure the model is still the same.
+
+```{r}
+results.Warmon_SSAR1_month_2006To2013$jm
+```
+
+Gelman diagnostic:
+
+```{r}
+results.Warmon_SSAR1_month_2006To2013$g.diag
+```
+
+
+And the posteriors of process standard deviations.
+
+```{r}
 mcmc_dens(zm.W2, c("sigma.pro1", "sigma.pro2"))
 ```
 
@@ -544,18 +638,33 @@ ggplot() +
         text = element_text(size = 12))
 ```
 
-Now, how about removing the first two years and include the two and a half years of missing data? 
+Now, how about including the two and a half years of missing data and more recent data? 
 
 ```{r}
 load("RData/SSAR1_month_Warmon_2018-04-23_2006To2017.RData")
 zm.W3 <- results.Warmon_SSAR1_month_2006To2017$zm
 Xs.stats.W3 <- results.Warmon_SSAR1_month_2006To2017$Xs.stats
 ys.stats.W3 <- results.Warmon_SSAR1_month_2006To2017$ys.stats
+```
 
+Check to see the model is still the same:
+
+```{r}
+results.Warmon_SSAR1_month_2006To2017$jm
+```
+
+Then the convergence
+```{r}
+results.Warmon_SSAR1_month_2006To2017$g.diag
+```
+
+Posteriors on process standard deviations.
+
+```{r}
 mcmc_dens(zm.W3, c("sigma.pro1", "sigma.pro2"))
 ```
 
-Convergence was reached according to the Gelman diagnostic. The posterior of the SD of observation model seems okay.
+The posterior of the SD of observation model seems okay.
 
 ```{r}
 mcmc_dens(zm.W3, "sigma.obs")
