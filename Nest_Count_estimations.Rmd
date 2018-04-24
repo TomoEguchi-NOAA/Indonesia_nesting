@@ -297,14 +297,40 @@ What does a GAM say?
 
 ```{r}
 library(mgcv)
-fit.gam.1 <- gam(log(total) ~ s(year.0), 
+fit.gam.JM <- gam(total ~ s(year.0), 
                  data = all.data)
-summary(fit.gam.1)
+sum.gam.JM <- summary(fit.gam.JM)
+sum.gam.JM
 #plot(fit.gam.1)
 ```
 
-Estimated degrees of freedom (edf) is about 1, indicating a linear fit may be sufficient. But... what "sufficient" is not very interesting. So, we go fishing. Take a look at the data in the log space first.
+Estimated degrees of freedom (edf) is about 1, indicating a linear fit may be sufficient. But... what "sufficient" is not very interesting. Take a look at the GAM fit.
 
+```{r}
+gam.val.JM <- plot(fit.gam.JM)
+gam.val.JM.df <- data.frame(x = gam.val.JM[[1]]$x,
+                         fit = gam.val.JM[[1]]$fit,
+                         se = gam.val.JM[[1]]$se)
+
+all.data %>% mutate(log.total = log(total)) %>%
+  mutate(log.total.std = log(total) - mean(log(total), na.rm = T)) %>%
+  mutate(total.std = total - mean(total, na.rm = T)) -> all.data
+
+ggplot() + 
+  geom_line(data = gam.val.JM.df,
+            aes(x = x+1984, y = fit)) + 
+  geom_line(data = gam.val.JM.df,
+            aes(x = x+1984, y = fit + se), linetype = 2) + 
+  geom_line(data = gam.val.JM.df,
+            aes(x = x+1984, y = fit - se), linetype = 2) + 
+  geom_point(data = all.data,
+             aes(x = year, y = total.std),
+             color = 'red') + 
+  labs(title = '', x = '', 
+       y = paste0('GAM(', signif(sum.gam.JM$edf, digits = 3), ')'))
+```
+
+Take a look at the data in the log space.
 ```{r}
 ggplot() + 
   geom_point(data = all.data,
@@ -682,7 +708,7 @@ ggplot() +
 What does a GAM say?
 
 ```{r}
-fit.gam.W <- gam(log(total) ~ s(year.0), 
+fit.gam.W <- gam(total ~ s(year.0), 
                  data = dataTo2017.W)
 sum.gam.W <- summary(fit.gam.W)
 sum.gam.W
@@ -698,7 +724,8 @@ gam.val.W.df <- data.frame(x = gam.val.W[[1]]$x,
                          se = gam.val.W[[1]]$se)
 
 Xs.year.W3 %>% mutate(log.total = log(total)) %>%
-  mutate(log.total.std = log(total) - mean(log(total), na.rm = T)) -> Xs.year.W3
+  mutate(log.total.std = log(total) - mean(log(total), na.rm = T)) %>%
+  mutate(total.std = total - mean(total, na.rm = T)) -> Xs.year.W3
 
 ggplot() + 
   geom_line(data = gam.val.W.df,
@@ -708,7 +735,7 @@ ggplot() +
   geom_line(data = gam.val.W.df,
             aes(x = x+2004, y = fit - se), linetype = 2) + 
   geom_point(data = Xs.year.W3,
-             aes(x = year, y = log.total.std),
+             aes(x = year, y = total.std),
              color = 'red') + 
   labs(title = '', x = '', 
        y = paste0('GAM(', signif(sum.gam.W$edf, digits = 3), ')'))
