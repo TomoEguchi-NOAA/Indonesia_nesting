@@ -74,7 +74,7 @@ Using the cyclic nature of nesting, we should be able to fit a model to fill in 
 
 First, look at the model statement in JAGS language.
 ```{r}
-load("RData/SSAR1_month_JM_2001_2018-04-24.RData")
+load("RData/SSAR1_month_JM_2001_2018-04-25.RData")
 results.JM_SSAR1_month$jm
 ```
 
@@ -141,7 +141,7 @@ ggplot() +
 We can also use two theta parameters for increasing and decreasing sides each year. 
 
 ```{r}
-load('RData/SSAR1_month_JM_var_theta_2001_2018-04-24.RData')
+load('RData/SSAR1_month_JM_var_theta_2001_2018-04-25.RData')
 results.JM_SSAR1_month_var_theta$jm
 ```
 
@@ -378,7 +378,7 @@ ggplot() +
             aes(x = x+1984, y = fit - se), linetype = 2) + 
   geom_point(data = all.data,
              aes(x = year, y = total.std),
-             color = 'red') + 
+             color = 'black') + 
   labs(title = '', x = '', 
        y = paste0('GAM(', signif(sum.gam.JM$edf, digits = 3), ')'))
 ```
@@ -438,7 +438,7 @@ ggplot(data = fit.all.df) +
                  binwidth = 0.1) 
 ```
 
-So, it is more likely that the slope is positive (p = ```r p.pos```) - BUT the uncertainty is exaggerated so the picture is not as rosy as it seems in this plot. 
+So, it is more likely that the slope is positive - BUT the uncertainty is exaggerated so the picture is not as rosy as it seems in this plot. 
 
 #Warmon
 ```{r}
@@ -522,7 +522,7 @@ ggplot(data.1.W) +
 Because of the large number of missing data, I fit time-series models up to 2014 (six missing values in 2013). First, fit the entire data up to 2014 using two variance terms; one for March, April, September and October and another for the rest.
 
 ```{r}
-load("RData/SSAR1_month_Warmon_2018-04-23_To2013.RData")
+load("RData/SSAR1_month_Warmon_2018-04-25_To2013.RData")
 zm.W <- results.Warmon_SSAR1_month_To2013$zm
 Xs.stats.W <- results.Warmon_SSAR1_month_To2013$Xs.stats
 ys.stats.W <- results.Warmon_SSAR1_month_To2013$ys.stats
@@ -535,6 +535,13 @@ The model is the same as before with one theta and two process taus, where tau.p
 ```{r}
 results.Warmon_SSAR1_month_To2013$jm
 ```
+
+And data are here:
+
+```{r}
+results.Warmon_SSAR1_month_To2013$bugs.data
+```
+
 
 The posterior of sigma.pro1 and sigma.pro2 look like these:
 
@@ -579,7 +586,7 @@ ggplot() +
 Seemed to fit fairly well. Now, take out 2004 and 2005 and see how that fits.
 
 ```{r}
-load("RData/SSAR1_month_Warmon_2018-04-23_2006To2013.RData")
+load("RData/SSAR1_month_Warmon_2018-04-25_2006To2013.RData")
 zm.W2 <- results.Warmon_SSAR1_month_2006To2013$zm
 Xs.stats.W2 <- results.Warmon_SSAR1_month_2006To2013$Xs.stats
 ys.stats.W2 <- results.Warmon_SSAR1_month_2006To2013$ys.stats
@@ -591,12 +598,16 @@ Make sure the model is still the same.
 results.Warmon_SSAR1_month_2006To2013$jm
 ```
 
+And the data:
+```{r}
+results.Warmon_SSAR1_month_2006To2013$bugs.data
+```
+
 Gelman diagnostic:
 
 ```{r}
 results.Warmon_SSAR1_month_2006To2013$g.diag
 ```
-
 
 And the posteriors of process standard deviations.
 
@@ -641,7 +652,7 @@ ggplot() +
 Now, how about including the two and a half years of missing data and more recent data? 
 
 ```{r}
-load("RData/SSAR1_month_Warmon_2018-04-23_2006To2017.RData")
+load("RData/SSAR1_month_Warmon_2018-04-25_2006To2017.RData")
 zm.W3 <- results.Warmon_SSAR1_month_2006To2017$zm
 Xs.stats.W3 <- results.Warmon_SSAR1_month_2006To2017$Xs.stats
 ys.stats.W3 <- results.Warmon_SSAR1_month_2006To2017$ys.stats
@@ -652,6 +663,12 @@ Check to see the model is still the same:
 ```{r}
 results.Warmon_SSAR1_month_2006To2017$jm
 ```
+
+And the data:
+```{r}
+results.Warmon_SSAR1_month_2006To2017$bugs.data
+```
+
 
 Then the convergence
 ```{r}

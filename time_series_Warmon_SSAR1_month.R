@@ -29,6 +29,7 @@ data.1 <- mutate(data.1, f.month = as.factor(MONTH),
                     f.year = as.factor(YEAR))%>%
   #filter(YEAR < 2014 & YEAR > 2005) %>%
   filter(YEAR > 2005) %>%
+  #filter(YEAR < 2014) %>%
   mutate(Frac.Year = YEAR + (MONTH-0.5)/12) %>%
   reshape::sort_df(.,vars = "Frac.Year")
 
@@ -134,6 +135,7 @@ toc <- Sys.time()
 dif.time <- toc - tic
 
 results.Warmon_SSAR1_month_2006To2017 <- list(data.1 = data.1,
+                                              bugs.data = bugs.data,
                                               summary.zm = summary.zm,
                                               Xs.stats = Xs.stats,
                                               Xs.year = Xs.year,
