@@ -48,7 +48,7 @@ inits.function <- function(){
 }
 
 load.module('dic')
-params <- c('theta', 'sigma.pro1', 'sigma.pro2',
+params <- c('theta', 'sigma.pro1', 'sigma.pro2', 
             'sigma.obs', 'mu', "predY")
 
 jm <- jags.model(file = 'models/model_SSAR1_month.txt',
@@ -129,10 +129,10 @@ dif.time <- toc - tic
 
 if (save.fig)
   ggsave(plot = p.1,
-         filename = 'figures/predicted_counts_SSAR1month_JM.png',
+         filename = 'figures/predicted_counts_JM.png',
          dpi = 600)
 
 if (save.RData)
   save(data.1.JM.2005, summary.zm, Xs.stats, Xs.year, ys.stats, zm,
-       tic, toc, dif.time, Sys, MCMC.params, g.diag, jm,
+       tic, toc, dif.time, Sys, MCMC.params, g.diag,
        file = paste0('RData/SSAR1_month_', Sys.Date(), '.RData'))
