@@ -3,9 +3,9 @@ title: "Nest estimations"
 output: html_notebook
 ---
 
-This analysis tries to fill in missing nest counts data. A parametric model is fitted to years with complete data. The estimated parameters are used to fill in years without complete data. Ultimately, it aims to look at how the counts are changing over time. 
+This analysis estimates trends of leatherback turtle nests at two Indonesia nesting beaches (Jamursba-Medi and Warmon) using the annual nest counts. Raw data for the analysis are the recorded number of nests per month. Missing data are imputed using auto-regressive time-series analysis. A few models are used to compare performance of imputation and one with the narrowest prediction (imputation) intervals is used for the final analysis. 
 
-```{r} 
+```{r echo=FALSE} 
 # load some libraries and functions. 
 rm(list=ls())
 source('Dc_Indonesia_nesting_fcns.R')
@@ -23,6 +23,7 @@ ggplot2::theme_set(base_theme)
 
 
 #Jamursba-Medi
+First, data for Jamursba-Medi are analyzed.  
 ```{r}
 # get JM data first:
 data.0.JM <- read.csv('data/NestCounts_JM_09Feb2018.csv')
@@ -38,7 +39,11 @@ data.1.JM <- mutate(data.1.JM, f.month = as.factor(MONTH),
                     f.year = as.factor(YEAR))  %>%
   mutate(Frac.Year = YEAR + (MONTH-0.5)/12) %>%
   reshape::sort_df(.,vars = "Frac.Year")
+```
 
+Raw data 
+
+```{r}
 data.1.2005.JM <- filter(data.1.JM, YEAR > 2004)
 
 ```
