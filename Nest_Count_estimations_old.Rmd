@@ -1,0 +1,304 @@
+---
+title: "Nest estimations"
+output: html_notebook
+---
+
+<<<<<<< HEAD
+This analysis estimates trends of leatherback turtle nests at two Indonesia nesting beaches (Jamursba-Medi and Warmon) using the annual nest counts. Raw data for the analysis are the recorded number of nests per month. Missing data are imputed using auto-regressive time-series analysis. A few models are used to compare performance of imputation and one with the narrowest prediction (imputation) intervals is used for the final analysis. 
+
+# load some libraries and functions. 
+
+This analysis tries to fill in missing nest counts data. A parametric model is fitted to years with complete data. The estimated parameters are used to fill in years without complete data.
+
+```{r}
+# Get data first and manipulate them:
+rm(list=ls())
+source('Dc_Indonesia_nesting_fcns.R')
+library(lme4)
+library(mgcv)
+library(rjags)
+library(bayesplot)
+save.fig <- F
+```
+
+#Jamursba-Medi
+First, data for Jamursba-Medi are analyzed.  
+```{r}
+# get JM data first:
+data.0.JM <- read.csv('data/NestCounts_JM_09Feb2018.csv')
+
+# create time-duration filed (in yrs)
+# define dates with begin and end dates:
+data.0.JM %>% reshape2::melt(id.vars = "YEAR", 
+                             variable.name = "month",
+                             value.name = "count") -> data.1.JM
+data.1.JM$MONTH <- unlist(lapply(data.1.JM$month, FUN = mmm2month))
+
+data.1.JM <- mutate(data.1.JM, f.month = as.factor(MONTH),
+                    f.year = as.factor(YEAR))  %>%
+  mutate(Frac.Year = YEAR + (MONTH-0.5)/12) %>%
+  reshape::sort_df(.,vars = "Frac.Year")
+```
+
+Raw data 
+
+```{r}
+data.1.2005.JM <- filter(data.1.JM, YEAR > 2004)
+
+```
+
+Take a look at the data:
+
+
+```{r warning=FALSE}
+p1 <- ggplot(data.1.JM) + 
+  geom_point(aes(x = MONTH, y = count, color = f.year)) + 
+  geom_line(aes(x = MONTH, y = count, color = f.year)) +
+  scale_x_continuous(breaks = seq(1, 12, 1)) +
+  labs(x = 'Month', y = '# nests')  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+p1
+```
+
+Take a look at the time series since 2001, and for JM only. 
+
+```{r warning=FALSE}
+#data.1.JM %>% mutate(Frac.Year = YEAR + (MONTH-0.5)/12) -> data.1.JM
+data.1.JM.2001 <- filter(data.1.JM, YEAR > 2000)
+p2 <- ggplot(data.1.JM.2001) + 
+  geom_point(aes(x = Frac.Year, y = count)) + 
+  geom_line(aes(x = Frac.Year, y = count)) +
+  scale_x_continuous(breaks = seq(2000, 2018, 5),
+                     limits = c(2000, 2018)) +
+  labs(x = 'Time', y = '# nests')  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+p2
+```
+
+Using the cyclic nature of nesting, we should be able to fit a model to fill in the missing data points. We need to make some assumptions about how data were collected, unless we have a measure of effort every year. 
+
+```{r cache=TRUE, echo=TRUE, results='hide', fig.keep='all'}
+# run a Bayesian AR1
+n.chains <- 3
+n.iter <- 10000
+n.update <- 10000
+
+data.1.JM.2005 <- filter(data.1.JM, YEAR > 2004)
+
+bugs.data <- list(y = data.1.JM.2005$count,
+                  T = 156)
+load.module('dic')
+load.module('glm')
+inits.function <- function(){
+  #eps <- rnorm(1, 0, 100)
+  theta <- rnorm(1, 0, 100)
+  c <- rnorm(1, 0, 100)
+  A <- list(theta = theta, c = c)
+  return(A)
+}
+
+#inits.list <- vector(mode = 'list', length = n.chains)
+# inits.values <- lapply(inits.list, 
+#                        FUN = inits.function)
+
+jm <- jags.model(file = 'models/model_AR1.txt',
+                 data = bugs.data,
+                 inits = inits.function,
+                 n.chains = n.chains,
+                 n.adapt = n.iter)
+
+params <- c('c', 'theta', 'sigma', 'y', 'deviance')
+
+zm <- coda.samples(jm,
+                   variable.names = params,
+                   n.iter = n.iter)
+
+# these should be done without pulling out ys - not meaningful with ys
+# gelman.diag(zm)
+# plot(zm)
+summary.zm <- summary(zm)
+
+# extract ys
+ys.stats <- data.frame(summary.zm$quantiles[grep(pattern = 'y[/[]',
+                                                 row.names(summary.zm$quantiles)),
+                                            c('2.5%', '50%', '97.5%')])
+
+colnames(ys.stats) <- c('lowN', 'modeN', 'highN')
+ys.stats$time <- data.1.JM.2005$Frac.Year
+
+p3 <- ggplot() + 
+  geom_point(data = data.1.JM.2005,
+             aes(x = Frac.Year, y = count),
+             size = 2) + 
+  geom_line(data = data.1.JM.2005,
+            aes(x = Frac.Year, y = count),
+            size = 2) +
+  geom_point(data = ys.stats,
+             aes(x = time, y = modeN),
+             color = 'red') + 
+  geom_line(data = ys.stats,
+            aes(x = time, y = modeN),
+            color = 'red') + 
+  
+  scale_x_continuous(breaks = seq(2004, 2018, 5),
+                     limits = c(2004, 2018)) +
+  labs(x = 'Time', y = '# nests')  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+p3
+
+```
+
+This, however, puts CIs of estimated observations negative, which is not really good. So, an alternative maybe to put lower bound on ys. Here is another look. 
+
+```{r}
+jm <- jags.model(file = 'models/model_AR1_Trunc.txt',
+                 data = bugs.data,
+                 n.chains = n.chains,
+                 n.adapt = n.iter)
+
+params <- c('c', 'theta', 'sigma')
+zm <- coda.samples(jm,
+                   variable.names = params,
+                   n.iter = n.iter)
+
+# these should be done without pulling out ys - not meaningful with ys
+gelman.diag(zm)
+
+mcmc_dens(zm, 'c')
+mcmc_dens(zm, 'theta')
+mcmc_dens(zm, 'sigma')
+            
+params <- c('c', 'theta', 'sigma', 'y', 'deviance')
+zm <- coda.samples(jm,
+                   variable.names = params,
+                   n.iter = n.iter)
+
+# plot(zm)
+summary.zm <- summary(zm)
+
+# extract ys
+ys.stats <- data.frame(summary.zm$quantiles[grep(pattern = 'y[/[]',
+                                                 row.names(summary.zm$quantiles)),
+                                            c('2.5%', '50%', '97.5%')])
+
+colnames(ys.stats) <- c('lowN', 'modeN', 'highN')
+ys.stats$time <- data.1.JM.2005$Frac.Year
+
+p3 <- ggplot() + 
+  geom_point(data = data.1.JM.2005,
+             aes(x = Frac.Year, y = count),
+             size = 2) + 
+  geom_line(data = data.1.JM.2005,
+            aes(x = Frac.Year, y = count),
+            size = 2) +
+  geom_point(data = ys.stats,
+             aes(x = time, y = modeN),
+             color = 'red') + 
+  geom_line(data = ys.stats,
+            aes(x = time, y = modeN),
+            color = 'red') + 
+  geom_line(data = ys.stats,
+            aes(x = time, y = highN),
+            color = 'red', linetype = 2) +
+  scale_x_continuous(breaks = seq(2004, 2018, 5),
+                     limits = c(2004, 2018)) +
+  labs(x = 'Time', y = '# nests')  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+p3
+
+```
+
+But... the confidence intervals for the winter time are just to high! There is only one variance term and it includes the entire year so summer and winter variability is not considered separately. To do that... we need to add another variance term in the model. Why not move on to the Bayesian...?
+
+Here is a state-space approach using AR(1) process and using month as the indicator for picking one of two variances in the process.
+
+```{r}
+n.chains <- 5
+n.iter <- 50000
+n.update <- 10000
+
+# add month to the data
+bugs.data <- list(y = data.1.JM.2005$count,
+                  m = data.1.JM.2005$MONTH,
+                  T = 156)
+
+inits.function <- function(){
+  mu <- rnorm(1, 0, 10)
+  theta <- rnorm(1, 0, 1)
+  phi <- rnorm(1, 0, 1)
+  A <- list(mu = mu, theta = theta) 
+  return(A)
+}
+
+params <- c('theta', 'sigma.pro1', 'sigma.pro2', 'sigma.obs', 'mu')
+#load.module('glm')
+jm <- jags.model(file = 'models/model_SSAR1_month.txt',
+                 data = bugs.data,
+                 inits = inits.function,
+                 n.chains = n.chains,
+                 n.adapt = n.iter)
+
+# check for convergence first.
+zm <- coda.samples(jm,
+                   variable.names = params,
+                   n.iter = n.iter)
+gelman.diag(zm)
+
+# plot posterior densities using bayesplot functions:
+mcmc_dens(zm, 'theta')
+#mcmc_trace(zm, 'theta')
+mcmc_dens(zm, 'sigma.pro1')
+mcmc_dens(zm, 'sigma.pro2')
+mcmc_dens(zm, 'sigma.obs')
+
+# then sample y and X
+params <- c('theta', 'sigma.pro1', 'sigma.pro2', 
+            'sigma.obs', 'y', 'X', 'deviance')
+zm <- coda.samples(jm,
+                   variable.names = params,
+                   n.iter = n.iter)
+
+summary.zm <- summary(zm)
+
+# extract ys
+ys.stats <- data.frame(summary.zm$quantiles[grep(pattern = 'y[/[]',
+                                                 row.names(summary.zm$quantiles)),
+                                            c('2.5%', '50%', '97.5%')])
+colnames(ys.stats) <- c('low_y', 'mode_y', 'high_y')
+ys.stats$time <- data.1.JM.2005$Frac.Year
+ys.stats$obsY <- data.1.JM.2005$count
+
+# extract Xs - the state model
+Xs.stats <- data.frame(summary.zm$quantiles[grep(pattern = 'X[/[]',
+                                                 row.names(summary.zm$quantiles)),
+                                            c('2.5%', '50%', '97.5%')])
+colnames(Xs.stats) <- c('low_X', 'mode_X', 'high_X')
+Xs.stats$time <- data.1.JM.2005$Frac.Year
+Xs.stats$obsY <- data.1.JM.2005$count
+
+ggplot() +
+  geom_point(data = Xs.stats,
+             aes(x = time, y = mode_X), color = "blue") +
+  geom_line(data = Xs.stats,
+            aes(x = time, y = mode_X), color = 'blue') +
+  geom_line(data = Xs.stats,
+            aes(x = time, y = high_X), color = "blue", 
+            linetype = 2) +
+  geom_point(data = Xs.stats,
+             aes(x = time, y = mode_X), color = "red",
+             alpha = 0.5) + 
+  geom_line(data = Xs.stats,
+            aes(x = time, y = mode_X), color = "red",
+            alpha = 0.5) + 
+  geom_point(data = ys.stats,
+             aes(x = time, y = obsY), color = "green",
+             alpha = 0.5) 
+
+#save(zm, summary.zm, ys.stats, Xs.stats, data.1.JM.2005, 
+#     file = 'RData/SSAR1_month.RData')
+```
+
