@@ -12,7 +12,3 @@ library(ggplot2)
 library(tidyverse)
 library(lubridate)
 
-<<<<<<< HEAD
-
-=======
->>>>>>> 4155afc94bd60aa33f9c5a579a306f02e1173e7e
