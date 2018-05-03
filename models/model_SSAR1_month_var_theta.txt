@@ -5,17 +5,20 @@
 
 # Also can be found here:
 # https://nwfsc-timeseries.github.io/atsa-labs/sec-jags-uss.html
+#
+# For this model, I added another theta. Two thetas are used for increasing
+# and decreasing months within each year. 
 
 model{
 	for (t in 2:T){
 		# process
-        predX[t] <- theta * X[t-1]
-        # one variance for Mar, Apr, Sep, and Oct and another for others
-        tau.pro[t] <- ifelse(m[t] == 3 || m[t] == 4 || m[t] == 9 || m[t] == 10, tau.pro1, tau.pro2)
+        theta[t] <- ifelse(m[t] < 8, theta.1, theta.2)
+        predX[t] <- theta[t] * X[t-1]
+
+        tau.pro[t] <- ifelse(m[t] < 10 && m[t] > 4, tau.pro1, tau.pro2)
         X[t] ~ dnorm(predX[t], tau.pro[t])T(0,)
 
-		# observation - not sure wht this predY does... shouldn't this be
-        # the same as X[t]? 
+		# observation
 		predY[t] <- X[t]
 		y[t] ~ dnorm(X[t], tau.obs)T(0,)
     }
@@ -26,13 +29,13 @@ model{
 
     mu ~ dnorm(0, 0.01)
     #tau.pro1 ~ scaled.gamma(100, 2)
-    sigma.pro1 ~ dunif(0, 200)
+    sigma.pro1 ~ dunif(0, 600)
     tau.pro1 <- 1/(sigma.pro1 * sigma.pro1)
     #sigma.pro1 <- 1/sqrt(tau.pro1)
 
     #tau.pro2 ~ dscaled.gamma(50, 2)
     #sigma.pro2 <- 1/sqrt(ta.pro2)
-    sigma.pro2 ~ dunif(0, 200)
+    sigma.pro2 ~ dunif(0, 100)
     tau.pro2 <- 1/(sigma.pro2 * sigma.pro2)
 
     #tau.obs ~ dscaled.gamma(10, 2)
@@ -40,7 +43,6 @@ model{
     sigma.obs ~ dunif(0, 100)
     tau.obs <- 1/(sigma.obs * sigma.obs)
 
-    theta ~  dnorm(0, 10)
-    #phi1 ~ dnorm(0, 1)
-    #phi2 ~ dnorm(0, 10)
+    theta.1 ~ dnorm(0, 10)
+    theta.2 ~ dnorm(0, 10)
 }

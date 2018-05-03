@@ -10,7 +10,7 @@ library(rjags)
 library(bayesplot)
 
 save.RData <- T
-save.fig <- F
+save.fig <- T
 
 MCMC.params <- list(n.chains = 3,
                     n.iter = 50000,
@@ -27,18 +27,12 @@ data.1$MONTH <- unlist(lapply(data.1$month, FUN = mmm2month))
 
 data.1 <- mutate(data.1, f.month = as.factor(MONTH),
                     f.year = as.factor(YEAR))%>%
-  #filter(YEAR < 2014 & YEAR > 2005) %>%
-  filter(YEAR > 2005) %>%
-  #filter(YEAR < 2014) %>%
+  filter(YEAR < 2014) %>%
   mutate(Frac.Year = YEAR + (MONTH-0.5)/12) %>%
   reshape::sort_df(.,vars = "Frac.Year")
 
 bugs.data <- list(y = data.1$count,
-                  m = data.1$MONTH,
                   T = nrow(data.1))
-
-# bugs.data <- list(y = data.1$count,
-#                   T = 168)
 
 inits.function <- function(){
   mu <- rnorm(1, 0, 10)
@@ -52,10 +46,10 @@ inits.function <- function(){
 }
 
 load.module('dic')
-params <- c('theta', 'sigma.pro1', 'sigma.pro2',
-            'sigma.obs')
+params <- c('theta', 'sigma.pro',
+            'sigma.obs', 'mu')
 
-jm <- jags.model(file = 'models/model_SSAR1_month_Warmon.txt',
+jm <- jags.model(file = 'models/model_SSAR1.txt',
                  data = bugs.data,
                  #inits = inits.function,
                  n.chains = MCMC.params$n.chains,
@@ -112,9 +106,6 @@ p.1 <- ggplot() +
   geom_line(data = Xs.stats,
             aes(x = time, y = high_X), color = "red",
             linetype = 2) +
-  geom_line(data = Xs.stats,
-            aes(x = time, y = low_X), color = "red",
-            linetype = 2) +
   geom_point(data = Xs.stats,
              aes(x = time, y = mode_X), color = "red",
              alpha = 0.5) +
@@ -126,33 +117,30 @@ p.1 <- ggplot() +
              alpha = 0.5)+
   geom_line(data = ys.stats,
              aes(x = time, y = obsY), color = "green",
-             alpha = 0.5) +
-  labs(x = '', y = '# nests')  +
-  theme(axis.text = element_text(size = 12),
-        text = element_text(size = 12))
+             alpha = 0.5)
 
 toc <- Sys.time()
 dif.time <- toc - tic
 
-results.Warmon_SSAR1_month_2006To2017 <- list(data.1 = data.1,
-                                              bugs.data = bugs.data,
-                                              summary.zm = summary.zm,
-                                              Xs.stats = Xs.stats,
-                                              Xs.year = Xs.year,
-                                              ys.stats = ys.stats,
-                                              zm = zm,
-                                              tic = tic,
-                                              toc = toc,
-                                              dif.time = dif.time,
-                                              Sys = Sys,
-                                              MCMC.params = MCMC.params,
-                                              g.diag = g.diag,
-                                              jm = jm)
+results.Warmon_SSAR1 <- list(data.1 = data.1,
+                             summary.zm = summary.zm,
+                             Xs.stats = Xs.stats,
+                             Xs.year = Xs.year,
+                             ys.stats = ys.stats,
+                             jm = jm,
+                             zm = zm,
+                             tic = tic,
+                             toc = toc,
+                             dif.time = dif.time,
+                             Sys = Sys,
+                             MCMC.params = MCMC.params,
+                             g.diag = g.diag)
+
 if (save.fig)
   ggsave(plot = p.1,
-         filename = 'figures/predicted_counts_SSAR1_month_Warmon_2006To2017.png',
+         filename = 'figures/predicted_counts_SSAR1_Warmon.png',
          dpi = 600)
 
 if (save.RData)
-  save(results.Warmon_SSAR1_month_2006To2017,
-       file = paste0('RData/SSAR1_month_Warmon_', Sys.Date(), '_2006To2017.RData'))
+  save(results.Warmon_SSAR1,
+       file = paste0('RData/SSAR1_Warmon_', Sys.Date(), '.RData'))
