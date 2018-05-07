@@ -5,7 +5,7 @@ output: html_notebook
 
 This analysis tries to fill in missing nest counts data. A parametric model is fitted to years with complete data. The estimated parameters are used to fill in years without complete data. Ultimately, it aims to look at how the counts are changing over time. 
 
-This analysis estimates trends of leatherback turtle nests at two Indonesia nesting beaches (Jamursba-Medi and Warmon) using the annual nest counts. Raw data for the analysis are the recorded number of nests per month. Missing data are imputed using auto-regressive time-series analysis. A few models are used to compare performance of imputation and one with the narrowest prediction (imputation) intervals is used for the final analysis. 
+This analysis estimates trends of leatherback turtle nests at two Indonesia nesting beaches (Jamursba-Medi and Wermon) using the annual nest counts. Raw data for the analysis are the recorded number of nests per month. Missing data are imputed using auto-regressive time-series analysis. A few models are used to compare performance of imputation and one with the narrowest prediction (imputation) intervals is used for the final analysis. 
 
 This analysis tries to fill in missing nest counts data. A parametric model is fitted to years with complete data. The estimated parameters are used to fill in years without complete data.
 
@@ -22,7 +22,6 @@ library(bayesplot)
 #
 # # set back to the base theme:
 ggplot2::theme_set(base_theme)
-save.fig <- F
 ```
 
 #Jamursba-Medi
@@ -197,16 +196,7 @@ if (save.fig) ggsave(filename = 'figures/JM_predicted_1999.png',
 
 Sum within each year to find change in trend over the years.
 ```{r}
-sum.posterior <- function(yr = 2013, Xs.stats, zm) {
-  Xs.stats %>% mutate(var.name = rownames(Xs.stats)) %>%
-    filter(year == yr) %>%
-    select(var.name) -> Xs.name
-  zm.yr <- apply(Xs.name, MARGIN = 1,
-                 FUN = extract.samples,
-                 zm.var.theta.JM.1999)
-  
-  return(list(samples = zm.yr, var.names = Xs.name))
-}
+#sum.posterior is in Dc_Indonesia_nesting_fcn.R
 
 yrs <- as.matrix(c(min(Xs.stats$year):max(Xs.stats$year)))
 X.posteriors.all <- lapply(apply(yrs, MARGIN = 1,
@@ -215,7 +205,8 @@ X.posteriors.all <- lapply(apply(yrs, MARGIN = 1,
                                         zm.var.theta.JM.1999),
                                   FUN = function(x) rowSums(x$samples))
 
-Xs.year <- as.data.frame(matrix(unlist(lapply(X.posteriors.all, FUN = quantile,
+Xs.year <- as.data.frame(matrix(unlist(lapply(X.posteriors.all, 
+                                              FUN = quantile,
                                               c(0.025, 0.5, 0.975))),
                                 ncol = 3, byrow = T)) 
 colnames(Xs.year) <- c("low", "total", "high")
@@ -321,7 +312,7 @@ if (save.fig) ggsave(filename = 'figures/JM_trend_2011.png',
 p.JM.trend.2011
 ```
 
-If we add a few more data points, the rate of decline will decrease because of the counts continue to decrease until 2013. However, the number of nests seems to increase from that year. So, it may be possible to fit a model that can accommodate an inflection point. 
+If we add a few more data points, the rate of decline will decrease because of the counts continue to decrease until 2013. However, the number of nests seems to increase from that year. So, it may be possible to fit a model that can accommodate an inflection point. First, just add new data points. 
 
 ```{r}
 all.data <- rbind(filter(Manj.data, year < 1999), Xs.year) %>% 
@@ -338,13 +329,13 @@ As expected, the rate of decline is >6%. But, is that a fair treatment?
 new.data.JM <- data.frame(year.0 = all.data$year.0)
 
 pred.JM.all <- predict(fit.all.yrs, 
-                   newdata = new.data.JM, 
-                   se.fit = T)
+                       newdata = new.data.JM, 
+                       se.fit = T)
 
 pred.JM.all.df <- data.frame(year = all.data$year,
-                         total = exp(pred.JM.all$fit),
-                         se2.high = exp(pred.JM.all$fit + pred.JM.all$se.fit * 2),
-                         se2.low = exp(pred.JM.all$fit - pred.JM.all$se.fit * 2))
+                             total = exp(pred.JM.all$fit),
+                             se2.high = exp(pred.JM.all$fit + pred.JM.all$se.fit * 2),
+                             se2.low = exp(pred.JM.all$fit - pred.JM.all$se.fit * 2))
 
 p.JM.trend.2017 <- ggplot() + 
   geom_point(data = all.data,
@@ -370,24 +361,24 @@ if (save.fig) ggsave(filename = 'figures/JM_trend_2017.png',
 p.JM.trend.2017
 ```
 
-What does a GAM say?
+Perhaps, a non-linear model may fit okay. 
 
 ```{r}
 
 fit.gam.JM <- gam(total ~ s(year.0), 
-                 data = all.data)
+                  data = all.data)
 sum.gam.JM <- summary(fit.gam.JM)
 sum.gam.JM
 
 ```
 
-Estimated degrees of freedom (edf) is a bit above 1, indicating a linear fit may be sufficient. But... what "sufficient" is not very interesting. Take a look at the GAM fit.
+Estimated degrees of freedom (edf) is just a little above 1, indicating a linear fit may be sufficient. But... what "sufficient" is not very interesting. Take a look at the GAM fit.
 
 ```{r}
 gam.val.JM <- plot(fit.gam.JM)
 gam.val.JM.df <- data.frame(x = gam.val.JM[[1]]$x,
-                         fit = gam.val.JM[[1]]$fit,
-                         se = gam.val.JM[[1]]$se)
+                            fit = gam.val.JM[[1]]$fit,
+                            se = gam.val.JM[[1]]$se)
 
 all.data %>% mutate(log.total = log(total)) %>%
   mutate(log.total.std = log(total) - mean(log(total), na.rm = T)) %>%
@@ -397,9 +388,9 @@ p.JM.GAM <- ggplot() +
   geom_line(data = gam.val.JM.df,
             aes(x = x+1984, y = fit)) + 
   geom_line(data = gam.val.JM.df,
-            aes(x = x+1984, y = fit + se), linetype = 2) + 
+            aes(x = x+1984, y = fit + 2*se), linetype = 2) + 
   geom_line(data = gam.val.JM.df,
-            aes(x = x+1984, y = fit - se), linetype = 2) + 
+            aes(x = x+1984, y = fit - 2*se), linetype = 2) + 
   geom_point(data = all.data,
              aes(x = year, y = total.std),
              color = 'black') + 
@@ -413,7 +404,9 @@ if (save.fig) ggsave(filename = 'figures/JM_GAM_2017.png',
 p.JM.GAM
 ```
 
-Take a look at the data in the log space.
+Looks pretty close to linear. 
+
+Looking at the data in the log space shows the recent up-tick more prominently.
 ```{r}
 p.JM.log.trend <- ggplot() + 
   geom_point(data = all.data,
@@ -433,7 +426,7 @@ p.JM.log.trend
 
 When we look at this plot long enough, we start to see there is a bit of up-tick after the 30th year (2013). A similar bouncing happened between 2002 and 2004. The decline from 2004 to 2013 is dramatic but how about after that? The uncertainty in this plot is exaggerated because the tim-series model for filling in missing values was not great. (missing values are a serious issue in time-series analysis in general.) Red points indicate Manjula's calculations. 
 
-If we just fit a similar model to the five data points since 2013, this is what we get.
+If we just fit a similar linear model to the five data points since 2013, this is what we get.
 ```{r}
 dataSince2013 <- filter(all.data, year > 2012)
 
@@ -441,20 +434,25 @@ fit.lm.2013 <- lm(log(total) ~ year.0, data = dataSince2013)
 summary(fit.lm.2013)
 ```
 
-The estimated annual rate of increase is >20%. If we incorporate the uncertainty in these estimates, we can extract the posterior samples and compute the range of slopes.
+The estimated annual rate of increase is >20%. To incorporate the uncertainty in these estimates, we can extract the posterior samples and compute the range of slopes.
 
 ```{r}
 # first, we need to figure out which Xs correspond to 2013 to 2017:
 yrs <- as.matrix(c(2013:2017))
+
+# using my function sum.posterior above, extract posterior samples for 2013 through 2017, then sum over 12 months (rowSums). 
 X.posteriors.2013to2017 <- lapply(apply(yrs, MARGIN = 1,
                                         FUN = sum.posterior, 
                                         Xs.stats, 
                                         zm.var.theta.JM.1999),
                                   FUN = function(x) rowSums(x$samples))
 
+# Determine the total number of samples - this is 150000 but just in case
+# I change the numbers later. 
 num.samples <- results.JM_SSAR1_month_var_theta$MCMC.params$n.chains *
   results.JM_SSAR1_month_var_theta$MCMC.params$n.iter
 
+# Take every so many to create 1000 samples.
 index <- seq(1, num.samples, 
              by = num.samples/1000) 
 
@@ -462,14 +460,18 @@ Xs.samples <- matrix(unlist(lapply(X.posteriors.2013to2017,
                                    FUN = function(x) x[index])),
                      ncol = 5, byrow = F)
 
+# Run linear regression on log(total) on all 1000 samples then
+# extract the slope
 fit.all <- apply(Xs.samples, MARGIN = 1, 
                  FUN = function(x) {df <- data.frame(total = x,
                                                      year = 0:4)
                  fit.1 <- lm(log(total) ~ year, data = df)
                  return(fit.1$coefficients[2])})
 
+# Turn into a data frame for plotting
 fit.all.df <- data.frame(slope = fit.all)
 
+# find slope that is positive - all of them. 
 p.pos <- length(fit.all.df$slope[fit.all.df$slope > 0])/length(fit.all)
 # qtiles <- quantile(fit.all, 
 #                    probs = c(0.05, 0.25, 0.5, 0.75, 0.95))
@@ -485,15 +487,16 @@ if (save.fig) ggsave(filename = 'figures/JM_slope_2013to2017.png',
 p.JM.slope.2013to2017
 ```
 
-So, it is more likely that the slope is positive - BUT the uncertainty is exaggerated so the picture is not as rosy as it seems in this plot. 
+So, it is likely that the slope is positive - BUT the uncertainty is exaggerated so the picture is not as rosy as it seems in this plot. 
 
-#Warmon
-```{r}
+#Wermon
+```{r echo=FALSE}
 rm(list=ls())
 source('Dc_Indonesia_nesting_fcns.R')
-save.fig <- F
+
 ```
 
+Moving on to the Wermon dataset.
 
 ```{r}
 data.0.W <- read.csv('data/NestCounts_Warmon_27March2018.csv')
@@ -516,7 +519,8 @@ Raw data look like this.
 ```{r}
 p.W.all <- ggplot(data.1.W) + 
   geom_point(aes(x = Frac.Year, y = count)) + 
-  geom_line(aes(x = Frac.Year, y = count))
+  geom_line(aes(x = Frac.Year, y = count)) + 
+  labs(title = 'Wermon', x = '', y = "Nest counts")
 
 if (save.fig) ggsave(filename = 'figures/W_all.png', 
                      plot = p.W.all,
@@ -531,7 +535,7 @@ p.W.monthly <- ggplot(data.1.W) +
   geom_point(aes(x = MONTH, y = count, color = f.year)) + 
   geom_line(aes(x = MONTH, y = count, color = f.year)) +
   scale_x_continuous(breaks = seq(1, 12, 1)) +
-  labs(x = 'Month', y = '# nests', title = "Warmon",
+  labs(x = 'Month', y = '# nests', title = "Wermon",
        color = "Year")  +
   theme(axis.text = element_text(size = 12),
         text = element_text(size = 12))
@@ -542,7 +546,7 @@ if (save.fig) ggsave(filename = 'figures/W_monthly.png',
 p.W.monthly
 ```
 
-There are summer and winter peaks: higher values are found between May and September, and between October and April. 2004 and 2005 seem to be outliers with respect to within-year trend. 
+There are summer and winter peaks: higher values are found between May and September, and between October and April. 2004 and 2005 seem to be outliers with respect to within-year trend. So, I remove them.
 
 ```{r}
 data.1.W %>% filter(YEAR > 2005) -> data.1.W.2006
@@ -551,7 +555,7 @@ p.W.monthly.2006 <- ggplot(data.1.W.2006) +
   geom_point(aes(x = MONTH, y = count, color = f.year)) + 
   geom_line(aes(x = MONTH, y = count, color = f.year)) +
   scale_x_continuous(breaks = seq(1, 12, 1)) +
-  labs(x = 'Month', y = '# nests', title = "Warmon",
+  labs(x = 'Month', y = '# nests', title = "Wermon",
        color = "Year")  +
   theme(axis.text = element_text(size = 12),
         text = element_text(size = 12))
@@ -570,7 +574,7 @@ When converting counts into log(counts);
 p.W.log.count <- ggplot(data.1.W) + 
   geom_point(aes(x = Frac.Year, y = log(count))) + 
   geom_line(aes(x = Frac.Year, y = log(count))) + 
-  labs(x = "", y = "log(count)", title = "Warmon")
+  labs(x = "", y = "log(count)", title = "Wermon")
 
 if (save.fig) ggsave(filename = 'figures/W_log_count.png', 
                      plot = p.W.log.count,
@@ -578,27 +582,32 @@ if (save.fig) ggsave(filename = 'figures/W_log_count.png',
 p.W.log.count
 ```
 
-Because of the large number of missing data, I fit time-series models up to 2014 (six missing values in 2013). First, fit the entire data up to 2014 using two variance terms; one for March, April, September and October and another for the rest.
+Because of the large number of missing data, I fit time-series models up to 2013 (six missing values in 2013). First, fit the entire data up to 2013 using two variance terms; one for March, April, September and October and another for the rest.
 
 ```{r}
-load("RData/SSAR1_month_Warmon_2018-04-25_To2013.RData")
-zm.W <- results.Warmon_SSAR1_month_To2013$zm
-Xs.stats.W <- results.Warmon_SSAR1_month_To2013$Xs.stats
-ys.stats.W <- results.Warmon_SSAR1_month_To2013$ys.stats
+load("RData/SSAR1_month_W_var_theta_To2013_2018-05-04.RData")
+zm.W <- results.W_SSAR1_month_var_theta$zm
+Xs.stats.W <- results.W_SSAR1_month_var_theta$Xs.stats
+ys.stats.W <- results.W_SSAR1_month_var_theta$ys.stats
 # Gelman-diagnostic seems okay.
 #results.Warmon_SSAR1_month_To2013$g.diag
 ```
 
-The model is the same as before with one theta and two process taus, where tau.pro1 is for March, April, September and October and tau.pro2 is for the rest. These two groups correspond to high and low numbers, respectively. 
+The model is the same as before with two thetas and two process taus, where theta.1 is for May, June, November, and December and theta.2 is for the remainder of the year. These two groups are for increasing and decreasing months. For the variance terms, tau.pro1 is for March, April, September and October and tau.pro2 is for the rest. These two groups correspond to high and low numbers, respectively. 
 
 ```{r}
-results.Warmon_SSAR1_month_To2013$jm
+results.W_SSAR1_month_var_theta$jm
 ```
 
 And data are here:
 
 ```{r}
-results.Warmon_SSAR1_month_To2013$bugs.data
+results.W_SSAR1_month_var_theta$bugs.data
+```
+
+Gelman diagnostic for convergence checking:
+```{r}
+results.W_SSAR1_month_var_theta$g.diag
 ```
 
 
@@ -614,6 +623,16 @@ And the trace.
 mcmc_trace(zm.W, c("sigma.pro1", "sigma.pro2"))
 ```
 
+Posterior on observation standard deviation. 
+
+```{r}
+mcmc_trace(zm.W, c("sigma.obs"))
+```
+
+```{r}
+mcmc_dens(zm.W, "sigma.obs")
+```
+
 
 Then look at the series. 
 ```{r}
@@ -624,6 +643,9 @@ p.W.predicted.var <- ggplot() +
   #          aes(x = time, y = mode_X), color = 'blue') +
   geom_line(data = Xs.stats.W,
             aes(x = time, y = high_X), color = "red",
+            linetype = 2) +
+  geom_line(data = Xs.stats.W,
+            aes(x = time, y = low_X), color = "red",
             linetype = 2) +
   geom_point(data = Xs.stats.W,
              aes(x = time, y = mode_X), color = "red",
@@ -637,11 +659,11 @@ p.W.predicted.var <- ggplot() +
   geom_line(data = ys.stats.W,
              aes(x = time, y = obsY), color = "green",
              alpha = 0.5) + 
-  labs(x = '', y = '# nests', title = "Warmon")  +
+  labs(x = '', y = '# nests', title = "Wermon")  +
   theme(axis.text = element_text(size = 12),
         text = element_text(size = 12))
 
-if (save.fig) ggsave(filename = 'figures/W_predicted_var.png', 
+if (save.fig) ggsave(filename = 'figures/W_predicted_var_theta.png', 
                      plot = p.W.predicted.var,
                      dpi = 600, height = 6, width = 8, units = "in")
 p.W.predicted.var
@@ -652,28 +674,35 @@ p.W.predicted.var
 Seemed to fit fairly well. Now, take out 2004 and 2005 and see how that fits.
 
 ```{r}
-load("RData/SSAR1_month_Warmon_2018-04-25_2006To2013.RData")
-zm.W2 <- results.Warmon_SSAR1_month_2006To2013$zm
-Xs.stats.W2 <- results.Warmon_SSAR1_month_2006To2013$Xs.stats
-ys.stats.W2 <- results.Warmon_SSAR1_month_2006To2013$ys.stats
+load("RData/SSAR1_month_W_var_theta_2006To2013_2018-05-07.RData")
+zm.W2 <- results.W_SSAR1_month_var_theta$zm
+Xs.stats.W2 <- results.W_SSAR1_month_var_theta$Xs.stats
+ys.stats.W2 <- results.W_SSAR1_month_var_theta$ys.stats
 ```
 
 Confirm the model is still the same.
 
 ```{r}
-results.Warmon_SSAR1_month_2006To2013$jm
+results.W_SSAR1_month_var_theta$jm
 ```
 
 And the data:
 ```{r}
-results.Warmon_SSAR1_month_2006To2013$bugs.data
+results.W_SSAR1_month_var_theta$bugs.data
 ```
 
 Gelman diagnostic:
 
 ```{r}
-results.Warmon_SSAR1_month_2006To2013$g.diag
+results.W_SSAR1_month_var_theta$g.diag
 ```
+
+Convergence seemed to reach fine.
+
+```{r}
+mcmc_trace(zm.W2, c("sigma.pro1", "sigma.pro2"))
+```
+
 
 And the posteriors of process standard deviations.
 
@@ -683,6 +712,12 @@ mcmc_dens(zm.W2, c("sigma.pro1", "sigma.pro2"))
 
 sigma.pro1, SD for the low count months (March, April, September, and October), is smaller than when the entire data were used. The posterior for the SD of observation model looks okay.  
 
+First the trace.
+```{r}
+mcmc_trace(zm.W2, "sigma.obs")
+```
+
+Then the density.
 ```{r}
 mcmc_dens(zm.W2, "sigma.obs")
 ```
@@ -698,6 +733,9 @@ p.W.predicted.var.2006to2013 <- ggplot() +
   geom_line(data = Xs.stats.W2,
             aes(x = time, y = high_X), color = "red",
             linetype = 2) +
+  geom_line(data = Xs.stats.W2,
+            aes(x = time, y = low_X), color = "red",
+            linetype = 2) +
   geom_point(data = Xs.stats.W2,
              aes(x = time, y = mode_X), color = "red",
              alpha = 0.5) +
@@ -710,7 +748,7 @@ p.W.predicted.var.2006to2013 <- ggplot() +
   geom_line(data = ys.stats.W2,
              aes(x = time, y = obsY), color = "green",
              alpha = 0.5) + 
-  labs(x = '', y = '# nests', title = "Warmon")  +
+  labs(x = '', y = '# nests', title = "Wermon")  +
   theme(axis.text = element_text(size = 12),
         text = element_text(size = 12))
 
@@ -720,30 +758,55 @@ if (save.fig) ggsave(filename = 'figures/W_predicted_var_2006to2013.png',
 p.W.predicted.var.2006to2013
 ```
 
+I don't understand why the median of predicted values don't match the observed... are they skewed distributions? So, the means may match with the observed?
+
+```{r}
+summary.zm.W2 <- results.W_SSAR1_month_var_theta$summary.zm
+Xs.stats.W2$mean_X <- summary.zm.W2$statistics[grep(pattern = "X[/[]", 
+                                     row.names(summary.zm.W2$statistics)), 
+                                "Mean"]
+```
+
+Add the means to the plot:
+
+```{r}
+p.W.predicted.var.2006to2013 <- p.W.predicted.var.2006to2013 +
+  geom_point(data = Xs.stats.W2,
+             aes(x = time, y = mean_X), color = "red", shape = 5,
+             alpha = 0.5)
+
+# if (save.fig) ggsave(filename = 'figures/W_predicted_var_2006to2013.png', 
+#                      plot = p.W.predicted.var.2006to2013,
+#                      dpi = 600, height = 6, width = 8, units = "in")
+p.W.predicted.var.2006to2013
+```
+
+That was not the case... I don't know why the Warmon dataset is behaving differently from the J-M dataset... 
+
 Now, how about including the two and a half years of missing data and more recent data? 
 
 ```{r}
-load("RData/SSAR1_month_Warmon_2018-04-25_2006To2017.RData")
-zm.W3 <- results.Warmon_SSAR1_month_2006To2017$zm
-Xs.stats.W3 <- results.Warmon_SSAR1_month_2006To2017$Xs.stats
-ys.stats.W3 <- results.Warmon_SSAR1_month_2006To2017$ys.stats
+load("RData/SSAR1_month_W_var_theta_2006to2017_2018-05-07.RData")
+zm.W3 <- results.W_SSAR1_month_var_theta$zm
+Xs.stats.W3 <- results.W_SSAR1_month_var_theta$Xs.stats
+ys.stats.W3 <- results.W_SSAR1_month_var_theta$ys.stats
 ```
 
 Check to see the model is still the same:
 
 ```{r}
-results.Warmon_SSAR1_month_2006To2017$jm
+results.W_SSAR1_month_var_theta$jm
 ```
 
 And the data:
 ```{r}
-results.Warmon_SSAR1_month_2006To2017$bugs.data
+results.W_SSAR1_month_var_theta$bugs.data
 ```
 
 
 Then the convergence
 ```{r}
-results.Warmon_SSAR1_month_2006To2017$g.diag
+results.W_SSAR1_month_var_theta$g.diag
 ```
 
 Posteriors on process standard deviations.
@@ -784,7 +847,7 @@ p.W.predicted.var.2006to2017 <- ggplot() +
   geom_line(data = ys.stats.W3,
              aes(x = time, y = obsY), color = "green",
              alpha = 0.5) +
-  labs(x = '', y = '# nests', title = "Warmon")  +
+  labs(x = '', y = '# nests', title = "Wermon")  +
   theme(axis.text = element_text(size = 12),
         text = element_text(size = 12))
 
@@ -797,13 +860,23 @@ p.W.predicted.var.2006to2017
 Probably not useful to fill in those years as we have no idea what was happening. For other years, however, the estimated true counts (red) seem reasonable. I will use all years except 2014 and 2015. 2013 has only six data points. I pool estimated counts annually. I add the first two data points as the median values. 
 
 ```{r}
-Xs.stats.W3 %>% #mutate(f.year = as.factor(year)) %>%
-  group_by(year) %>% summarise(total = sum(mode_X), 
-                               low = sum(low_X),
-                               high = sum(high_X)) -> Xs.year.W3
+# sum posterior samples to get annual counts from monthly estimates:
+yrs <- as.matrix(c(min(Xs.stats.W3$year):max(Xs.stats.W3$year)))
+X.posteriors.all <- lapply(apply(yrs, MARGIN = 1,
+                                 FUN = sum.posterior, 
+                                 Xs.stats.W3, 
+                                 zm.W3),
+                           FUN = function(x) rowSums(x$samples))
+
+Xs.year.W3 <- as.data.frame(matrix(unlist(lapply(X.posteriors.all, 
+                                              FUN = quantile,
+                                              c(0.025, 0.5, 0.975))),
+                                ncol = 3, byrow = T)) 
+colnames(Xs.year.W3) <- c("low", "total", "high")
+Xs.year.W3 <-mutate(Xs.year.W3, year = c(min(Xs.stats.W3$year):max(Xs.stats.W3$year)))
 
 Xs.year.W3[Xs.year.W3$year == 2014 | Xs.year.W3$year == 2015, 
-        c("total", "low", "high")] <- NA
+           c("total", "low", "high")] <- NA
 
 data.1.W %>% filter(YEAR < 2006) %>% group_by(YEAR) %>%
   summarise(total = sum(count)) %>%
@@ -812,10 +885,20 @@ data.1.W %>% filter(YEAR < 2006) %>% group_by(YEAR) %>%
 
 Xs.year.W3 <- rbind(Xs.year.2004.2005, Xs.year.W3)
 
-p.W.estimated.counts <- ggplot(Xs.year.W3) + 
-  geom_point(aes(x = year, y = total))+
-  geom_errorbar(aes(x = year, ymin = low, ymax = high)) + 
-  labs(title = 'Warmon', x = '', y = "Nest counts")
+Tapilatu.data <- data.frame(year = c(2003:2012),
+                            count = c(2994, 2786, 2805,
+                                      1497, 1335, 1483,
+                                      1287, 1080, 1354,
+                                      1096))
+
+p.W.estimated.counts <- ggplot() + 
+  geom_point(data = Xs.year.W3,
+             aes(x = year, y = total))+
+  geom_errorbar(data = Xs.year.W3,
+                aes(x = year, ymin = low, ymax = high)) + 
+  geom_point(data = Tapilatu.data,
+             aes(x = year, y = count), color = 'red') +
+  labs(title = 'Wermon', x = '', y = "Nest counts")
 
 if (save.fig) ggsave(filename = 'figures/W_estimated_counts.png', 
                      plot = p.W.predicted.var.2006to2013,
@@ -823,13 +906,13 @@ if (save.fig) ggsave(filename = 'figures/W_estimated_counts.png',
 p.W.estimated.counts
 ```
 
-Uncertainty is so big that we can't really tell how the numbers are chaning over time. Just looking at the mode:
+Uncertainty is so big that we can't really tell how the numbers are chaning over time. Just looking at the median:
 
 ```{r}
 p.W.median.prediction <- ggplot(Xs.year.W3) + 
   geom_point(aes(x = year, y = total))+
   geom_line(aes(x = year, y = total))+
-  labs(title = 'Warmon', x = '', y = "Nest counts")
+  labs(title = 'Wermon', x = '', y = "Nest counts")
 
 if (save.fig) ggsave(filename = 'figures/W_median_prediction.png', 
                      plot = p.W.median.prediction,
@@ -843,12 +926,25 @@ A simple regression analysis up to 2011:
 dataTo2011.W <- Xs.year.W3 %>% filter(year < 2012) %>% mutate(year.0 = year - 2004)
 
 fitTo2011.W <- glm(log(total) ~ year.0, 
-                 family = 'gaussian', 
-                 data = dataTo2011.W)
+                   family = 'gaussian', 
+                   data = dataTo2011.W)
 summary(fitTo2011.W)
 ```
 
-Up to 2011, the rate of decline is 12.7%/year. 
+Up to 2011, the rate of decline is 12.9%/year. This is a bit diffrent from Tapilatu et al. (2013), where the authors claimed -11.6%. Probably, the data that went into the analysis were a bit different. In the paper, they stated that "There was also a 62.8% decline at Wermon from 2,994 nests in 2002 to 1,096 in 2011."  The numbers a bit different from what I have here.
+
+```{r}
+dataTo2011.W
+```
+
+Using the data in the paper:
+
+```{r}
+fit.Wermon.Tapilatu <- lm(log(count) ~ year, data = Tapilatu.data)
+summary(fit.Wermon.Tapilatu)
+```
+
+And we get the same answer. Regardless of the exact numbers, they declined at about the same rate. 
 
 ```{r}
 new.data.W <- data.frame(year.0 = dataTo2011.W$year.0)
@@ -872,8 +968,9 @@ p.W.trend.2011 <- ggplot() +
             aes(x = year, y = se2.high)) +
   geom_line(data = pred.2011.W.df,
             aes(x = year, y = se2.low)) +
-
-  labs(title = 'Warmon', x = '', y = "Nest counts")
+  geom_point(data = Tapilatu.data,
+             aes(x = year, y = count), color = 'red') +
+  labs(title = 'Wermon', x = '', y = "Nest counts")
 
 if (save.fig) ggsave(filename = 'figures/W_trend_2011.png', 
                      plot = p.W.trend.2011,
@@ -916,9 +1013,11 @@ p.W.trend.2017 <- ggplot() +
   geom_line(data = pred.2017.W.df,
             aes(x = year, y = se2.high)) +
   geom_line(data = pred.2017.W.df,
-            aes(x = year, y = se2.low)) +
+            aes(x = year, y = se2.low))  + 
+  geom_point(data = Tapilatu.data,
+             aes(x = year, y = count), color = 'red') +
 
-  labs(title = 'Warmon', x = '', y = "Nest counts")
+  labs(title = 'Wermon', x = '', y = "Nest counts")
 
 if (save.fig) ggsave(filename = 'figures/W_trend_2017.png', 
                      plot = p.W.trend.2017,
@@ -926,7 +1025,7 @@ if (save.fig) ggsave(filename = 'figures/W_trend_2017.png',
 p.W.trend.2017
 ```
 
-What does a GAM say?
+Seems like the first couple data points are not used well... neither are the last few. Fitting a non-linear model:
 
 ```{r}
 fit.gam.W <- gam(total ~ s(year.0), 
@@ -936,7 +1035,7 @@ sum.gam.W
 #plot(fit.gam.1)
 ```
 
-ACtually it's a pretty good fit. 
+ACtually it's a pretty good fit and pretty non-linear... 
 
 ```{r}
 gam.val.W <- plot(fit.gam.W)
@@ -958,7 +1057,7 @@ p.W.GAM <- ggplot() +
   geom_point(data = Xs.year.W3,
              aes(x = year, y = total.std),
              color = 'red') + 
-  labs(title = 'Warmon', x = '', 
+  labs(title = 'Wermon', x = '', 
        y = paste0('GAM(', signif(sum.gam.W$edf, digits = 3), ')'))
   
 

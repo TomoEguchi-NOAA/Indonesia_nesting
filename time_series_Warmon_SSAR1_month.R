@@ -28,8 +28,8 @@ data.1$MONTH <- unlist(lapply(data.1$month, FUN = mmm2month))
 data.1 <- mutate(data.1, f.month = as.factor(MONTH),
                     f.year = as.factor(YEAR))%>%
   #filter(YEAR < 2014 & YEAR > 2005) %>%
-  filter(YEAR > 2005) %>%
-  #filter(YEAR < 2014) %>%
+  #filter(YEAR > 2005) %>%
+  filter(YEAR < 2014) %>%
   mutate(Frac.Year = YEAR + (MONTH-0.5)/12) %>%
   reshape::sort_df(.,vars = "Frac.Year")
 
@@ -134,7 +134,7 @@ p.1 <- ggplot() +
 toc <- Sys.time()
 dif.time <- toc - tic
 
-results.Warmon_SSAR1_month_2006To2017 <- list(data.1 = data.1,
+results.Warmon_SSAR1_month_To2013 <- list(data.1 = data.1,
                                               bugs.data = bugs.data,
                                               summary.zm = summary.zm,
                                               Xs.stats = Xs.stats,
@@ -150,9 +150,9 @@ results.Warmon_SSAR1_month_2006To2017 <- list(data.1 = data.1,
                                               jm = jm)
 if (save.fig)
   ggsave(plot = p.1,
-         filename = 'figures/predicted_counts_SSAR1_month_Warmon_2006To2017.png',
+         filename = 'figures/predicted_counts_SSAR1_month_Warmon_To2013.png',
          dpi = 600)
 
 if (save.RData)
-  save(results.Warmon_SSAR1_month_2006To2017,
-       file = paste0('RData/SSAR1_month_Warmon_', Sys.Date(), '_2006To2017.RData'))
+  save(results.Warmon_SSAR1_month_To2013,
+       file = paste0('RData/SSAR1_month_Warmon_', Sys.Date(), '_To2013.RData'))
