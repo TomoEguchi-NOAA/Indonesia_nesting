@@ -1,5 +1,5 @@
 ---
-title: "Nest estimations"
+title: "Nest count estimations and trend for Western Pacific leatherback nesting beaches"
 output: html_notebook
 ---
 
@@ -16,7 +16,7 @@ source('Dc_Indonesia_nesting_fcns.R')
 library(lme4)
 library(mgcv)
 library(rjags)
-library(loo)
+#library(loo)
 base_theme <- ggplot2::theme_get()
 library(bayesplot)
 #
@@ -199,11 +199,12 @@ Sum within each year to find change in trend over the years.
 #sum.posterior is in Dc_Indonesia_nesting_fcn.R
 
 yrs <- as.matrix(c(min(Xs.stats$year):max(Xs.stats$year)))
-X.posteriors.all <- lapply(apply(yrs, MARGIN = 1,
-                                        FUN = sum.posterior, 
-                                        Xs.stats, 
-                                        zm.var.theta.JM.1999),
-                                  FUN = function(x) rowSums(x$samples))
+X.posteriors.all <- lapply(apply(yrs, 
+                                 MARGIN = 1,
+                                 FUN = sum.posterior, 
+                                 Xs.stats = Xs.stats, 
+                                 zm = zm.var.theta.JM.1999),
+                           FUN = function(x) rowSums(x$samples))
 
 Xs.year <- as.data.frame(matrix(unlist(lapply(X.posteriors.all, 
                                               FUN = quantile,
@@ -441,10 +442,11 @@ The estimated annual rate of increase is >20%. To incorporate the uncertainty in
 yrs <- as.matrix(c(2013:2017))
 
 # using my function sum.posterior above, extract posterior samples for 2013 through 2017, then sum over 12 months (rowSums). 
-X.posteriors.2013to2017 <- lapply(apply(yrs, MARGIN = 1,
+X.posteriors.2013to2017 <- lapply(apply(yrs, 
+                                        MARGIN = 1,
                                         FUN = sum.posterior, 
-                                        Xs.stats, 
-                                        zm.var.theta.JM.1999),
+                                        Xs.stats = Xs.stats, 
+                                        zm = zm.var.theta.JM.1999),
                                   FUN = function(x) rowSums(x$samples))
 
 # Determine the total number of samples - this is 150000 but just in case
@@ -781,7 +783,7 @@ p.W.predicted.var.2006to2013 <- p.W.predicted.var.2006to2013 +
 p.W.predicted.var.2006to2013
 ```
 
-That was not the case... I don't know why the Warmon dataset is behaving differently from the J-M dataset... 
+That was not the case... I don't know why the Warmon dataset is behaving differently from the J-M dataset... Probably because the observation standard deviation is fairly large. 
 
 Now, how about including the two and a half years of missing data and more recent data? 
 
@@ -864,8 +866,8 @@ Probably not useful to fill in those years as we have no idea what was happening
 yrs <- as.matrix(c(min(Xs.stats.W3$year):max(Xs.stats.W3$year)))
 X.posteriors.all <- lapply(apply(yrs, MARGIN = 1,
                                  FUN = sum.posterior, 
-                                 Xs.stats.W3, 
-                                 zm.W3),
+                                 Xs.stats = Xs.stats.W3, 
+                                 zm = zm.W3),
                            FUN = function(x) rowSums(x$samples))
 
 Xs.year.W3 <- as.data.frame(matrix(unlist(lapply(X.posteriors.all, 
@@ -1051,9 +1053,11 @@ p.W.GAM <- ggplot() +
   geom_line(data = gam.val.W.df,
             aes(x = x+2004, y = fit)) + 
   geom_line(data = gam.val.W.df,
-            aes(x = x+2004, y = fit + se), linetype = 2) + 
+            aes(x = x+2004, y = fit + 2*se), 
+            linetype = 2) + 
   geom_line(data = gam.val.W.df,
-            aes(x = x+2004, y = fit - se), linetype = 2) + 
+            aes(x = x+2004, y = fit - 2*se), 
+            linetype = 2) + 
   geom_point(data = Xs.year.W3,
              aes(x = year, y = total.std),
              color = 'red') + 
@@ -1069,4 +1073,256 @@ p.W.GAM
 
 Perhaps, there is an uptick since 2012? 
 
+#Winter vs. Summer nest trends
+We have to pull in the predicted numbers from model outputs. First from Wermon. 
 
+```{r}
+# get Wermon output
+load("RData/SSAR1_month_W_var_theta_2006to2017_2018-05-07.RData")
+zm.W <- results.W_SSAR1_month_var_theta$zm
+Xs.stats.W <- results.W_SSAR1_month_var_theta$Xs.stats
+ys.stats.W <- results.W_SSAR1_month_var_theta$ys.stats
+
+# for this analysis, we need to extract just summer/winter numbers.
+yrs.W <- as.matrix(c(min(Xs.stats.W$year):max(Xs.stats.W$year)))
+# summer is May through September
+X.posteriors.all.W.summer <- lapply(apply(yrs.W, 
+                                   MARGIN = 1,
+                                   FUN = sum.posterior, 
+                                   months = c(5:9),
+                                   Xs.stats = Xs.stats.W, 
+                                   zm = zm.W),
+                             FUN = function(x) rowSums(x$samples))
+
+Xs.year.W.summer <- as.data.frame(matrix(unlist(lapply(X.posteriors.all.W.summer, 
+                                                       FUN = quantile,
+                                                       c(0.025, 0.5, 0.975))),
+                                         ncol = 3, byrow = T)) 
+colnames(Xs.year.W.summer) <- c("low", "total", "high")
+Xs.year.W.summer <- mutate(Xs.year.W.summer, 
+                           year = c(min(Xs.stats.W$year):max(Xs.stats.W$year)))
+
+# winter is Jan-Apr and October-Dece
+X.posteriors.all.W.winter <- lapply(apply(yrs.W, 
+                                          MARGIN = 1,
+                                          FUN = sum.posterior, 
+                                          months = c(1:4, 10:12),
+                                          Xs.stats = Xs.stats.W, 
+                                          zm = zm.W),
+                                    FUN = function(x) rowSums(x$samples))
+
+Xs.year.W.winter <- as.data.frame(matrix(unlist(lapply(X.posteriors.all.W.winter, 
+                                                       FUN = quantile,
+                                                       c(0.025, 0.5, 0.975))),
+                                         ncol = 3, byrow = T)) 
+colnames(Xs.year.W.winter) <- c("low", "total", "high")
+Xs.year.W.winter <- mutate(Xs.year.W.winter, 
+                           year = c(min(Xs.stats.W$year):max(Xs.stats.W$year)))
+```
+
+Next is Jamursba-Medi:
+```{r}
+load("RData/SSAR1_month_JM_var_theta_1999_2018-05-03.RData")
+zm.JM <- results.JM_SSAR1_month_var_theta$zm
+Xs.stats.JM <- results.JM_SSAR1_month_var_theta$Xs.stats
+ys.stats.JM <- results.JM_SSAR1_month_var_theta$ys.stats
+
+# for this analysis, we need to extract just summer/winter numbers.
+yrs.JM <- as.matrix(c(min(Xs.stats.JM$year):max(Xs.stats.JM$year)))
+# summer is May through September
+X.posteriors.all.JM.summer <- lapply(apply(yrs.JM, 
+                                           MARGIN = 1,
+                                           FUN = sum.posterior, 
+                                           months = c(5:9),
+                                           Xs.stats = Xs.stats.JM, 
+                                           zm = zm.JM),
+                                     FUN = function(x) rowSums(x$samples))
+
+Xs.year.JM.summer <- as.data.frame(matrix(unlist(lapply(X.posteriors.all.JM.summer, 
+                                                        FUN = quantile,
+                                                        c(0.025, 0.5, 0.975))),
+                                          ncol = 3, byrow = T)) 
+colnames(Xs.year.JM.summer) <- c("low", "total", "high")
+Xs.year.JM.summer <- mutate(Xs.year.JM.summer, 
+                            year = c(min(Xs.stats.JM$year):max(Xs.stats.JM$year)))
+
+# winter is Jan-Apr and October-Dece
+X.posteriors.all.JM.winter <- lapply(apply(yrs.JM, 
+                                           MARGIN = 1,
+                                           FUN = sum.posterior, 
+                                           months = c(1:4, 10:12),
+                                           Xs.stats = Xs.stats.JM, 
+                                           zm = zm.JM),
+                                     FUN = function(x) rowSums(x$samples))
+
+Xs.year.JM.winter <- as.data.frame(matrix(unlist(lapply(X.posteriors.all.JM.winter, 
+                                                        FUN = quantile,
+                                                        c(0.025, 0.5, 0.975))),
+                                          ncol = 3, byrow = T)) 
+colnames(Xs.year.JM.winter) <- c("low", "total", "high")
+Xs.year.JM.winter <- mutate(Xs.year.JM.winter, 
+                            year = c(min(Xs.stats.JM$year):max(Xs.stats.JM$year)))
+```
+
+Then combine together:
+
+```{r}
+Xs.year.JM.summer %>% full_join(Xs.year.W.summer, by = "year") %>%
+  transmute(year = year, 
+            low = low.x + ifelse(is.na(low.y), 0, low.y), 
+            total = total.x + ifelse(is.na(total.y), 0, total.y), 
+            high = high.x + ifelse(is.na(high.y), 0, high.y)) -> Xs.year.summer
+
+p.summer.log <- ggplot(data = Xs.year.summer) + 
+  geom_point(aes(x = year, y = log(total)))+
+  geom_errorbar(aes(x = year, ymin = log(low), ymax = log(high))) + 
+  labs(title = 'Summer (May-Sep)', x = '', y = "log(Nest counts)")
+
+if (save.fig) ggsave(filename = 'figures/summer_JMandW_log.png', 
+                     plot = p.summer.log,
+                     dpi = 600, height = 6, 
+                     width = 8, units = "in")
+p.summer.log
+```
+
+In non-log scale:
+
+```{r}
+p.summer <- ggplot(data = Xs.year.summer) + 
+  geom_point(aes(x = year, y = total))+
+  geom_errorbar(aes(x = year, ymin = low, ymax = high)) + 
+  labs(title = 'Summer (May-Sep)', x = '', y = "Nest counts")
+
+if (save.fig) ggsave(filename = 'figures/summer_JMandW.png', 
+                     plot = p.summer.log,
+                     dpi = 600, height = 6, 
+                     width = 8, units = "in")
+p.summer
+```
+
+Fit a GAM:
+
+```{r}
+Xs.year.summer %>% mutate(year.0 = year - min(year)) -> Xs.year.summer
+fit.gam.summer <- gam(total ~ s(year.0), 
+                 data = Xs.year.summer)
+sum.gam.summer <- summary(fit.gam.summer)
+sum.gam.summer
+```
+
+Then make the response curve.
+
+```{r}
+gam.val.summer <- plot(fit.gam.summer)
+gam.val.summer.df <- data.frame(x = gam.val.summer[[1]]$x,
+                         fit = gam.val.summer[[1]]$fit,
+                         se = gam.val.summer[[1]]$se)
+
+Xs.year.summer %>% 
+  mutate(log.total = log(total)) %>%
+  mutate(log.total.std = log(total) - mean(log(total), na.rm = T)) %>%
+  mutate(total.std = total - mean(total, na.rm = T)) -> Xs.year.summer3
+
+p.summer.GAM <- ggplot() + 
+  geom_line(data = gam.val.summer.df,
+            aes(x = x+min(Xs.year.summer$year), 
+                y = fit)) + 
+  geom_line(data = gam.val.summer.df,
+            aes(x = x+min(Xs.year.summer$year), 
+                y = fit + 2*se), linetype = 2) + 
+  geom_line(data = gam.val.summer.df,
+            aes(x = x+min(Xs.year.summer$year), 
+                y = fit - 2*se), linetype = 2) + 
+  geom_point(data = Xs.year.summer3,
+             aes(x = year, y = total.std),
+             color = 'red') + 
+  labs(title = 'Summer (May-Sep)', x = '', 
+       y = paste0('GAM(', signif(sum.gam.summer$edf, digits = 3), ')'))
+  
+
+if (save.fig) ggsave(filename = 'figures/summer_GAM.png', 
+                     plot = p.summer.GAM,
+                     dpi = 600, height = 6, width = 8, units = "in")
+p.summer.GAM
+```
+
+
+```{r}
+Xs.year.JM.winter %>% full_join(Xs.year.W.winter, by = "year") %>%
+  transmute(year = year, 
+            low = low.x + ifelse(is.na(low.y), 0, low.y), 
+            total = total.x + ifelse(is.na(total.y), 0, total.y), 
+            high = high.x + ifelse(is.na(high.y), 0, high.y)) -> Xs.year.winter
+
+p.winter.log <- ggplot(data = Xs.year.winter) + 
+  geom_point(aes(x = year, y = log(total)))+
+  geom_errorbar(aes(x = year, ymin = log(low), ymax = log(high))) + 
+  labs(title = 'Winter (Oct-Apr)', x = '', y = "log(Nest counts)")
+
+if (save.fig) ggsave(filename = 'figures/winter_JMandW_log.png', 
+                     plot = p.winter.log,
+                     dpi = 600, height = 6, 
+                     width = 8, units = "in")
+p.winter.log
+```
+
+In non-log scale:
+
+```{r}
+p.winter <- ggplot(data = Xs.year.winter) + 
+  geom_point(aes(x = year, y = total))+
+  geom_errorbar(aes(x = year, ymin = low, ymax = high)) + 
+  labs(title = 'Winter (Oct-Apr)', x = '', y = "Nest counts")
+
+if (save.fig) ggsave(filename = 'figures/winter_JMandW.png', 
+                     plot = p.summer.log,
+                     dpi = 600, height = 6, 
+                     width = 8, units = "in")
+p.winter
+```
+
+Fit a GAM:
+
+```{r}
+Xs.year.winter %>% mutate(year.0 = year - min(year)) -> Xs.year.winter
+fit.gam.winter <- gam(total ~ s(year.0), 
+                 data = Xs.year.winter)
+sum.gam.winter <- summary(fit.gam.winter)
+sum.gam.winter
+```
+
+Then make the response curve.
+
+```{r}
+gam.val.winter <- plot(fit.gam.winter)
+gam.val.winter.df <- data.frame(x = gam.val.winter[[1]]$x,
+                         fit = gam.val.winter[[1]]$fit,
+                         se = gam.val.winter[[1]]$se)
+
+Xs.year.winter %>% 
+  mutate(log.total = log(total)) %>%
+  mutate(log.total.std = log(total) - mean(log(total), na.rm = T)) %>%
+  mutate(total.std = total - mean(total, na.rm = T)) -> Xs.year.winter3
+
+p.winter.GAM <- ggplot() + 
+  geom_line(data = gam.val.winter.df,
+            aes(x = x+min(Xs.year.summer$year), 
+                y = fit)) + 
+  geom_line(data = gam.val.winter.df,
+            aes(x = x+min(Xs.year.summer$year), 
+                y = fit + 2*se), linetype = 2) + 
+  geom_line(data = gam.val.winter.df,
+            aes(x = x+min(Xs.year.summer$year), 
+                y = fit - 2*se), linetype = 2) + 
+  geom_point(data = Xs.year.winter3,
+             aes(x = year, y = total.std),
+             color = 'red') + 
+  labs(title = 'Winter (Oct-Apr)', x = '', 
+       y = paste0('GAM(', signif(sum.gam.winter$edf, digits = 3), ')'))
+  
+
+if (save.fig) ggsave(filename = 'figures/winter_GAM.png', 
+                     plot = p.winter.GAM,
+                     dpi = 600, height = 6, width = 8, units = "in")
+p.winter.GAM
+```

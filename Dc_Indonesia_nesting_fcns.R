@@ -14,11 +14,14 @@ library(lubridate)
 
 save.fig <- F
 
-sum.posterior <- function(yr = 2013, Xs.stats, zm) {
-  Xs.stats %>% mutate(var.name = rownames(Xs.stats)) %>%
+sum.posterior <- function(yr, months = c(1:12), Xs.stats, zm) {
+  Xs.stats %>%
+    mutate(var.name = rownames(Xs.stats)) %>%
     filter(year == yr) %>%
+    filter(month %in% months) %>%
     select(var.name) -> Xs.name
-  zm.yr <- apply(Xs.name, MARGIN = 1,
+  zm.yr <- apply(Xs.name,
+                 MARGIN = 1,
                  FUN = extract.samples,
                  zm)
 
