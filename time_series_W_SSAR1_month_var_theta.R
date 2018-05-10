@@ -7,9 +7,10 @@ tic <- Sys.time()
 Sys <- Sys.info()
 source('Dc_Indonesia_nesting_fcns.R')
 library(rjags)
+library(jagsUI)
 
 save.RData <- T
-save.fig <- T
+save.fig <- F
 
 MCMC.params <- list(n.chains = 3,
                     n.iter = 50000,
@@ -38,21 +39,23 @@ bugs.data <- list(y = data.2$count,
                   m = data.2$MONTH,
                   T = nrow(data.2))
 
-# inits.function <- function(){
-#   mu <- rnorm(1, 0, 10)
-#   theta <- rnorm(1, 0, 1)
-#   phi <- rnorm(1, 0, 1)
-#   #sigma.pro <- runif(1, 0, 50)
-#   #sigma.obs <- runif(1, 0, 50)
-#   A <- list(mu = mu, theta = theta)
-#   #          sigma.pro = sigma.pro, sigma.obs = sigma.obs)
-#   return(A)
-# }
-
-load.module('dic')
 params <- c('theta.1', 'theta.2',
             'sigma.pro1', 'sigma.pro2',
             'sigma.obs', 'mu')
+load.module("dic")
+load.module("glm")
+# autojags from jagsUI seems to work pretty good - can't sample missing data
+# points because of the same reason as before - convergence cannot be determined.
+# parallel runs don't seem to work... 
+# autojags.out <- autojags(data = bugs.data,
+#                          inits = NULL,
+#                          parameters.to.save = params,
+#                          model.file = 'models/model_SSAR1_month_var_theta_Wermon.txt',
+#                          n.chains = MCMC.params$n.chains,
+#                          modules = c("glm", "dic"),
+#                          #parallel = TRUE,
+#                          #n.cores = 2,
+#                          Rhat.limit = 1.1)
 
 jm <- jags.model(file = 'models/model_SSAR1_month_var_theta_Wermon.txt',
                  data = bugs.data,
@@ -66,13 +69,47 @@ zm <- coda.samples(jm,
                    n.iter = MCMC.params$n.iter)
 g.diag <- gelman.diag(zm)
 
-# then sample y
+# then sample y and X
 params <- c(params, 'y', 'X', 'deviance')
 zm <- coda.samples(jm,
                    variable.names = params,
                    n.iter = MCMC.params$n.iter)
 
+# params <- c(params, 'y', 'X')
+# jags.out <- jags(data = bugs.data,
+#                  inits = NULL,
+#                  parameters.to.save = params,
+#                  model.file = 'models/model_SSAR1_month_var_theta_Wermon.txt',
+#                  n.chains = MCMC.params$n.chains,
+#                  n.adapt = MCMC.params$n.adapt,
+#                  n.iter = autojags.out$mcmc.info$n.chains,
+#                  modules = c("glm", "dic"),
+#                  parallel = TRUE)
+
 summary.zm <- summary(zm)
+
+# Computing WAIC. Code is from
+# https://sourceforge.net/p/mcmc-jags/discussion/610036/thread/8211df61/
+WAIC.s <- jags.samples(jm, c("deviance", "WAIC"), 
+                       type="mean", 
+                       n.iter=10000, thin=10)
+WAIC.s <- lapply(WAIC.s, unclass)
+sapply(WAIC.s, sum)
+
+# According to the website, "the monitor called WAIC does 
+# indeed return the WAIC penalty, so it is currently misnamed."  So that means
+# we need to convert what it comes back to the actual WAIC.  Alternatively, 
+# according to Matt Denwood: "In JAGS - I have been playing with the DIC module 
+# (locally but I will push to the repo). I think the easiest approach is to set 
+# monitors for elpd_waic and p_waic (named for consistency with the loo package) 
+# and calculate waic from this in R. To be honest WAIC was the main driver behind 
+# me adding the running variance monitor to JAGS last year but I never quite got 
+# around to the next step before JAGS 4.3.0..."  But the folllowing code does
+# not workj - elpd_waic and p_waic cannot be found...  
+# waic <- jags.samples(jm, c("elpd_waic", "p_waic"), 
+#                      type = "mean",
+#                      n.iter=10000, thin=10)
+
 
 # extract ys
 ys.stats <- data.frame(summary.zm$quantiles[grep(pattern = 'y[/[]',
@@ -136,7 +173,8 @@ results.W_SSAR1_month_var_theta <- list(data.1 = data.2,
                                         Sys = Sys,
                                         MCMC.params = MCMC.params,
                                         g.diag = g.diag,
-                                        jm = jm)
+                                        jm = jm,
+                                        WAIC.penalty = WAIC.s)
 if (save.fig)
   ggsave(plot = p.1,
          filename = 'figures/predicted_counts_W_month_var_theta_2006To2013.png',
