@@ -1327,6 +1327,7 @@ if (save.fig) ggsave(filename = 'figures/summer_GAM.png',
 p.summer.GAM
 ```
 
+Note that trying to extrapolate the "trend" into the future is not useful because the prediction is depending on what we have observed in the past. What have others done? The green turtle SRT approach was not useful because it just created trajectories based on estimated growth rate and its uncertainty.  
 
 ```{r}
 Xs.year.JM.winter %>% full_join(Xs.year.W.winter, by = "year") %>%
