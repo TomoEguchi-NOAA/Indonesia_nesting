@@ -1278,7 +1278,7 @@ if (save.fig) ggsave(filename = 'figures/summer_JMandW.png',
 p.summer
 ```
 
-Even in the non-log scale, the increase in the last five years seems obvious... 
+Even in the non-log scale, the increase in the last five years seems obvious... How do we capture this for predicting the future trend? 
 
 Fit a GAM:
 
