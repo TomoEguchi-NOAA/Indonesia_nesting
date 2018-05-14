@@ -1151,7 +1151,7 @@ p.W.GAM
 Perhaps, there is an uptick since 2012? 
 
 #Winter vs. Summer nest trends
-Because of the  nearshore currents are different between summer and winter so it may make more sense to look at trends for winter and summer counts separately. So, we have to pull in the predicted numbers from model outputs. First from Wermon. 
+Because of the  nearshore currents are different between summer and winter, it may make more sense to look at trends for winter and summer counts separately. So, we have to pull in the predicted numbers from model outputs. First from Wermon. 
 
 ```{r}
 # get Wermon output
