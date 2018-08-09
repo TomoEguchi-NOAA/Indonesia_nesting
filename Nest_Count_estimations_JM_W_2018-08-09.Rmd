@@ -1,0 +1,33 @@
+---
+title: "Nest count estimation"
+author: "Tomo Eguchi"
+date: "August 9, 2018"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+Nest counts are ofren used as an index of adult female abundance of a marine turtle nesting population. Because adult female turtles return to their nesting beaches in somewhat regular intervals (depends on the productivity at their foraging grounds) and they lay similar numbers of clutches per individual per season, nest counts correlate with the total abundance of adult females. 
+
+Nesting beaches of marine turtles often exist in remote areas, where access to beaches can be difficult. Nocturnal nesting also adds difficulty in collecting accurate data. Logistical issues have sometimes result in missing data for some parts of a nesting season. 
+
+This analysis tries to fill in missing nest counts data. A parametric model is fitted to years with complete data. The estimated parameters are used to fill in years without complete data. Ultimately, it aims to look at how the counts are changing over time. 
+
+This analysis estimates trends of leatherback turtle nests at two Indonesia nesting beaches (Jamursba-Medi and Wermon) using the annual nest counts. Raw data for the analysis are the recorded number of nests per month. Missing data are imputed using auto-regressive time-series analysis. A few models are used to compare performance of imputation and one with the narrowest prediction (imputation) intervals is used for the final analysis. 
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
