@@ -15,7 +15,7 @@ model{
         theta[t] <- ifelse(m[t] < 8, theta.1, theta.2)
         predX[t] <- theta[t] * X[t-1]
 
-        tau.pro[t] <- ifelse(m[t] < 10 && m[t] > 4, tau.pro1, tau.pro2)
+        tau.pro[t] <- ifelse(m[t] < 10 && m[t] > 3, tau.pro1, tau.pro2)
         X[t] ~ dnorm(predX[t], tau.pro[t])T(0,)
 
 		# observation
@@ -43,6 +43,6 @@ model{
     sigma.obs ~ dunif(0, 100)
     tau.obs <- 1/(sigma.obs * sigma.obs)
 
-    theta.1 ~ dnorm(0, 10)
-    theta.2 ~ dnorm(0, 10)
+    theta.1 ~ dnorm(0, 0.010)
+    theta.2 ~ dnorm(0, 0.010)
 }

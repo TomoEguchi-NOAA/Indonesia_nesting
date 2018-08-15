@@ -13,7 +13,7 @@ save.fig <- F
 
 MCMC.params <- list(n.chains = 3,
                     n.iter = 50000,
-                    n.adapt = 100000)
+                    n.adapt = 150000)
 
 # get JM data first:
 data.0.JM <- read.csv('data/NestCounts_JM_09Feb2018.csv')

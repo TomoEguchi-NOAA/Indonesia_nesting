@@ -969,7 +969,7 @@ p.W.estimated.counts <- ggplot() +
   labs(title = 'Wermon', x = '', y = "Nest counts")
 
 if (save.fig) ggsave(filename = 'figures/W_estimated_counts.png', 
-                     plot = p.W.predicted.var.2006to2013,
+                     plot = p.W.estimated.counts,
                      dpi = 600, height = 6, 
                      width = 8, units = "in")
 p.W.estimated.counts

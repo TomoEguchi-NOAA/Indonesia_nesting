@@ -7,10 +7,10 @@ tic <- Sys.time()
 Sys <- Sys.info()
 source('Dc_Indonesia_nesting_fcns.R')
 library(rjags)
-library(jagsUI)
+#library(jagsUI)
 
 save.RData <- T
-save.fig <- F
+save.fig <- T
 
 MCMC.params <- list(n.chains = 3,
                     n.iter = 50000,
@@ -27,8 +27,8 @@ data.1$MONTH <- unlist(lapply(data.1$month, FUN = mmm2month))
 
 data.2 <- mutate(data.1, f.month = as.factor(MONTH),
                  f.year = as.factor(YEAR))%>%
-  filter(YEAR < 2014 & YEAR > 2005) %>%
-  #filter(YEAR > 2005) %>%
+  #filter(YEAR < 2014 & YEAR > 2005) %>%
+  filter(YEAR > 2005) %>%
   #filter(YEAR < 2014) %>%
   mutate(Frac.Year = YEAR + (MONTH-0.5)/12) %>%
   reshape::sort_df(.,vars = "Frac.Year")
@@ -46,7 +46,7 @@ load.module("dic")
 load.module("glm")
 # autojags from jagsUI seems to work pretty good - can't sample missing data
 # points because of the same reason as before - convergence cannot be determined.
-# parallel runs don't seem to work... 
+# parallel runs don't seem to work...
 # autojags.out <- autojags(data = bugs.data,
 #                          inits = NULL,
 #                          parameters.to.save = params,
@@ -90,23 +90,23 @@ summary.zm <- summary(zm)
 
 # Computing WAIC. Code is from
 # https://sourceforge.net/p/mcmc-jags/discussion/610036/thread/8211df61/
-WAIC.s <- jags.samples(jm, c("deviance", "WAIC"), 
-                       type="mean", 
+WAIC.s <- jags.samples(jm, c("deviance", "WAIC"),
+                       type="mean",
                        n.iter=10000, thin=10)
 WAIC.s <- lapply(WAIC.s, unclass)
 sapply(WAIC.s, sum)
 
-# According to the website, "the monitor called WAIC does 
+# According to the website, "the monitor called WAIC does
 # indeed return the WAIC penalty, so it is currently misnamed."  So that means
-# we need to convert what it comes back to the actual WAIC.  Alternatively, 
-# according to Matt Denwood: "In JAGS - I have been playing with the DIC module 
-# (locally but I will push to the repo). I think the easiest approach is to set 
-# monitors for elpd_waic and p_waic (named for consistency with the loo package) 
-# and calculate waic from this in R. To be honest WAIC was the main driver behind 
-# me adding the running variance monitor to JAGS last year but I never quite got 
+# we need to convert what it comes back to the actual WAIC.  Alternatively,
+# according to Matt Denwood: "In JAGS - I have been playing with the DIC module
+# (locally but I will push to the repo). I think the easiest approach is to set
+# monitors for elpd_waic and p_waic (named for consistency with the loo package)
+# and calculate waic from this in R. To be honest WAIC was the main driver behind
+# me adding the running variance monitor to JAGS last year but I never quite got
 # around to the next step before JAGS 4.3.0..."  But the folllowing code does
-# not workj - elpd_waic and p_waic cannot be found...  
-# waic <- jags.samples(jm, c("elpd_waic", "p_waic"), 
+# not workj - elpd_waic and p_waic cannot be found...
+# waic <- jags.samples(jm, c("elpd_waic", "p_waic"),
 #                      type = "mean",
 #                      n.iter=10000, thin=10)
 
@@ -175,15 +175,30 @@ results.W_SSAR1_month_var_theta <- list(data.1 = data.2,
                                         g.diag = g.diag,
                                         jm = jm,
                                         WAIC.penalty = WAIC.s)
-if (save.fig)
-  ggsave(plot = p.1,
-         filename = 'figures/predicted_counts_W_month_var_theta_2006To2013.png',
-         height = 6, width = 8, units = "in", dpi = 600)
+if (max(data.2$YEAR) == 2013){
+  if (save.fig)
+    ggsave(plot = p.1,
+           filename = 'figures/predicted_counts_W_month_var_theta_2006To2013.png',
+           height = 6, width = 8, units = "in", dpi = 600)
+  if (save.RData)
+    save(results.W_SSAR1_month_var_theta,
+         file = paste0('RData/SSAR1_month_W_var_theta_2006To2013_',
+                       Sys.Date(), '.RData'))
 
-if (save.RData)
-  save(results.W_SSAR1_month_var_theta,
-       file = paste0('RData/SSAR1_month_W_var_theta_2006To2013_',
-                     Sys.Date(), '.RData'))
+} else {
+  if (save.fig)
+    ggsave(plot = p.1,
+           filename = paste0('figures/predicted_counts_W_month_var_theta_2006To',
+                             max(data.2$YEAR), '.png'),
+           height = 6, width = 8, units = "in", dpi = 600)
+  if (save.RData)
+    save(results.W_SSAR1_month_var_theta,
+         file = paste0('RData/SSAR1_month_W_var_theta_2006To',
+                       max(data.2$YEAR), '_',
+                       Sys.Date(), '.RData'))
+
+}
+
 
 
 # plot posterior densities using bayesplot functions:

@@ -44,6 +44,6 @@ model{
     sigma.obs ~ dunif(0, 200)
     tau.obs <- 1/(sigma.obs * sigma.obs)
 
-    theta.1 ~ dnorm(0, 10)
-    theta.2 ~ dnorm(0, 10)
+    theta.1 ~ dnorm(0, 0.010)
+    theta.2 ~ dnorm(0, 0.010)
 }
