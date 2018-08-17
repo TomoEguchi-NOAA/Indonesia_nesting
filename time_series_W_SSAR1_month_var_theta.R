@@ -16,7 +16,7 @@ MCMC.params <- list(n.chains = 3,
                     n.iter = 50000,
                     n.adapt = 100000)
 
-data.0 <- read.csv("data/NestCounts_Warmon_27March2018.csv")
+data.0 <- read.csv("data/NestCounts_Warmon_16Aug2018.csv")
 
 # create time-duration filed (in yrs)
 # define dates with begin and end dates:
