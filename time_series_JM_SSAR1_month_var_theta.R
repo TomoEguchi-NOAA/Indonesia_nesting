@@ -9,7 +9,7 @@ source('Dc_Indonesia_nesting_fcns.R')
 library(rjags)
 
 save.RData <- T
-save.fig <- F
+save.fig <- T
 
 MCMC.params <- list(n.chains = 3,
                     n.iter = 50000,

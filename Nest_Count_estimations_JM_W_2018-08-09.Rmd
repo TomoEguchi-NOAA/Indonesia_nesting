@@ -14,6 +14,8 @@ library(rjags)
 #library(loo)
 base_theme <- ggplot2::theme_get()
 library(bayesplot)
+
+save.fig <- F
 ```
 
 ## Introduction
@@ -53,9 +55,10 @@ p.JM.all <- ggplot(data.1.JM) +
   theme(axis.text = element_text(size = 12),
         text = element_text(size = 12))
 
-ggsave(filename = 'figures/JM_all.png',
-                     plot = p.JM.all,
-                     dpi = 600, height = 6, width = 8, units = "in")
+if (save.fig)
+  ggsave(filename = 'figures/JM_all.png',
+         plot = p.JM.all,
+         dpi = 600, height = 6, width = 8, units = "in")
 ```
 
 At Jamursba-Medi, some data have been collected since ```r min(data.1.JM$YEAR)```. However, there were many years of no data between the mid 1980s and late 1990s. A somewhat consistent effort starts in early 2000s and continue to recent years (Figure 1). The observed nest count in ```r filter(data.1.JM, count == max(data.1.JM$count, na.rm = T))$YEAR``` was ```r max(data.1.JM$count, na.rm = T)``` and declined to less than 1000 since 2000. 
@@ -78,10 +81,11 @@ p.JM.1999 <- ggplot(data.1.JM.1999) +
   theme(axis.text = element_text(size = 12),
         text = element_text(size = 12))
 
-ggsave(filename = 'figures/JM_1999.png',
-       plot = p.JM.1999,
-       dpi = 600, height = 6, 
-       width = 8, units = "in")
+if (save.fig)
+  ggsave(filename = 'figures/JM_1999.png',
+         plot = p.JM.1999,
+         dpi = 600, height = 6, 
+         width = 8, units = "in")
 ```
 
 ```{r plot_JM_raw_since_1999, echo=FALSE, cache=TRUE, fig.cap = "Figure 2. Nest counts at Jamursba-Medi since 1999"}
@@ -100,10 +104,11 @@ p.JM.monthly.1999 <- ggplot(data.1.JM.1999) +
         text = element_text(size = 12))
 #        legend.position = c(0.9, 0.6))
 
-ggsave(filename = 'figures/JM_monthly_1999.png', 
-       plot = p.JM.monthly.1999,
-       dpi = 600, height = 6, 
-       width = 8, units = "in")
+if (save.fig)
+  ggsave(filename = 'figures/JM_monthly_1999.png', 
+         plot = p.JM.monthly.1999,
+         dpi = 600, height = 6, 
+         width = 8, units = "in")
 ```
 
 When the number of nests is plotted monthly, the seasonal fluctations become more obvious (Figure 3). In general, high counts within a year are seen during summer months (approximately from April to September), whereas low counts are found during winter months (October through March).   
@@ -114,7 +119,7 @@ knitr::include_graphics("figures/JM_monthly_1999.png")
 
 ###Wermon
 ```{r W_data, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
-data.0.W <- read.csv('data/NestCounts_Warmon_27March2018.csv')
+data.0.W <- read.csv('data/NestCounts_Wermon_16Aug2018.csv')
 
 # create time-duration filed (in yrs)
 # define dates with begin and end dates:
@@ -136,10 +141,11 @@ p.W.all <- ggplot(data.1.W) +
   labs(title = 'Wermon', x = '', 
        y = "Nest counts")
 
-ggsave(filename = 'figures/W_all.png', 
-       plot = p.W.all,
-       dpi = 600, height = 6, 
-       width = 8, units = "in")
+if (save.fig)
+  ggsave(filename = 'figures/W_all.png', 
+         plot = p.W.all,
+         dpi = 600, height = 6, 
+         width = 8, units = "in")
 ```
 
 At Wermon, some data have been collected since ```r min(data.1.W$YEAR)```. However, no data were collected between July 2013 and December 2015. The largeset nest count was ```r max(data.1.W$count, na.rm=T)``` in ```r filter(data.1.W, count == max(data.1.W$count, na.rm = T))$YEAR``` (Figure 4).   
@@ -160,10 +166,11 @@ p.W.monthly <- ggplot(data.1.W) +
   theme(axis.text = element_text(size = 12),
         text = element_text(size = 12))
 
-ggsave(filename = 'figures/W_monthly.png', 
-       plot = p.W.monthly,
-       dpi = 600, height = 6, 
-       width = 8, units = "in")
+if (save.fig)
+  ggsave(filename = 'figures/W_monthly.png', 
+         plot = p.W.monthly,
+         dpi = 600, height = 6, 
+         width = 8, units = "in")
 
 ```
 
@@ -185,10 +192,11 @@ p.W.monthly.2006 <- ggplot(data.1.W.2006) +
   theme(axis.text = element_text(size = 12),
         text = element_text(size = 12))
 
-ggsave(filename = 'figures/W_monthly_2006.png', 
-       plot = p.W.monthly.2006,
-       dpi = 600, height = 6, 
-       width = 8, units = "in")
+if (save.fig)
+  ggsave(filename = 'figures/W_monthly_2006.png', 
+         plot = p.W.monthly.2006,
+         dpi = 600, height = 6, 
+         width = 8, units = "in")
 ```
 
 ```{r plot_W_by_month_since_2006, echo=FALSE, cache=TRUE, fig.cap = "Figure 6. Monthly nest counts at Wermon since 2006. "}
@@ -238,16 +246,17 @@ load("RData/SSAR1_month_JM_var_theta_1999_2018-08-13.RData")
 ```
 
 The multi-variate potential scale reduction factor (Gelman diagnostic statistic) was ```r 
-signif(results.JM_SSAR1_month_var_theta$g.diag$mpsrf, digits = 4)```, indicating an adequate convergence. Visual inspection of MCMC chains also indicated that a convergence was reached for all parameters (Figure 7). 
+signif(results.JM_SSAR1_month_var_theta$g.diag$mpsrf, digits = 4)```, indicating an adequate convergence, though not great. Visual inspection of MCMC chains also indicated that a convergence was reached for all parameters (Figure 7). 
 
 ```{r MCMC_trace_JM, echo=FALSE, cache=TRUE, warning=FALSE, message=F}
 zm.var.theta.JM.1999 <- results.JM_SSAR1_month_var_theta$zm
 p.mcmc.trace.JM.1999 <- mcmc_trace(zm.var.theta.JM.1999, 
                                    c("sigma.pro1", "sigma.pro2", 
                                      "theta.1", "theta.2"))
-ggsave(filename = 'figures/JM_MCMC_trace.png', 
-       plot = p.mcmc.trace.JM.1999,
-       dpi = 600)
+if (save.fig)
+  ggsave(filename = 'figures/JM_MCMC_trace.png', 
+         plot = p.mcmc.trace.JM.1999,
+         dpi = 600)
 ```
 
 ```{r plot_MCMC_trace_JM, echo=FALSE, cache=TRUE, fig.cap = "Figure 7. MCMC trace plots for Jamursba-Medi dataset. "}
@@ -281,53 +290,78 @@ p.JM.predicted.1999 <- ggplot() +
   labs(x = '', y = "Nest counts",
        title = "Jamursba-Medi")
 
-ggsave(filename = 'figures/JM_predicted_1999.png', 
-       plot = p.JM.predicted.1999,
-       dpi = 600, height = 6, 
-       width = 8, units = "in")
+if (save.fig)
+  ggsave(filename = 'figures/JM_predicted_1999.png', 
+         plot = p.JM.predicted.1999,
+         dpi = 600, height = 6, 
+         width = 8, units = "in")
 ```
 
 ```{r plot_JM_predicted, echo=FALSE, cache=TRUE, fig.cap = "Figure 8. Predicted counts of nests for Jamursba-Medi dataset. Red is the estimated missing values and green are observed counts. 5 and 95% confidence limits are shown in dashed lines."}
 knitr::include_graphics("figures/JM_predicted_1999.png")
 ```
 
+Because the annual counts are computed for nesting seasons, monthly counts are summed from April 1 to March 31 over a two-year peiord.
+
 ```{r total_annual_counts_JM, echo=FALSE, cache=TRUE, warning=FALSE}
 #sum.posterior is in Dc_Indonesia_nesting_fcn.R
+# add "Season" to posteriors: these are the sampling years - summer + winter, which
+# will be indicated by "season" with lower calse s. 
+Xs.stats %>% mutate(Season = ifelse(month < 4, year - 1, year),
+                    season = ifelse(month > 3 & month < 10, 
+                                    "summer", "winter")) -> Xs.stats
 
-yrs <- as.matrix(c(min(Xs.stats$year):max(Xs.stats$year)))
-X.posteriors.all <- lapply(apply(yrs, 
-                                 MARGIN = 1,
-                                 FUN = sum.posterior, 
-                                 Xs.stats = Xs.stats, 
-                                 zm = zm.var.theta.JM.1999),
-                           FUN = function(x) rowSums(x$samples))
+# sum by Season
+Xs.stats %>% group_by(Season) %>%
+  summarise(median = sum(mode_X),
+            low = sum(low_X),
+            high = sum(high_X)) -> Xs.stats.Season
 
-Xs.year <- as.data.frame(matrix(unlist(lapply(X.posteriors.all, 
-                                              FUN = quantile,
-                                              c(0.025, 
-                                                0.5, 
-                                                0.975))),
-                                ncol = 3, byrow = T)) 
-colnames(Xs.year) <- c("low", "total", "high")
-Xs.year <-mutate(Xs.year, 
-                 year = c(min(Xs.stats$year):max(Xs.stats$year)))
+data.1.JM.1999 %>% mutate(Season = ifelse(MONTH < 4, YEAR - 1, YEAR),
+                    season = ifelse(MONTH > 3 & MONTH < 10, 
+                                    "summer", "winter")) %>%
+  group_by(Season) %>%
+  summarise(observed = sum(count, na.rm = T)) %>%
+  right_join(., Xs.stats.Season, by = "Season") -> X.data.JM.1999.annual
+
+# yrs <- as.matrix(c(min(Xs.stats$Season):max(Xs.stats$Season)))
+# X.posteriors.all <- lapply(apply(yrs, 
+#                                  MARGIN = 1,
+#                                  FUN = sum.posterior, 
+#                                  Xs.stats = Xs.stats, 
+#                                  zm = zm.var.theta.JM.1999),
+#                            FUN = function(x) rowSums(x$samples))
+# 
+# Xs.year <- as.data.frame(matrix(unlist(lapply(X.posteriors.all, 
+#                                               FUN = quantile,
+#                                               c(0.025, 
+#                                                 0.5, 
+#                                                 0.975))),
+#                                 ncol = 3, byrow = T)) 
+# colnames(Xs.year) <- c("low", "total", "high")
+# Xs.year <-mutate(Xs.year, 
+#                  year = c(min(Xs.stats$year):max(Xs.stats$year)))
 
 # Xs.stats %>% #mutate(f.year = as.factor(year)) %>%
 #   group_by(year) %>% summarise(total = sum(mode_X), 
 #                                low = sum(low_X),
 #                                high = sum(high_X)) -> Xs.year
 
-p.JM.estimated.counts <- ggplot(Xs.year) + 
-  geom_point(aes(x = year, y = total))+
-  geom_errorbar(aes(x = year, ymin = low, ymax = high)) + 
+p.JM.estimated.counts <- ggplot(data = X.data.JM.1999.annual) + 
+  geom_point(aes(x = Season, y = median))+
+  geom_errorbar(aes(x = Season, ymin = low, ymax = high)) + 
+  geom_point(aes(x = Season, y = observed),
+             color = "red") + 
   labs(title = 'Jamursba-Medi', x = '', y = "Nest counts")
 
-ggsave(filename = 'figures/JM_annual_counts.png', 
-       plot = p.JM.estimated.counts,
-       dpi = 600, height = 6, 
-       width = 8, units = "in")
+if (save.fig)
+  ggsave(filename = 'figures/JM_annual_counts.png', 
+         plot = p.JM.estimated.counts,
+         dpi = 600, height = 6, 
+         width = 8, units = "in")
 
-write.csv(Xs.year, file = "data/JM_annual_estimated_counts.csv", 
+write.csv(X.data.JM.1999.annual, 
+          file = "data/JM_annual_estimated_counts_v2.csv", 
           quote = F, row.names = F)
 
 ```
@@ -355,9 +389,10 @@ signif(results.W_SSAR1_month_var_theta$g.diag$mpsrf, digits = 4)```, indicating 
 p.mcmc.trace.W <- mcmc_trace(zm.var.theta.W, 
                              c("sigma.pro1", "sigma.pro2", 
                                "theta.1", "theta.2"))
-ggsave(filename = 'figures/W_MCMC_trace.png', 
-       plot = p.mcmc.trace.W,
-       dpi = 600)
+if (save.fig)
+  ggsave(filename = 'figures/W_MCMC_trace.png', 
+         plot = p.mcmc.trace.W,
+         dpi = 600)
 ```
 
 ```{r plot_MCMC_trace_W, echo=FALSE, cache=TRUE, fig.cap = "Figure 10. MCMC trace plots for Wermon dataset. "}
@@ -393,10 +428,11 @@ p.W.predicted.var.2006to2017 <- ggplot() +
   theme(axis.text = element_text(size = 12),
         text = element_text(size = 12))
 
-ggsave(filename = 'figures/W_predicted_var_2006to2017.png', 
-       plot = p.W.predicted.var.2006to2017,
-       dpi = 600, height = 6, 
-       width = 8, units = "in")
+if (save.fig)
+  ggsave(filename = 'figures/W_predicted_var_2006to2017.png', 
+         plot = p.W.predicted.var.2006to2017,
+         dpi = 600, height = 6, 
+         width = 8, units = "in")
 
 ```
 
@@ -408,31 +444,48 @@ It is not useful to fill in those years with no data whatsoever as we have no id
 
 ```{r W_annual_counts, echo=F, warning=F, cache=T}
 # sum posterior samples to get annual counts from monthly estimates:
-yrs <- as.matrix(c(min(Xs.stats.W$year):max(Xs.stats.W$year)))
-X.posteriors.all <- lapply(apply(yrs, MARGIN = 1,
-                                 FUN = sum.posterior, 
-                                 Xs.stats = Xs.stats.W, 
-                                 zm = zm.var.theta.W),
-                           FUN = function(x) rowSums(x$samples))
+Xs.stats.W %>% mutate(Season = ifelse(month < 4, year - 1, year),
+                      season = ifelse(month > 3 & month < 10, 
+                                      "summer", "winter")) -> Xs.stats.W
 
-Xs.year.W <- as.data.frame(matrix(unlist(lapply(X.posteriors.all, 
-                                                 FUN = quantile,
-                                                 c(0.025, 0.5, 0.975))),
-                                   ncol = 3, byrow = T)) 
+# sum by Season
+Xs.stats.W %>% group_by(Season) %>%
+  summarise(median = sum(mode_X),
+            low = sum(low_X),
+            high = sum(high_X)) -> Xs.stats.W.Season
 
-colnames(Xs.year.W) <- c("low", "total", "high")
-Xs.year.W <-mutate(Xs.year.W, 
-                    year = c(min(Xs.stats.W$year):max(Xs.stats.W$year)))
+data.1.W.2006 %>% mutate(Season = ifelse(MONTH < 4, YEAR - 1, YEAR),
+                         season = ifelse(MONTH > 3 & MONTH < 10, 
+                                         "summer", "winter")) %>%
+  group_by(Season) %>%
+  summarise(observed = sum(count, na.rm = T)) %>%
+  right_join(., Xs.stats.W.Season, by = "Season") -> X.data.W.2006.annual
 
-Xs.year.W[Xs.year.W$year == 2014 | Xs.year.W$year == 2015, 
-           c("total", "low", "high")] <- NA
-
-data.1.W %>% filter(YEAR < 2006) %>% group_by(YEAR) %>%
-  summarise(total = sum(count)) %>%
-  mutate(low = NA, high = NA) %>%
-  rename(year = YEAR) -> Xs.year.2004.2005
-
-Xs.year.W <- rbind(Xs.year.2004.2005, Xs.year.W)
+# yrs <- as.matrix(c(min(Xs.stats.W$year):max(Xs.stats.W$year)))
+# X.posteriors.all <- lapply(apply(yrs, MARGIN = 1,
+#                                  FUN = sum.posterior, 
+#                                  Xs.stats = Xs.stats.W, 
+#                                  zm = zm.var.theta.W),
+#                            FUN = function(x) rowSums(x$samples))
+# 
+# Xs.year.W <- as.data.frame(matrix(unlist(lapply(X.posteriors.all, 
+#                                                  FUN = quantile,
+#                                                  c(0.025, 0.5, 0.975))),
+#                                    ncol = 3, byrow = T)) 
+# 
+# colnames(Xs.year.W) <- c("low", "total", "high")
+# Xs.year.W <-mutate(Xs.year.W, 
+#                     year = c(min(Xs.stats.W$year):max(Xs.stats.W$year)))
+# 
+# Xs.year.W[Xs.year.W$year == 2014 | Xs.year.W$year == 2015, 
+#            c("total", "low", "high")] <- NA
+# 
+# data.1.W %>% filter(YEAR < 2006) %>% group_by(YEAR) %>%
+#   summarise(total = sum(count)) %>%
+#   mutate(low = NA, high = NA) %>%
+#   rename(year = YEAR) -> Xs.year.2004.2005
+# 
+# Xs.year.W <- rbind(Xs.year.2004.2005, Xs.year.W)
 
 Tapilatu.data <- data.frame(year = c(2003:2012),
                             count = c(2994, 2786, 2805,
@@ -441,19 +494,22 @@ Tapilatu.data <- data.frame(year = c(2003:2012),
                                       1096))
 
 p.W.estimated.counts <- ggplot() + 
-  geom_point(data = Xs.year.W,
-             aes(x = year, y = total))+
-  geom_errorbar(data = Xs.year.W,
-                aes(x = year, ymin = low, ymax = high)) + 
-  #geom_point(data = Tapilatu.data,
-  #           aes(x = year, y = count), color = 'red') +
+  geom_point(data = X.data.W.2006.annual,
+             aes(x = Season, y = median))+
+  geom_errorbar(data = X.data.W.2006.annual,
+                aes(x = Season, ymin = low, ymax = high)) + 
+  geom_point(data = X.data.W.2006.annual,
+             aes(x = Season, y = observed), color = 'red') +
   labs(title = 'Wermon', x = '', y = "Nest counts")
 
-ggsave(filename = 'figures/W_annual_counts.png', 
-                     plot = p.W.estimated.counts,
-                     dpi = 600, height = 6, 
-                     width = 8, units = "in")
-write.csv(Xs.year.W, file = "data/W_annual_estimated_counts.csv", 
+if (save.fig)
+  ggsave(filename = 'figures/W_annual_counts.png', 
+         plot = p.W.estimated.counts,
+         dpi = 600, height = 6, 
+         width = 8, units = "in")
+
+write.csv(X.data.W.2006.annual, 
+          file = "data/W_annual_estimated_counts.csv", 
           quote = F, row.names = F)
 ```
 
