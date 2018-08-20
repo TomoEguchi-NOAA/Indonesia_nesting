@@ -191,7 +191,7 @@ if (max(data.2$YEAR) == 2013){
   if (save.fig)
     ggsave(plot = p.1,
            filename = paste0('figures/predicted_counts_W_month_var_theta_',
-                             min(dta.2$YEAR), "To",
+                             min(data.2$YEAR), "To",
                              max(data.2$YEAR), '.png'),
            height = 6, width = 8, units = "in", dpi = 600)
   if (save.RData)
