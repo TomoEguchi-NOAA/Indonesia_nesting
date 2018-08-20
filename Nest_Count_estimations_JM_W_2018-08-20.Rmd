@@ -15,7 +15,7 @@ library(rjags)
 base_theme <- ggplot2::theme_get()
 library(bayesplot)
 
-save.fig <- F
+save.fig <- T
 ```
 
 ## Introduction
@@ -70,7 +70,7 @@ At Jamursba-Medi, some data have been collected since ```r min(data.1.JM$YEAR)``
 knitr::include_graphics("figures/JM_all.png")
 ```
 
-No data were collected in 1998. Since then at least some data were collected within each year. After analyzing datasets with different starting years, we found that starting at 2001 resulted in the longest dataset and good convergence of MCMC.  Consequently, we decided to use data since 1999. The cyclical nature or seaonal fluctuations of counts is obvious in the raw counts (Figure 2).
+No data were collected in 1998. Since then at least some data were collected within each year. After analyzing datasets with different starting years, we found that starting at 1999 resulted in the longest dataset and good convergence of MCMC.  Consequently, we decided to use data since 1999. The cyclical nature or seaonal fluctuations of counts is obvious in the raw counts (Figure 2).
 
 ```{r JM_raw_since_1999, echo=FALSE, cache=TRUE, warning=FALSE}
 data.1.JM.1999 <- filter(data.1.JM, YEAR > 1998)
@@ -114,7 +114,7 @@ if (save.fig)
          width = 8, units = "in")
 ```
 
-When the number of nests is plotted monthly, the seasonal fluctations become more obvious (Figure 3). In general, high counts within a year are seen during summer months (approximately from April to September), whereas low counts are found during winter months (October through March).   
+When the number of nests is plotted by month, the seasonal fluctations become more obvious (Figure 3). In general, high counts within a year are seen during summer months (approximately from April to September), whereas low counts are found during winter months (October through March).   
 
 ```{r plot_JM_by_month, echo=FALSE, cache=TRUE, fig.cap = "Figure 3. Monthly nest counts at Jamursba-Medi"}
 knitr::include_graphics("figures/JM_monthly_1999.png")
@@ -218,24 +218,29 @@ The mean predicted count in month t (mu[t]) is a function of the true count of a
 
 mu[t] = theta[t] * X[t-1]
 
-The process (the true number of nests) at time t, X[t], is assumed to be distributed with a truncated normal distribution with mean mu[t] and standard deviation sigma.pro[t]:
+The process (the true number of nests) at time t, X[t], is assumed to be distributed with a truncated normal distribution with mean mu[t] and standard deviation sigma.pro1 or sigma.pro2:
 
-X[t] ~ N(mu[t], sigma.pro[t])T(0,),
+X[t] ~ N(mu[t], sigma.pro1)T(0,), if season1
 
-where N() indicates Normal distribution and T(0,) indicates the truncation function for X[t] > 0. 
+X[t] ~ N(mu[t], sigma.pro2)T(0,), if season2
 
-Observed counts, y[t], is also modeled with a truncated normal distribution with the mean X[t] and standard deviation sigma.obs:
+where N() indicates Normal distribution and T(0,) indicates the truncation function for X[t] > 0. Season1 and season2 correspond to high and low count months. This is explained in subsections for each nesting beach in the following sections.
+
+Observed counts, y[t], is also modeled with a truncated normal distribution with the mean X[t] and standard deviation sigma.obs, which was assumed to be time-invariant. 
 
 y[t] ~ N(X[t], sigma.obs)T(0,)
 
 Vague priors were used for all parameters. 
 
-sigma.pro[t] ~ UNIF(0, 600)
-sigma.obs ~ UNIF(0, 200)
+sigma.pro1 ~ UNIF(0, 600)
+
+sigma.pro2 ~ UNIF(0, 200)
+
+sigma.obs ~ UNIF(0, 100)
 
 theta[t] ~ N(0, 0.01)
 
-The standard deviation of observations was assumed to be time-invariant. The standard deviation of the process (sigma.pro[t]) was dependent on months. This is explained in subsections for each nesting beach in the following sections. JAGS code for these analyses can be found in Appendix. 
+JAGS code for these analyses can be found in Appendix. 
 
 In this analysis, missing values are treated as unknown parameters. Consequently, posterior distributions of the missing values are used to make inference about the missing values. The estimated number of nests (X[t]) were used to compute the total annual number of nests. These estimated counts and their credible intervals were used to provide estimated annual counts and their uncertainty. 
 
@@ -244,15 +249,15 @@ Analysis was conducted JAGS (REF) and rjags package (REF) within the R statistic
 # Results
 
 ## Jamursba-Medi
-For Jamusba-Medi, two variances corresponded to summer (April through September) and winter (October through March) seasons, whereas two slopes are for increasing (Jan to Jul) and decreasing (Aug to Dec) phases of each year. After fitting different   
+For Jamusba-Medi, we explored two sets of two variances of nest counts (sigma.pro1 and sigma.pro2). One set corresponded to summer (April through September as season1) and winter (October through March as season2), whereas the other set corresponded to the visual determination of two variances (Figure 3): May through August as season1 and September through April as season2. Convergence of MCMC was used to determine which set was better with respect to parameter estimation.  For the slope parameter, two slopes were for increasing (Jan to Jul) and decreasing (Aug to Dec) phases of each year. Gelman-Rubin statistic and trace plots indicated that the visual separation of the variance parameter (May through August  and September through April) resulted in better MCMC convergence. So, we will use the model for the following analysis. 
 
 ```{r load_jags_JM, echo=FALSE, warning=TRUE, message=F}
-load("RData/SSAR1_month_JM_var_theta_2001_2018-08-17.RData")
+load("RData/SSAR1_month_JM_var_May_Aug_theta_1999_2018-08-20.RData")
 #results.JM_SSAR1_month_var_theta$jm
 ```
 
 The multi-variate potential scale reduction factor (Gelman diagnostic statistic) was ```r 
-signif(results.JM_SSAR1_month_var_theta$g.diag$mpsrf, digits = 4)```, indicating an adequate convergence, though not great. Visual inspection of MCMC chains also indicated that a convergence was reached for all parameters, except perhaps sigma.pro2 (Figure 7). 
+signif(results.JM_SSAR1_month_var_theta$g.diag$mpsrf, digits = 4)```, indicating an adequate convergence. Visual inspection of MCMC chains also indicated that a convergence was reached for all parameters (Figure 7). 
 
 ```{r MCMC_trace_JM, echo=FALSE, cache=TRUE, warning=FALSE, message=F}
 zm.var.theta.JM.1999 <- results.JM_SSAR1_month_var_theta$zm
@@ -321,11 +326,13 @@ Xs.stats %>% mutate(Season = ifelse(month < 4, year - 1, year),
 Xs.stats %>% group_by(Season) %>%
   summarise(median = sum(mode_X),
             low = sum(low_X),
-            high = sum(high_X)) -> Xs.stats.Season
+            high = sum(high_X)) %>%
+  filter(Season > 1998 & Season < 2018) -> Xs.stats.Season
 
 data.1.JM.1999 %>% 
   group_by(Season) %>%
   summarise(observed = sum(count, na.rm = T)) %>%
+  filter(Season > 1998 & Season < 2018) %>%
   right_join(., Xs.stats.Season, by = "Season") -> X.data.JM.1999.annual
 
 p.JM.estimated.counts <- ggplot(data = X.data.JM.1999.annual) + 
@@ -421,7 +428,7 @@ if (save.fig)
 knitr::include_graphics("figures/W_predicted_var_2006to2017.png")
 ```
 
-It is not useful to fill in those years with no data whatsoever as we have no idea what was happening (Figure 11). For other years, however, the estimated true counts (red) seem reasonable. We will use all years except 2014 and 2015. I pool estimated counts annually. I add the first two data points as the median values. 
+It is not useful to fill in those years with no data whatsoever as we have no idea what was happening (Figure 11). For other years, however, the estimated true counts (red) seem reasonable. We will use all years except 2014 and 2015. I pool estimated counts annually.  
 
 ```{r W_annual_counts, echo=F, warning=F, cache=T}
 # sum posterior samples to get annual counts from monthly estimates:
@@ -473,7 +480,7 @@ knitr::include_graphics("figures/W_annual_counts.png")
 #Summer vs winter nesting
 In order to determine the summer and winter nest counts, we added Jamursba-Medi and Wermon counts for each season. Summer is defined as April 1 - September 30, whereas winter is from October 1 to March 31.
 
-```{r SummerVsWinter, echo=F, cache=TRUE, warning=FALSE}
+```{r SummerVsWinter, echo=F, cache=TRUE, warning=FALSE, message=FALSE}
 Xs.stats[Xs.stats < 0] <- NA
 #JM winter
 Xs.JM.winter <- filter(Xs.stats, season == "winter") %>%
@@ -482,12 +489,14 @@ Xs.JM.winter <- filter(Xs.stats, season == "winter") %>%
   group_by(Season) %>%
   summarise(low_JM = sum(low, na.rm = T),
             high_JM = sum(high, na.rm = T),
-            median_JM = sum(median, na.rm = T))
+            median_JM = sum(median, na.rm = T)) %>%
+  filter(Season > 1998 & Season < 2018)
 
 data.1.JM.1999 %>%
   filter(season == "winter") %>%
   group_by(Season) %>%
   summarise(observed_JM = sum(count, na.rm = T)) %>%
+  filter(Season > 1998 & Season < 2018) %>%
   right_join(., Xs.JM.winter, by = "Season") -> Xs.data.JM.1999.winter
 
 # JM summer
@@ -497,12 +506,14 @@ Xs.JM.summer <- filter(Xs.stats, season == "summer") %>%
   group_by(Season) %>%
   summarise(low_JM = sum(low, na.rm = T),
             high_JM = sum(high, na.rm = T),
-            median_JM = sum(median, na.rm = T))
+            median_JM = sum(median, na.rm = T)) %>%
+  filter(Season > 1998 & Season < 2018)
 
 data.1.JM.1999 %>%
   filter(season == "summer") %>%
   group_by(Season) %>%
   summarise(observed_JM = sum(count, na.rm = T)) %>%
+  filter(Season > 1998 & Season < 2018) %>%
   right_join(., Xs.JM.summer, by = "Season") -> Xs.data.JM.1999.summer
 
 # Wermon winter
@@ -590,14 +601,14 @@ p.summer.W <- ggplot(Xs.summer) +
   geom_errorbar(aes(x = Season, ymin = low_W, ymax = high_W)) + 
   geom_point(aes(x = Season, y = observed_W), color = 'red') +
   #xlim(2005, 2018) +
-  labs(title = 'Summer - JM', x = '', y = "Nest counts")
+  labs(title = 'Summer - W', x = '', y = "Nest counts")
 
 p.winter.W <- ggplot(Xs.winter) +
   geom_point(aes(x = Season, y = median_W)) +
   geom_errorbar(aes(x = Season, ymin = low_W, ymax = high_W)) + 
   geom_point(aes(x = Season, y = observed_W), color = 'red') +
   #xlim(2004, 2018) +
-  labs(title = 'Winter - JM', x = '', y = "Nest counts")
+  labs(title = 'Winter - W', x = '', y = "Nest counts")
 
 if (save.fig){
   ggsave(filename = "figures/JM_summer_counts.png",

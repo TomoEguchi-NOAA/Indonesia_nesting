@@ -178,22 +178,26 @@ results.W_SSAR1_month_var_theta <- list(data.1 = data.2,
 if (max(data.2$YEAR) == 2013){
   if (save.fig)
     ggsave(plot = p.1,
-           filename = 'figures/predicted_counts_W_month_var_theta_2006To2013.png',
+           filename = 'figures/predicted_counts_W_month_var_theta_',
+           min(data.2$YEAR), "To", max(data.2$YEAR), '.png',
            height = 6, width = 8, units = "in", dpi = 600)
   if (save.RData)
     save(results.W_SSAR1_month_var_theta,
-         file = paste0('RData/SSAR1_month_W_var_theta_2006To2013_',
+         file = paste0('RData/SSAR1_month_W_var_theta_',
+                       min(data.2$YEAR), "To", max(data.2$YEAR), "_",
                        Sys.Date(), '.RData'))
 
 } else {
   if (save.fig)
     ggsave(plot = p.1,
-           filename = paste0('figures/predicted_counts_W_month_var_theta_2006To',
+           filename = paste0('figures/predicted_counts_W_month_var_theta_',
+                             min(dta.2$YEAR), "To",
                              max(data.2$YEAR), '.png'),
            height = 6, width = 8, units = "in", dpi = 600)
   if (save.RData)
     save(results.W_SSAR1_month_var_theta,
-         file = paste0('RData/SSAR1_month_W_var_theta_2006To',
+         file = paste0('RData/SSAR1_month_W_var_theta_',
+                       min(data.2$YEAR), 'To',
                        max(data.2$YEAR), '_',
                        Sys.Date(), '.RData'))
 
