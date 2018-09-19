@@ -30,11 +30,14 @@ data.1.JM$MONTH <- unlist(lapply(data.1.JM$month, FUN = mmm2month))
 
 data.1.JM %>% mutate(., f.month = as.factor(MONTH),
                      f.year = as.factor(YEAR))%>%
-  filter(YEAR > 1999) %>%
+  #filter(YEAR > 1999) %>%
   #filter(YEAR > 2000) %>%
-  #filter(YEAR > 1998) %>%
+  filter(YEAR > 1998) %>%
   mutate(Frac.Year = YEAR + (MONTH-0.5)/12) %>%
   reshape::sort_df(.,vars = "Frac.Year") -> data.2
+
+# first three data points are NAs - remove
+#data.2 <- data.2[4:nrow(data.2),]
 
 #data.1.JM.2005 <- filter(data.1.JM, YEAR > 2004)
 
@@ -143,13 +146,13 @@ results.JM_SSAR1_month_var_theta <- list(data.1 = data.2,
                                jm = jm)
 if (save.fig)
   ggsave(plot = p.1,
-         filename = paste0('figures/predicted_counts_JM_month_var_theta_',
+         filename = paste0('figures/predicted_counts_JM_month_var_May_Aug_theta_',
                            min(data.2$YEAR), '.png'),
          dpi = 600)
 
 if (save.RData)
   save(results.JM_SSAR1_month_var_theta,
-       file = paste0('RData/SSAR1_month_JM_var_theta_',
+       file = paste0('RData/SSAR1_month_JM_var_May_Aug_theta_',
                      min(data.2$YEAR), '_',
                      Sys.Date(), '.RData'))
 
