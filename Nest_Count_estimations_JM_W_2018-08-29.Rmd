@@ -214,7 +214,7 @@ knitr::include_graphics("figures/W_monthly_2006.png")
 The two datasets (counts since 1999 for Jamursba-Medi and since 2006 for Wermon) are used in the following analysis for estimating missing counts. 
 
 # Statistical model
-Missing data are imputed using auto-regressive time-series analysis with 1 year of lag (AR(1)). It is a Bayesian state-space model with two variances and two slope paramters in the state model. The two variances correspond to high and low counts, whereas two slope paramters corredpond to increasing and decreasing phases of counts.  
+Missing data are imputed using auto-regressive time-series analysis with 1 month of lag (AR(1)). It is a Bayesian state-space model with two variances and two slope parameters in the state model. The two variances correspond to high and low counts, whereas two slope parameters correspond to increasing and decreasing phases of counts.  
 
 The mean predicted count in month t (mu[t]) is a function of the true count of a month prior:
 
@@ -361,7 +361,7 @@ knitr::include_graphics("figures/JM_annual_counts.png")
 ```
 
 ##Wermon
-For Wermon, two variances corresponded to high nest count months (March, April, September, and October) and low nest count months (January, February, May, June, July, August, November and December).  Two slopes corresonded to increasing (May, June, November, and December) and decreasing (January through April and July through October) phases of each year.  
+For Wermon, two variances corresponded to high nest count months (March, April, September, and October) and low nest count months (January, February, May, June, July, August, November and December).  Two slopes corresponded to increasing (May, June, November, and December) and decreasing (January through April and July through October) phases of each year.  
 
 ```{r load_W_data, echo=FALSE, cache=TRUE, warning=FALSE}
 load("RData/SSAR1_month_W_var_theta_2006To2017_2018-08-13.RData")
