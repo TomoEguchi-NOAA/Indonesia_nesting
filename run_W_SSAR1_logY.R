@@ -20,7 +20,8 @@ MCMC.params <- list(n.chains = MCMC.n.chains,
                     n.thin = MCMC.n.thin)
 
 year.begin <- 2006
-year.end <- 2014
+#year.end <- 2014
+year.end <- 2017
 loc <- "W"
 data.jags <- data.extract(location = loc, 
                           year.begin = year.begin, 
