@@ -1,0 +1,665 @@
+---
+title: "Method and Results of nest count estimation"
+author: "Tomo Eguchi"
+date: "March 2019"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source('Dc_Indonesia_nesting_fcns.R')
+library(lme4)
+library(mgcv)
+library(rjags)
+library(loo)
+library(ggridges)
+base_theme <- ggplot2::theme_get()
+library(bayesplot)
+
+save.fig <- T
+```
+
+## Methods
+### Models
+To impute missing nest counts in the datasets, we use a Bayesian state-space approach, where the mean of the state process is modeled with an auto-regressive model with time lag of one step (AR(1)). 
+µ[t] = s[t] * x[t-1]
+Where s[t] is the “slope” parameter at time t and x[t-1] is the nest count at time t-1 (transformed into the natural logarithm scale). When s[t] > 1, the counts increase whereas s[t] < 1, they decline. 
+The true state is modeled with a normal distribution.
+x[t] ~ N(µ[t], v[t]),
+Where v[t] is the variance of x[t]. 
+Given the state process (x[t]), observations are modeled with normal or t distributions. 
+y[t] ~ N(x[t], v.obs)
+y[t] ~ t(x[t], v.obs, df)
+Where v.obs is the observation variance and df is the degrees-of-freedom parameter of the t distribution. The observation variance is assumed to be constant over time. The slope (s[t]) and process variance (v[t]) parameters were modelled with various possibilities. The slope parameter could be (1) constant (s[t] = s for all t), which would result in a random walk over time, (2) two slopes (s[t] = s1 for increasing months, s[t] = s2 for decreasing months), or (3) different for each month.  The variance was modeled similar to the slope: (1) constant (v[t] = v for all t), (2) grouped over some time periods (v[t] = v1 for nesting months t, v[t] = v2 for non-nesting months), or (3) month-specific. A summary of these models are provided in Table 1.
+For the two-slope models, we considered increasing and decreasing months of nesting seasons.  For Jamursba-Medi, one slope (slope1) was assigned for January through July, whereas another slope (slope2) was defined for August through December. For Wermon, one slope (slope1) was defined for April through June and from October through December, whereas another (slope2) was defined for January through March and July through September. 
+For the two-variance models, we considered one variance for nesting months and another for non-nesting months.  For Jamursba-Medi, one variance was defined for May through September and another for the rest of the year. For Wermon, one variance was defined for September and October and another for the rest of the year. 
+
+Insert Table 1 here.
+
+The models were fit to the two datasets from turtle nesting beaches (Janmursba-Medi and Wermon) using using jags (REF) through jagsUI package (REF) in R (REF).  Best model for each dataset among these 18 models were selected using predictive accuracy (leave-one-out information criteria, LOOIC, Vehtari et al. 2017) using loo package (REF).  Convergence of Markov chains was determined using Gelman-Rubin Rhat statistic (REF). 
+Imputed and observed nest counts were used to estimate the number of nests x[t] and its uncertainty.  These month-specific estimated counts were used to compute the total number of nests per season (April through March). The rate of change between two years (x[t]/x[t-1]), then, were computed using sums of posterior distributions for x[t] within each season.
+
+### Data
+Data for this analysis came from two leatherback nesting beaches in Indonesia  (Jamursba-Medi and Wermon). Raw data for the analysis are the recorded number of nests per month. We treat these two beaches separately. 
+
+#### Jamursba-Medi
+```{r JM_data, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+# get JM data first:
+data.0.JM <- read.csv('data/NestCounts_JM_09Feb2018.csv')
+
+# create time-duration filed (in yrs)
+# define dates with begin and end dates:
+data.0.JM %>% reshape2::melt(id.vars = "YEAR", 
+                             variable.name = "month",
+                             value.name = "count") -> data.1.JM
+data.1.JM$MONTH <- unlist(lapply(data.1.JM$month, FUN = mmm2month))
+
+data.1.JM <- mutate(data.1.JM, f.month = as.factor(MONTH),
+                    f.year = as.factor(YEAR))  %>%
+  mutate(Frac.Year = YEAR + (MONTH-0.5)/12) %>%
+  reshape::sort_df(.,vars = "Frac.Year") %>%
+  mutate(Season = ifelse(MONTH < 4, YEAR - 1, YEAR),
+                      season = ifelse(MONTH > 3 & MONTH < 10, 
+                                      "summer", "winter")) 
+
+p.JM.all <- ggplot(data.1.JM) + 
+  geom_point(aes(x = Frac.Year, y = count)) + 
+  geom_line(aes(x = Frac.Year, y = count)) +
+  scale_x_continuous(breaks = seq(1980, 2020, 5),
+                     limits = c(1980, 2020)) +
+  labs(x = '', y = '# nests', title = "Jamursba-Medi")  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+
+if (save.fig)
+  ggsave(filename = 'figures/JM_all.png',
+         plot = p.JM.all,
+         dpi = 600, height = 6, width = 8, units = "in")
+```
+
+At Jamursba-Medi, some data have been collected since ```r min(data.1.JM$YEAR)```. However, there were many years of no data between the mid 1980s and late 1990s. A somewhat consistent effort starts in early 2000s and continue to recent years (Figure 1). The observed nest count in ```r filter(data.1.JM, count == max(data.1.JM$count, na.rm = T))$YEAR``` was ```r max(data.1.JM$count, na.rm = T)``` and declined to less than 1000 since 2000. 
+
+```{r plot_JM_raw_data, echo=FALSE, cache=TRUE, fig.cap = "Figure 1. Nest counts at Jamursba-Medi"}
+knitr::include_graphics("figures/JM_all.png")
+```
+
+No data were collected in 1998. Since then at least some data were collected within each year. After analyzing datasets with different starting years, we found that starting at 1999 resulted in the longest dataset and good convergence of MCMC.  Consequently, we decided to use data since 1999. The cyclical nature or seaonal fluctuations of counts is obvious in the raw counts (Figure 2).
+
+```{r JM_raw_since_1999, echo=FALSE, cache=TRUE, warning=FALSE}
+data.1.JM.1999 <- filter(data.1.JM, YEAR > 1998)
+p.JM.1999 <- ggplot(data.1.JM.1999) + 
+  geom_point(aes(x = Frac.Year, y = count)) + 
+  geom_line(aes(x = Frac.Year, y = count)) +
+  scale_x_continuous(breaks = seq(1999, 2019, 5),
+                     limits = c(1999, 2019)) +
+  labs(x = '', y = '# nests', 
+       title = "Jamursba-Medi")  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+
+if (save.fig)
+  ggsave(filename = 'figures/JM_1999.png',
+         plot = p.JM.1999,
+         dpi = 600, height = 6, 
+         width = 8, units = "in")
+```
+
+```{r plot_JM_raw_since_1999, echo=FALSE, cache=TRUE, fig.cap = "Figure 2. Nest counts at Jamursba-Medi since 1999"}
+knitr::include_graphics("figures/JM_1999.png")
+```
+
+
+```{r JM_raw_by_month, echo=FALSE, cache = TRUE, warning=FALSE}
+p.JM.monthly.1999 <- ggplot(data.1.JM.1999) + 
+  geom_point(aes(x = MONTH, y = count, color = f.year)) + 
+  geom_line(aes(x = MONTH, y = count, color = f.year)) +
+  scale_x_continuous(breaks = seq(1, 12, 1)) +
+  labs(x = 'Month', y = '# nests', 
+       title = "Jamursba-Medi", color = "Year")  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+#        legend.position = c(0.9, 0.6))
+
+if (save.fig)
+  ggsave(filename = 'figures/JM_monthly_1999.png', 
+         plot = p.JM.monthly.1999,
+         dpi = 600, height = 6, 
+         width = 8, units = "in")
+```
+
+When the number of nests is plotted by month, the seasonal fluctations become more obvious (Figure 3). In general, high counts within a year are seen during summer months (approximately from April to September), whereas low counts are found during winter months (October through March).   
+
+```{r plot_JM_by_month, echo=FALSE, cache=TRUE, fig.cap = "Figure 3. Monthly nest counts at Jamursba-Medi"}
+knitr::include_graphics("figures/JM_monthly_1999.png")
+```
+
+#### Wermon
+```{r W_data, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+data.0.W <- read.csv('data/NestCounts_Wermon_16Aug2018.csv')
+
+# create time-duration filed (in yrs)
+# define dates with begin and end dates:
+data.0.W %>% reshape2::melt(id.vars = "YEAR", 
+                             variable.name = "month",
+                             value.name = "count") -> data.1.W
+
+data.1.W$MONTH <- unlist(lapply(data.1.W$month, FUN = mmm2month))
+
+data.1.W <- mutate(data.1.W, 
+                   f.month = as.factor(MONTH),
+                   f.year = as.factor(YEAR))  %>%
+  mutate(Frac.Year = YEAR + (MONTH-0.5)/12) %>%
+  reshape::sort_df(., vars = "Frac.Year") %>%
+  mutate(Season = ifelse(MONTH < 4, YEAR - 1, YEAR),
+                      season = ifelse(MONTH > 3 & MONTH < 10, 
+                                      "summer", "winter")) 
+
+p.W.all <- ggplot(data.1.W) + 
+  geom_point(aes(x = Frac.Year, y = count)) + 
+  geom_line(aes(x = Frac.Year, y = count)) + 
+  labs(title = 'Wermon', x = '', 
+       y = "Nest counts")
+
+if (save.fig)
+  ggsave(filename = 'figures/W_all.png', 
+         plot = p.W.all,
+         dpi = 600, height = 6, 
+         width = 8, units = "in")
+```
+
+At Wermon, some data have been collected since ```r min(data.1.W$YEAR)```. However, no data were collected between July 2013 and December 2015. The largeset nest count was ```r max(data.1.W$count, na.rm=T)``` in ```r filter(data.1.W, count == max(data.1.W$count, na.rm = T))$YEAR``` (Figure 4).   
+
+```{r plot_W_all, echo=FALSE, cache=TRUE, fig.cap = "Figure 4. Nest counts at Wermon. "}
+knitr::include_graphics("figures/W_all.png")
+```
+
+The temporal nest count pattern at Wermon is different from that of Jamursba-Medi (Figure 3 vs. Figure 5). At Wermon, there are two peaks annually: higher values are found between May and September and between October and April.  
+
+```{r W_raw_by_month, echo=FALSE, cache = TRUE, warning=FALSE}
+p.W.monthly <- ggplot(data.1.W) + 
+  geom_point(aes(x = MONTH, y = count, color = f.year)) + 
+  geom_line(aes(x = MONTH, y = count, color = f.year)) +
+  scale_x_continuous(breaks = seq(1, 12, 1)) +
+  labs(x = 'Month', y = '# nests', title = "Wermon",
+       color = "Year")  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+
+if (save.fig)
+  ggsave(filename = 'figures/W_monthly.png', 
+         plot = p.W.monthly,
+         dpi = 600, height = 6, 
+         width = 8, units = "in")
+
+```
+
+```{r plot_W_by_month, echo=FALSE, cache=TRUE, fig.cap = "Figure 5. Monthly nest counts at Wermon. "}
+knitr::include_graphics("figures/W_monthly.png")
+```
+
+Observed counts for 2004 and 2005 seem to be outliers with respect to within-year patterns. Because this analysis is to estimate missing values from observed patterns, we remove these years from the data for the following analysis.  
+
+```{r W_by_month_since_2006, echo=FALSE, cache = TRUE, warning=FALSE}
+data.1.W %>% filter(YEAR > 2005) -> data.1.W.2006
+
+p.W.monthly.2006 <- ggplot(data.1.W.2006) + 
+  geom_point(aes(x = MONTH, y = count, color = f.year)) + 
+  geom_line(aes(x = MONTH, y = count, color = f.year)) +
+  scale_x_continuous(breaks = seq(1, 12, 1)) +
+  labs(x = 'Month', y = '# nests', title = "Wermon",
+       color = "Year")  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+
+if (save.fig)
+  ggsave(filename = 'figures/W_monthly_2006.png', 
+         plot = p.W.monthly.2006,
+         dpi = 600, height = 6, 
+         width = 8, units = "in")
+```
+
+```{r plot_W_by_month_since_2006, echo=FALSE, cache=TRUE, fig.cap = "Figure 6. Monthly nest counts at Wermon since 2006. "}
+knitr::include_graphics("figures/W_monthly_2006.png")
+```
+
+The two datasets (counts since 1999 for Jamursba-Medi and since 2006 for Wermon) are used in the following analysis for estimating missing counts. 
+
+# Results
+
+## Jamursba-Medi
+For Jamusba-Medi, we explored two sets of two variances of nest counts (sigma.pro1 and sigma.pro2). One set corresponded to summer (April through September as season1) and winter (October through March as season2), whereas the other set corresponded to the visual determination of two variances (Figure 3): May through August as season1 and September through April as season2. Convergence of MCMC was used to determine which set was better with respect to parameter estimation.  For the slope parameter, two slopes were for increasing (Jan to Jul) and decreasing (Aug to Dec) phases of each year. Gelman-Rubin statistic and trace plots indicated that the visual separation of the variance parameter (May through August  and September through April) resulted in better MCMC convergence. So, we will use the model for the following analysis. 
+
+```{r load_jags_JM, echo=FALSE, warning=TRUE, message=F}
+load("RData/SSAR1_month_JM_var_May_Aug_theta_1999_2018-08-20.RData")
+#results.JM_SSAR1_month_var_theta$jm
+```
+
+The multi-variate potential scale reduction factor (Gelman diagnostic statistic) was ```r 
+signif(results.JM_SSAR1_month_var_theta$g.diag$mpsrf, digits = 4)```, indicating an adequate convergence. Visual inspection of MCMC chains also indicated that a convergence was reached for all parameters (Figure 7). 
+
+```{r MCMC_trace_JM, echo=FALSE, cache=TRUE, warning=FALSE, message=F}
+zm.var.theta.JM.1999 <- results.JM_SSAR1_month_var_theta$zm
+p.mcmc.trace.JM.1999 <- mcmc_trace(zm.var.theta.JM.1999, 
+                                   c("sigma.pro1", "sigma.pro2", 
+                                     "theta.1", "theta.2"))
+if (save.fig)
+  ggsave(filename = 'figures/JM_MCMC_trace.png', 
+         plot = p.mcmc.trace.JM.1999,
+         dpi = 600)
+```
+
+```{r plot_MCMC_trace_JM, echo=FALSE, cache=TRUE, fig.cap = "Figure 7. MCMC trace plots for Jamursba-Medi dataset. "}
+knitr::include_graphics("figures/JM_MCMC_trace.png")
+```
+
+```{r estimated_missing_values_JM, echo=FALSE, warning=F, cache=TRUE}
+Xs.stats <- results.JM_SSAR1_month_var_theta$Xs.stats
+ys.stats <- results.JM_SSAR1_month_var_theta$ys.stats
+
+p.JM.predicted.1999 <- ggplot() +
+  #geom_point(data = ys.stats,
+  #           aes(x = time, y = mode_y), color = "blue") +
+  #geom_line(data = Xs.stats,
+  #          aes(x = time, y = mode_X), color = 'blue') +
+  geom_line(data = Xs.stats,
+            aes(x = time, y = high_X), color = "red",
+            linetype = 2) +
+  geom_point(data = Xs.stats,
+             aes(x = time, y = mode_X), color = "red",
+             alpha = 0.5, size = 2) +
+  geom_line(data = Xs.stats,
+            aes(x = time, y = mode_X), color = "red",
+            alpha = 0.5) +
+  geom_line(data = Xs.stats,
+            aes(x = time, y = low_X), color = "red",
+            linetype = 2) +
+  geom_point(data = ys.stats,
+             aes(x = time, y = obsY), color = "green",
+             alpha = 0.5) +
+  labs(x = '', y = "Nest counts",
+       title = "Jamursba-Medi")
+
+if (save.fig)
+  ggsave(filename = 'figures/JM_predicted_1999.png', 
+         plot = p.JM.predicted.1999,
+         dpi = 600, height = 6, 
+         width = 8, units = "in")
+```
+
+```{r plot_JM_predicted, echo=FALSE, cache=TRUE, fig.cap = "Figure 8. Predicted counts of nests for Jamursba-Medi dataset. Red is the estimated values and green are observed counts. 5 and 95% confidence limits are shown in dashed lines."}
+knitr::include_graphics("figures/JM_predicted_1999.png")
+```
+
+To estimate annual nest counts, median estimated counts were summed from April 1 to March 31 over two calendar years. Credible intervals were computed by summing lower and upper limits over the same time periods (Figure 9). 
+
+```{r total_annual_counts_JM, echo=FALSE, cache=TRUE, warning=FALSE}
+#sum.posterior is in Dc_Indonesia_nesting_fcn.R
+# add "Season" to posteriors: these are the sampling years - summer + winter, which
+# will be indicated by "season" with lower calse s. 
+Xs.stats %>% mutate(Season = ifelse(month < 4, year - 1, year),
+                    season = ifelse(month > 3 & month < 10, 
+                                    "summer", "winter")) -> Xs.stats
+
+# sum by Season
+Xs.stats %>% group_by(Season) %>%
+  summarise(median = sum(mode_X),
+            low = sum(low_X),
+            high = sum(high_X)) %>%
+  filter(Season > 1998 & Season < 2018) -> Xs.stats.Season
+
+data.1.JM.1999 %>% 
+  group_by(Season) %>%
+  summarise(observed = sum(count, na.rm = T)) %>%
+  filter(Season > 1998 & Season < 2018) %>%
+  right_join(., Xs.stats.Season, by = "Season") -> X.data.JM.1999.annual
+
+p.JM.estimated.counts <- ggplot(data = X.data.JM.1999.annual) + 
+  geom_point(aes(x = Season, y = median))+
+  geom_errorbar(aes(x = Season, ymin = low, ymax = high)) + 
+  geom_point(aes(x = Season, y = observed),
+             color = "red") + 
+  labs(title = 'Jamursba-Medi', x = '', y = "Nest counts")
+
+if (save.fig)
+  ggsave(filename = 'figures/JM_annual_counts.png', 
+         plot = p.JM.estimated.counts,
+         dpi = 600, height = 6, 
+         width = 8, units = "in")
+
+write.csv(X.data.JM.1999.annual, 
+          file = "data/JM_annual_estimated_counts_v2.csv", 
+          quote = F, row.names = F)
+
+```
+
+```{r plot_total_annual_counts_JM, echo=FALSE, cache=TRUE, fig.cap = "Figure 9. Total annual counts of nests for Jamursba-Medi dataset. Each sampling season starts April 1 and ends March 31. Black dots indicate medians, error bars indicate 95% credible intervals, and red dots indicate observed counts. "}
+knitr::include_graphics("figures/JM_annual_counts.png")
+```
+
+##Wermon
+For Wermon, two variances corresponded to high nest count months (March, April, September, and October) and low nest count months (January, February, May, June, July, August, November and December).  Two slopes corresponded to increasing (May, June, November, and December) and decreasing (January through April and July through October) phases of each year.  
+
+```{r load_W_data, echo=FALSE, cache=TRUE, warning=FALSE}
+load("RData/SSAR1_month_W_var_theta_2006To2017_2018-08-13.RData")
+zm.var.theta.W <- results.W_SSAR1_month_var_theta$zm
+Xs.stats.W <- results.W_SSAR1_month_var_theta$Xs.stats
+ys.stats.W <- results.W_SSAR1_month_var_theta$ys.stats
+# Gelman-diagnostic seems okay.
+#results.Warmon_SSAR1_month_To2013$g.diag
+```
+
+The multi-variate potential scale reduction factor (Gelman diagnostic statistic) was ```r 
+signif(results.W_SSAR1_month_var_theta$g.diag$mpsrf, digits = 4)```, indicating an adequate convergence. Visual inspection of MCMC chains also indicated a convergence was reached for all parameters (Figure 10). 
+
+```{r MCMC_trace_W, echo=FALSE, cache=TRUE, warning=FALSE, message=F}
+p.mcmc.trace.W <- mcmc_trace(zm.var.theta.W, 
+                             c("sigma.pro1", "sigma.pro2", 
+                               "theta.1", "theta.2"))
+if (save.fig)
+  ggsave(filename = 'figures/W_MCMC_trace.png', 
+         plot = p.mcmc.trace.W,
+         dpi = 600)
+```
+
+```{r plot_MCMC_trace_W, echo=FALSE, cache=TRUE, fig.cap = "Figure 10. MCMC trace plots for Wermon dataset. "}
+knitr::include_graphics("figures/W_MCMC_trace.png")
+```
+
+
+```{r W_predicted_count, echo=F, message=F, warning=F, cache=T}
+p.W.predicted.var.2006to2017 <- ggplot() +
+  #geom_point(data = ys.stats,
+  #           aes(x = time, y = mode_y), color = "blue") +
+  #geom_line(data = Xs.stats,
+  #          aes(x = time, y = mode_X), color = 'blue') +
+  geom_line(data = Xs.stats.W,
+            aes(x = time, y = high_X), color = "red",
+            linetype = 2) +
+  geom_line(data = Xs.stats.W,
+            aes(x = time, y = low_X), color = "red",
+            linetype = 2) +
+  geom_point(data = Xs.stats.W,
+             aes(x = time, y = mode_X), color = "red",
+             alpha = 0.5) +
+  geom_line(data = Xs.stats.W,
+            aes(x = time, y = mode_X), color = "red",
+            alpha = 0.5) +
+  geom_point(data = ys.stats.W,
+             aes(x = time, y = obsY), color = "green",
+             alpha = 0.5)+
+  geom_line(data = ys.stats.W,
+             aes(x = time, y = obsY), color = "green",
+             alpha = 0.5) +
+  labs(x = '', y = '# nests', title = "Wermon")  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+
+if (save.fig)
+  ggsave(filename = 'figures/W_predicted_var_2006to2017.png', 
+         plot = p.W.predicted.var.2006to2017,
+         dpi = 600, height = 6, 
+         width = 8, units = "in")
+
+```
+
+```{r plot_predicted_W, echo=FALSE, cache=TRUE, fig.cap = "Figure 11. Predicted nest counts for Wermon dataset. "}
+knitr::include_graphics("figures/W_predicted_var_2006to2017.png")
+```
+
+It is not useful to fill in those years with no data whatsoever as we have no idea what was happening (Figure 11). For other years, however, the estimated true counts (red) seem reasonable. We will use all years except 2014 and 2015. I pool estimated counts annually.  
+
+```{r W_annual_counts, echo=F, warning=F, cache=T}
+# sum posterior samples to get annual counts from monthly estimates:
+Xs.stats.W %>% mutate(Season = ifelse(month < 4, year - 1, year),
+                      season = ifelse(month > 3 & month < 10, 
+                                      "summer", "winter")) -> Xs.stats.W
+
+# sum by Season
+Xs.stats.W %>% group_by(Season) %>%
+  summarise(median = sum(mode_X),
+            low = sum(low_X),
+            high = sum(high_X)) -> Xs.stats.W.Season
+
+data.1.W.2006 %>% 
+  group_by(Season) %>%
+  summarise(observed = sum(count, na.rm = T)) %>%
+  right_join(., Xs.stats.W.Season, by = "Season") -> X.data.W.2006.annual
+
+Tapilatu.data <- data.frame(year = c(2003:2012),
+                            count = c(2994, 2786, 2805,
+                                      1497, 1335, 1483,
+                                      1287, 1080, 1354,
+                                      1096))
+
+p.W.estimated.counts <- ggplot() + 
+  geom_point(data = X.data.W.2006.annual,
+             aes(x = Season, y = median))+
+  geom_errorbar(data = X.data.W.2006.annual,
+                aes(x = Season, ymin = low, ymax = high)) + 
+  geom_point(data = X.data.W.2006.annual,
+             aes(x = Season, y = observed), color = 'red') +
+  labs(title = 'Wermon', x = '', y = "Nest counts")
+
+if (save.fig)
+  ggsave(filename = 'figures/W_annual_counts.png', 
+         plot = p.W.estimated.counts,
+         dpi = 600, height = 6, 
+         width = 8, units = "in")
+
+write.csv(X.data.W.2006.annual, 
+          file = "data/W_annual_estimated_counts.csv", 
+          quote = F, row.names = F)
+```
+
+```{r plot_W_annual_counts, echo=FALSE, cache=TRUE, fig.cap = "Figure 12. Predicted annual nest counts for Wermon. "}
+knitr::include_graphics("figures/W_annual_counts.png")
+```
+
+#Summer vs winter nesting
+In order to determine the summer and winter nest counts, we added Jamursba-Medi and Wermon counts for each season. Summer is defined as April 1 - September 30, whereas winter is from October 1 to March 31.
+
+```{r SummerVsWinter, echo=F, cache=TRUE, warning=FALSE, message=FALSE}
+Xs.stats[Xs.stats < 0] <- NA
+#JM winter
+Xs.JM.winter <- filter(Xs.stats, season == "winter") %>%
+  transmute(low = low_X, median = mode_X, high = high_X,
+            Season = Season) %>%
+  group_by(Season) %>%
+  summarise(low_JM = sum(low, na.rm = T),
+            high_JM = sum(high, na.rm = T),
+            median_JM = sum(median, na.rm = T)) %>%
+  filter(Season > 1998 & Season < 2018)
+
+data.1.JM.1999 %>%
+  filter(season == "winter") %>%
+  group_by(Season) %>%
+  summarise(observed_JM = sum(count, na.rm = T)) %>%
+  filter(Season > 1998 & Season < 2018) %>%
+  right_join(., Xs.JM.winter, by = "Season") -> Xs.data.JM.1999.winter
+
+# JM summer
+Xs.JM.summer <- filter(Xs.stats, season == "summer") %>%
+  transmute(low = low_X, median = mode_X, high = high_X,
+            month = month, Season = Season) %>%
+  group_by(Season) %>%
+  summarise(low_JM = sum(low, na.rm = T),
+            high_JM = sum(high, na.rm = T),
+            median_JM = sum(median, na.rm = T)) %>%
+  filter(Season > 1998 & Season < 2018)
+
+data.1.JM.1999 %>%
+  filter(season == "summer") %>%
+  group_by(Season) %>%
+  summarise(observed_JM = sum(count, na.rm = T)) %>%
+  filter(Season > 1998 & Season < 2018) %>%
+  right_join(., Xs.JM.summer, by = "Season") -> Xs.data.JM.1999.summer
+
+# Wermon winter
+Xs.stats.W[Xs.stats.W < 0] <- NA
+Xs.W.winter <- filter(Xs.stats.W, 
+                      season == "winter") %>%
+  transmute(low = low_X, median = mode_X, high = high_X,
+            month = month, Season = Season) %>%
+  group_by(Season) %>%
+  summarise(low_W = sum(low, na.rm = T),
+            high_W = sum(high, na.rm = T),
+            median_W = sum(median, na.rm = T))
+
+data.1.W.2006 %>%
+  filter(season == "winter") %>%
+  group_by(Season) %>%
+  summarise(observed_W = sum(count, na.rm = T)) %>%
+  right_join(., Xs.W.winter, by = "Season") -> Xs.data.W.2006.winter
+
+# Wermon summer
+Xs.W.summer <- filter(Xs.stats.W, season == "summer")%>%
+  transmute(low = low_X, median = mode_X, high = high_X,
+            month = month, Season = Season)%>%
+  group_by(Season) %>%
+  summarise(low_W = sum(low, na.rm = T),
+            high_W = sum(high, na.rm = T),
+            median_W = sum(median, na.rm = T))
+
+data.1.W.2006 %>%
+  filter(season == "summer") %>%
+  group_by(Season) %>%
+  summarise(observed_W = sum(count, na.rm = T)) %>%
+  right_join(., Xs.W.summer, by = "Season") -> Xs.data.W.2006.summer
+
+Xs.winter <- right_join(Xs.data.W.2006.winter, 
+                        Xs.data.JM.1999.winter, by = "Season") %>%
+  mutate(median = median_W + median_JM,
+         low = low_W + low_JM,
+         high = high_W + high_JM,
+         observed = observed_W + observed_JM)
+
+Xs.summer <- right_join(Xs.data.W.2006.summer, 
+                        Xs.data.JM.1999.summer, by = "Season") %>%
+  mutate(median = median_W + median_JM,
+         low = low_W + low_JM,
+         high = high_W + high_JM,
+         observed = observed_W + observed_JM)
+
+write.csv(Xs.winter, 
+          file = "data/estimated_counts_winter.csv",
+          quote = F, row.names = F)
+write.csv(Xs.summer, file = "data/estimated_counts_summer.csv",
+          quote = F, row.names = F)
+
+p.summer <- ggplot(Xs.summer) +
+  geom_point(aes(x = Season, y = median)) +
+  geom_errorbar(aes(x = Season, ymin = low, ymax = high)) + 
+  geom_point(aes(x = Season, y = observed), color = 'red') +
+  xlim(2005, 2018) +
+  labs(title = 'Summer', x = '', y = "Nest counts")
+
+p.winter <- ggplot(Xs.winter) +
+  geom_point(aes(x = Season, y = median)) +
+  geom_errorbar(aes(x = Season, ymin = low, ymax = high)) + 
+  geom_point(aes(x = Season, y = observed), color = 'red') +
+  xlim(2004, 2018) +
+  labs(title = 'Winter', x = '', y = "Nest counts")
+
+p.summer.JM <- ggplot(Xs.summer) +
+  geom_point(aes(x = Season, y = median_JM)) +
+  geom_errorbar(aes(x = Season, ymin = low_JM, ymax = high_JM)) + 
+  geom_point(aes(x = Season, y = observed_JM), color = 'red') +
+  #xlim(2005, 2018) +
+  labs(title = 'Summer - JM', x = '', y = "Nest counts")
+
+p.winter.JM <- ggplot(Xs.winter) +
+  geom_point(aes(x = Season, y = median_JM)) +
+  geom_errorbar(aes(x = Season, ymin = low_JM, ymax = high_JM)) + 
+  geom_point(aes(x = Season, y = observed_JM), color = 'red') +
+  #xlim(2004, 2018) +
+  labs(title = 'Winter - JM', x = '', y = "Nest counts")
+
+p.summer.W <- ggplot(Xs.summer) +
+  geom_point(aes(x = Season, y = median_W)) +
+  geom_errorbar(aes(x = Season, ymin = low_W, ymax = high_W)) + 
+  geom_point(aes(x = Season, y = observed_W), color = 'red') +
+  #xlim(2005, 2018) +
+  labs(title = 'Summer - W', x = '', y = "Nest counts")
+
+p.winter.W <- ggplot(Xs.winter) +
+  geom_point(aes(x = Season, y = median_W)) +
+  geom_errorbar(aes(x = Season, ymin = low_W, ymax = high_W)) + 
+  geom_point(aes(x = Season, y = observed_W), color = 'red') +
+  #xlim(2004, 2018) +
+  labs(title = 'Winter - W', x = '', y = "Nest counts")
+
+if (save.fig){
+  ggsave(filename = "figures/JM_summer_counts.png",
+         device = "png",
+         plot = p.summer.JM,
+         dpi = 600)
+  ggsave(filename = "figures/JM_winter_counts.png",
+         device = "png",
+         plot = p.winter.JM,
+         dpi = 600)
+  
+  ggsave(filename = "figures/W_summer_counts.png",
+         device = "png",
+         plot = p.summer.W,
+         dpi = 600)
+  ggsave(filename = "figures/W_winter_counts.png",
+         device = "png",
+         plot = p.winter.W,
+         dpi = 600)
+  
+  ggsave(filename = "figures/summer_counts.png",
+         device = "png",
+         plot = p.summer,
+         dpi = 600)
+  ggsave(filename = "figures/winter_counts.png",
+         device = "png",
+         plot = p.winter,
+         dpi = 600)
+
+}
+
+```
+
+
+```{r plot_JM_summer_counts, echo=FALSE, cache=TRUE, fig.cap = "Figure 13. Predicted and observed annual nest counts during summer months for Jamursba-Medi. "}
+knitr::include_graphics("figures/JM_summer_counts.png")
+```
+
+```{r plot_JM_winter_counts, echo=FALSE, cache=TRUE, fig.cap = "Figure 14. Predicted and observed annual nest counts during winter months for Jamursba-Medi. "}
+knitr::include_graphics("figures/JM_winter_counts.png")
+```
+
+```{r plot_W_summer_counts, echo=FALSE, cache=TRUE, fig.cap = "Figure 15. Predicted and observed annual nest counts during summer months for Wermon. "}
+knitr::include_graphics("figures/W_summer_counts.png")
+```
+
+```{r plot_W_winter_counts, echo=FALSE, cache=TRUE, fig.cap = "Figure 16. Predicted and observed annual nest counts during winter months for Wermon. "}
+knitr::include_graphics("figures/W_winter_counts.png")
+```
+
+```{r plot_summer_counts, echo=FALSE, cache=TRUE, fig.cap = "Figure 17. Predicted and observed annual nest counts during summer months at Jamursba-Medi and Wermon. "}
+knitr::include_graphics("figures/summer_counts.png")
+```
+
+```{r plot_winter_counts, echo=FALSE, cache=TRUE, fig.cap = "Figure 18. Predicted and observed annual nest counts during winter months at Jamursba-Medi and Wermon. "}
+knitr::include_graphics("figures/winter_counts.png")
+```
+
+
+#Appendix
+JAGS code for this analysis
+
+## Jamursba-Medi
+```{r JAGS_JM, echo=T}
+results.JM_SSAR1_month_var_theta$jm
+
+```
+
+## Wermon
+
+```{r JAGS_W, echo=T}
+results.W_SSAR1_month_var_theta$jm 
+```
+
+
+

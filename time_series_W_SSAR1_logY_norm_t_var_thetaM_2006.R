@@ -1,0 +1,116 @@
+#time series analysis
+
+
+rm(list=ls())
+tic <- Sys.time()
+Sys <- Sys.info()
+source("Dc_Indonesia_nesting_fcns.R")
+library(jagsUI)
+library(coda)
+library(ggplot2)
+library(loo)
+
+
+MCMC.n.chains <- 5
+MCMC.n.samples <- 500000
+MCMC.n.burnin <- 350000
+MCMC.n.thin <- 50
+
+MCMC.params <- list(n.chains = MCMC.n.chains,
+                    n.samples = MCMC.n.samples,
+                    n.burnin = MCMC.n.burnin,
+                    n.thin = MCMC.n.thin)
+
+year.begin <- 2006
+year.end <- 2017
+loc <- "W"
+data.jags <- data.extract(location = loc, 
+                          year.begin = year.begin, 
+                          year.end = year.end)
+
+#load.module('dic')
+jags.params <- c("theta.1", 'sigma.pro1', "sigma.pro2", "sigma.obs",
+                 "mu", "df", "y", "X", "deviance", "loglik")
+
+jags.out <- run.jagsUI(data.jags$jags.data, 
+                       jags.params, 
+                       model.file = "models/model_SSAR1_W_logY_norm_t_var_thetaM.txt", 
+                       MCMC.params)
+
+Xs.stats <- jags.out$Xs.stats
+
+Xs.stats$time <- data.jags$data.1$Frac.Year
+Xs.stats$obsY <- data.jags$data.1$Nests
+Xs.stats$month <- data.jags$data.1$Month
+Xs.stats$year <- data.jags$data.1$Year
+
+ys.stats <- jags.out$ys.stats
+ys.stats$time <- data.jags$data.1$Frac.Year
+ys.stats$obsY <- data.jags$data.1$Nests
+ys.stats$month <- data.jags$data.1$Month
+ys.stats$year <- data.jags$data.1$Year
+
+
+
+p.1 <- ggplot() +
+  #geom_point(data = ys.stats,
+  #           aes(x = time, y = mode_y), color = "blue") +
+  #geom_line(data = Xs.stats,
+  #          aes(x = time, y = mode_X), color = 'blue') +
+  geom_line(data = Xs.stats,
+            aes(x = time, y = exp(high_X)), color = "red",
+            linetype = 2) +
+  geom_point(data = Xs.stats,
+             aes(x = time, y = exp(median_X)), color = "red",
+             alpha = 0.5) +
+  geom_line(data = Xs.stats,
+            aes(x = time, y = exp(median_X)), color = "red",
+            alpha = 0.5) +
+  geom_point(data = ys.stats,
+             aes(x = time, y = obsY), color = "green",
+             alpha = 0.5)
+
+
+filename.root <- strsplit(strsplit(jags.out$jm$modfile, 
+                                   'models/model_')[[1]][2], '.txt')[[1]][1]
+
+if (length(strsplit(filename.root, paste0("SSAR1_", loc, "_"))[[1]]) == 1){
+  
+  filename.out <- paste0(filename.root, "_", loc, "_", year.begin, "_", year.end)
+  
+} else {
+  filename.root <- strsplit(filename.root, paste0("SSAR1_", loc, "_"))[[1]][2]
+  filename.out <- paste0("SSAR1_", filename.root, "_", loc, "_", year.begin, "_", year.end)
+}
+
+ggsave(plot = p.1,
+       filename = paste0("figures/", "predicted_counts_", filename.out, ".png"),
+       dpi = 600)
+
+toc <- Sys.time()
+dif.time <- toc - tic
+
+results <- list(data.1 = data.jags$data.1,
+                jags.out = jags.out,
+                Xs.stats = Xs.stats,
+                ys.stats = ys.stats,
+                MCMC.params = MCMC.params,
+                time = dif.time)
+
+saveRDS(results,
+        file = paste0('RData/', "jagsout_", 
+                      filename.out, "_", Sys.Date(), '.rds'))
+
+# base_theme <- ggplot2::theme_get()
+# library(bayesplot)
+# 
+# # set back to the base theme:
+# ggplot2::theme_set(base_theme)
+# mcmc_trace(jm$samples, c("mu", "sigma.obs", "sigma.pro1", "sigma.pro2",
+#                          "df"))
+# mcmc_dens(jm$samples, c("mu", "sigma.obs", "sigma.pro1", "sigma.pro2",
+#                         "df"))
+# mcmc_dens(jm$samples, c("theta.1[1]", "theta.1[2]", "theta.1[3]", "theta.1[4]",
+#                         "theta.1[5]", "theta.1[6]", "theta.1[7]", "theta.1[8]",
+#                         "theta.1[9]", "theta.1[10]", "theta.1[11]", "theta.1[12]"))
+# 
