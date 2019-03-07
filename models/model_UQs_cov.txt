@@ -1,0 +1,28 @@
+
+model
+{
+   for(i in 1:n.states) {
+      U[i] ~ dnorm(u_mean,1/(u_sd^2));
+      
+      X0[i] ~ dnorm(x0_mean, 1/(x0_sd^2));  # prior on init state
+      predX[i,1] <- X0[i] + U[i];  # CB change; EW's code does not include U in X[1]
+      X[i,1] <- predX[i,1];}
+      
+      tauQ ~ dwish(qqq, p);   
+   
+   for(j in 1:n.timeseries) {
+      tauR[j] ~ dgamma(r_alpha,r_beta);
+      R[j] <- 1/tauR[j];  # Note: R is variance
+      
+      predY[j,1] <- inprod(Z[j,], X[,1]);  #  + A[j]
+      Y[j,1] ~  dnorm(predY[j,1], tauR[j]);}
+   
+   for(tt in 2:n.yrs) {
+          predX[1:n.states,tt] <- X[,tt-1] + U;
+          X[1:n.states,tt] ~ dmnorm(predX[,tt],tauQ);
+                     
+      for(j in 1:n.timeseries) {
+          predY[j,tt] <- inprod(Z[j,], X[,tt]);  # + A[j]
+          Y[j,tt] ~  dnorm(predY[j,tt], tauR[j]);}
+   }
+}

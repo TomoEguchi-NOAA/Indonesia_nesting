@@ -1,0 +1,31 @@
+
+model
+{
+   A[1] <- 0;
+   
+   for(j in 2:n.timeseries) {
+      A[j] ~ dnorm(a_mean,1/(a_sd^2));}
+   
+   U ~ dnorm(u_mean,1/(u_sd^2));
+   
+   tauQ ~ dgamma(q_alpha,q_beta);
+   Q <- 1/tauQ;                             # Note: Q is process variance
+   
+   X0 ~ dnorm(x0_mean, 1/(x0_sd^2)); # prior on init state
+   predX[1] <- X0 + U;  # CB change; EW's code does not include U in X[1]
+   X[1] <- predX[1]; 
+   
+   for(j in 1:n.timeseries) {
+      tauR[j] ~ dgamma(r_alpha,r_beta);
+      R[j] <- 1/tauR[j];                     # Note: R is observation variance
+      predY[j,1] <- Z[j,1] * X[1] + A[j];
+      Y[j,1] ~  dnorm(predY[j,1], tauR[j]);}
+   
+   for(tt in 2:n.yrs) {
+      predX[tt] <- X[tt-1] + U;
+      X[tt] ~ dnorm(predX[tt],tauQ);
+      for(j in 1:n.timeseries) {
+          predY[j,tt] <- Z[j,1] * X[tt] + A[j];
+          Y[j,tt] ~  dnorm(predY[j,tt], tauR[j]);}
+   }
+}
