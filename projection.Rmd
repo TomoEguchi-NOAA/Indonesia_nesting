@@ -1,0 +1,524 @@
+---
+title: "Indonesia leatherback turtle nesting projection"
+output: html_notebook
+---
+
+This is the projection part of Summer's code - I have  not touched it yet.
+
+```{r}
+##==============================================================================
+# FOR PROJECTION: Forecast using simulation; calculate quantiles across simulation runs to determine how many runs fall above certain quantiles
+fy <- length(thedata[data.rows,1])       # final year of observed data; 22 for loggerheads; 17 for leatherbacks (JM)
+yrf=100                          # 100 = years into the future
+nsim=10000   # length(jags.model$sims.list$X[ ,fy])                      # 50 = number of simulation runs
+
+
+Umed=jags.model$q50$U   # for reporting results, median is best
+Umean=jags.model$mean$U # but for simulations, use mean, sd in distribution
+Usd=jags.model$sd$U
+Uvar=Usd^2
+Uci=c(jags.model$q2.5$U, jags.model$q97.5$U)
+
+lambda.mean=exp(Umean)
+lambda.med=exp(Umed)
+lambda.var=exp(Uvar)
+lambda.ci=exp(Uci)
+
+Qmed=jags.model$q50$Q
+Qmean=jags.model$mean$Q
+Qsd=jags.model$sd$Q
+
+# model estimates for the final 3 years of data (paired MCMC samples); assuming 3 year remigration interval
+# for both rdynamic & rstatic approaches; start year 0 of sim with random draw from model predicted X[fy]
+# starting point for projection will be ANNUAL estimate for final data year,
+# but will need previous 2 years estimates also to calculate a "Current Abundance" in terms of Index of Total Females (add 3 final years together) 
+# because exponentiated, these values below are always positive
+length(jags.model$sims.list$X[,fy-0])
+X.len <- length(jags.model$sims.list$X[,fy-0])
+X.thin <- seq(from=1, to=X.len, by = X.len/nsim)     # make length of the X estimate vectors same as nsim, (thin by every other value from MCMC samples)
+
+# **SINGLE** time series
+if(length(pop.name)==1){
+  X.fym0 <- exp(jags.model$sims.list$X[,fy-0][X.thin])
+  X.fym1 <- exp(jags.model$sims.list$X[,fy-1][X.thin])
+  X.fym2 <- exp(jags.model$sims.list$X[,fy-2][X.thin])
+}
+
+# **MULTIPLE TIME SERIES** (e.g., for leatherbacks, need to account for X representing JM since A=0 and X+A representing W since A!=0)
+# e.g., Annual Females estimate for JM & W combined = exp(X) + exp(X+A), where first part is JM and second is for W.
+if(length(pop.name)>1){
+  X.fym0 <- exp(jags.model$sims.list$X[,fy-0][X.thin])
+  X.fym1 <- exp(jags.model$sims.list$X[,fy-1][X.thin])
+  X.fym2 <- exp(jags.model$sims.list$X[,fy-2][X.thin])
+  
+  for (i in 2:length(pop.name)){
+    X.fym0 <- X.fym0 + exp(jags.model$sims.list$X[,fy-0][X.thin] + jags.model$sims.list$A[,i][X.thin])
+    X.fym1 <- X.fym1 + exp(jags.model$sims.list$X[,fy-1][X.thin] + jags.model$sims.list$A[,i][X.thin])
+    X.fym2 <- X.fym2 + exp(jags.model$sims.list$X[,fy-2][X.thin] + jags.model$sims.list$A[,i][X.thin])
+  }
+}
+
+summary(X.fym2); summary(X.fym1); summary(X.fym0)
+X.fym2_0.stats <- as.data.frame(rbind(summary(X.fym2), summary(X.fym1), summary(X.fym0)))
+row.names(X.fym2_0.stats) <- c("Final Data Yr -2", "Final Data Yr -1", "Final Data Yr -0")
+X.fym2_0.stats
+X.fym2_0.stats$Q2.5 <-  apply(X=as.data.frame(cbind(X.fym2, X.fym1, X.fym0)), MARGIN=2, FUN=quantile, probs=0.025)   # MARGIN = 2 applies it to cols 
+X.fym2_0.stats$Q97.5 <- apply(X=as.data.frame(cbind(X.fym2, X.fym1, X.fym0)), MARGIN=2, FUN=quantile, probs=0.975)   # MARGIN = 2 applies it to cols 
+X.fym2_0.stats["Sums=CurAbundEst",] <- colSums(X.fym2_0.stats)
+X.fym2_0.stats
+
+
+# save the final 3 values of Annual Females (combined total if two time series) that go into Current Abundance Estimate
+#write.table(x=round(X.fym2_0.stats, 3), file=paste(file.tag,"7.0_estDists_expX_final3Yrs.txt", sep=""), sep="\t", quote=FALSE)
+write.csv(x=round(X.fym2_0.stats, 1), file=paste(file.tag,"7_expX_FinalYrs.csv", sep=""), quote=FALSE)
+
+
+png(filename=paste(file.tag,"7_expX_FinalYrs.png", sep=""), width=900, height=500, units="px")
+old.par <- par()
+par(mfrow=c(1,3), mar=c(5, 5, 4, 2) + 0.1)
+hist(X.fym2,breaks=100, main="Model estimate: 3rd to final data year", xlab="Annual Females", cex.main=1.6, cex.lab=1.5)
+hist(X.fym1,breaks=100, main="Model estimate: 2nd to final data year", xlab="Annual Females", cex.main=1.6, cex.lab=1.5)
+hist(X.fym0,breaks=100, main="Model estimate: final data year", xlab="Annual Females", cex.main=1.6, cex.lab=1.5)
+dev.off()
+
+
+
+
+# set up storage matrices
+pN.rstat=matrix(nrow=yrf+1,ncol=nsim)   # +1 for yr=0; for static 'r' projection; predicted N (nests) = matrix with YEARS as rows and SIMULATIONS as columns
+pN.rdyn=matrix(nrow=yrf+1,ncol=nsim)    # +1 for yr=0; for dynamic 'r' projection; predicted N (nests) = matrix with YEARS as rows and SIMULATIONS as columns
+dim(pN.rstat)
+##==============================================================================
+
+
+
+
+
+##==============================================================================
+# FUTURE PROJECTION SIMULATION for PVA -- use *either* simulated or real data from above 
+# Random draw from dist of r for year 1 of sim *AND* each subsequent year 2:yrf
+# reminder: here pN is matrix with YEARS as rows and SIMULATIONS as columns and NUMBER OF TOTAL FEMALES as content
+for(sim in 1:nsim)
+{
+  
+  # for both rdynamic & rstatic approaches; start year 0 of sim with random draw from model predicted X[fy]
+  # starting point for projection will be ANNUAL estimate for final data year,
+  # because exponentiated, these values below are always positive
+  X.fym0[sim]
+  pN.rdyn[1,sim]= X.fym0[sim]    # model predicted X for final year of observed data (minus 0 years -- relevant for m2 and m3 years later)
+  pN.rstat[1,sim]= X.fym0[sim]   # these X vals are already exponentiated into Annual Females (not in log space anymore)
+  
+  Ustat.sim=rnorm(1,Umean,Usd)         # for r static, a single constant 'r' to carry through all future years of ONE simulation run
+  Ustat.sim
+  
+  # 10/5/18... Annie thinks we should next time try to make the projections within each MCMC run 
+  # so that U, Q, and final year estimates 
+  # can do this in JAGS, but need to figure out the code
+  # but effectively can do like we did (outside JAGS) but just draw each of U, Q & final 3 years from same MCMC run
+  
+  
+  for(yr in 1:yrf)                   # for each year of sim...
+  {
+    i <- yr + 1                      # adjust row index ... first row is year 0, second row is year 1, etc.
+    
+    # TEST METHOD 1: pull from JAGS samples of Q
+    # plot(density(jags.model$sims.list$Q[round(runif(n=10000, min=1, max=length(jags.model$sims.list$Q)),0)]))
+    # Qvaldyn = jags.model$sims.list$Q[round(runif(n=1, min=1, max=length(jags.model$sims.list$Q)),0)]
+    # pN.rdyn[i,sim]=pN.rdyn[i-1,sim]*exp(rnorm(1,rmean,rsd) + rnorm(1,0,sqrt(Qvaldyn)))
+    
+    # TEST METHOD 2: **BEST METHOD per Brian Langseth (but we had to remove the bias correction factor which made trend decline)
+    # Incorporate estimated Process Error Variance 
+    # The mean on the log scale is equal to the median on the original scale, and the sd is calculated based on 
+    # the approximation that for the lognormal the CV on the original scale approximates the sd on the log scale. 
+    # plot(density(rlnorm(1000,log(jags.model$q50$Q), sqrt(log((Qsd/Qmean)^2+1)))))
+     Qvaldyn = rlnorm(1,log(jags.model$q50$Q), sqrt(log((Qsd/Qmean)^2+1)))  # draw a value for process error variance 
+    
+    # (N from previous year) * exp(draw r from dist) * proccess error variance draw
+    # for process error (Brian Langseth): draw a random deviate, centered around 0, using the drawn process error variance, 
+    # exponentiate it and multiply it to the product of N and exp(R). Apply bias correction so that over the longterm, 
+    # the mean of the exponentiated random deviate is 1.  
+    # Actually, don't need to apply bias correction factor (-Qvaldyn/2) since we are dealing with median instead of mean.
+    pN.rdyn[i,sim]=pN.rdyn[i-1,sim]*exp(rnorm(1,Umean,Usd))*exp(rnorm(1,0,sqrt(Qvaldyn))) #*exp(rnorm(1,0,sqrt(Qvaldyn))-Qvaldyn/2) 
+    if(pN.rdyn[i,sim]<0) {pN.rdyn[i,sim] <- 0}                 # if pop falls below 0, cut it off at 0 rather than go negative
+    
+    
+    # (N from previous year) * exp(constant r for each sim run into future)* process error variance
+    # same notes as above on process error from Brian Langseth
+    Qvalstat = Qvaldyn      #draw a value for process error variance; keeping it same between dynamic and static for each sim run
+    pN.rstat[i,sim]=pN.rstat[i-1,sim]*exp(Ustat.sim)*exp(rnorm(1,0,sqrt(Qvalstat))) #*exp(rnorm(1,0,sqrt(Qvalstat))-Qvalstat/2)           
+    if(pN.rstat[i,sim]<0) {pN.rstat[i,sim] <- 0}              # if pop falls below 0, cut it off at 0 rather than go negative
+  }
+}
+
+
+
+# calculate quantiles & means for simulations w/ DYNAMIC 'r' pulled from dist each year into future
+# reminder: pN is matrix with YEARS as rows and SIMULATIONS as columns
+quants.rdyn=t(apply(X=pN.rdyn,MARGIN=1,FUN=quantile,probs=c(0.025,0.5,0.975)))    # median + CI for each year; MARGIN=1 indicates rows for a matrix; 
+means.rdyn=t(apply(X=pN.rdyn,MARGIN=1,FUN=mean))             # mean for each year; MARGIN=1 is for rows
+quants.rdyn.df <- as.data.frame(quants.rdyn)
+quants.rdyn.df$Year <- 0:yrf
+quants.rdyn.df$Mean <- as.vector(means.rdyn)
+quants.rdyn.df <- quants.rdyn.df[ ,c("Year", "Mean", "2.5%", "50%", "97.5%")]  # reorder cols; rows=YEARS, cols=quantiles of sim runs (2.5%, 50%, 97.5%)
+quants.rdyn.df
+
+# calculate quantiles & means for simulations w/ STATIC 'r' pulled ONCE from dist and carried as constant in all future years
+quants.rstat=t(apply(X=pN.rstat,MARGIN=1,FUN=quantile,probs=c(0.025,0.5,0.975)))    # median + CI for each year; MARGIN=1 indicates rows for a matrix; 
+means.rstat=t(apply(X=pN.rstat,MARGIN=1,FUN=mean))             # mean for each year; MARGIN=1 is for rows
+quants.rstat.df <- as.data.frame(quants.rstat)
+quants.rstat.df$Year <- 0:yrf
+quants.rstat.df$Mean <- as.vector(means.rstat)
+quants.rstat.df <- quants.rstat.df[ ,c("Year", "Mean", "2.5%", "50%",  "97.5%")]  # reorder cols; rows=YEARS, cols=quantiles of sim runs (2.5%, 50%, 97.5%)
+quants.rstat.df
+
+# if high uncertainty in 'r' leads to NEGATIVE turtle/nest values, that's biologically not feasible [log(.99)=-0.01 and log(-1)=NaN], 
+# so change projected value to 1 so log(1)=0 or else simulation stuff below won't work 
+# quants.rstat.df[quants.rstat.df < 1] <- 1
+# quants.rdyn.df[quants.rdyn.df < 1] <- 1
+##==============================================================================
+
+
+
+
+##==============================================================================
+# plot SIMULATION QUANTILES = MEDIAN PROJECTION line plus shaded 2.5% and 97.5% lines to show distribution of outcomes 
+
+if(length(pop.name)==1) {title.proj <- pop.name}
+if(length(pop.name)>1) {title.proj <- pop.name.combo}  #{"Western Pacific Leatherback Turtles"}
+
+for (p in 1:2) {
+  ocol=rgb(253,106,2,alpha=40,max=255)
+  
+  # 'r' static: plot from simulation: 
+  # median predicted trajectory w/ 2.5% and 97.5% intervals (at each year, takes median, 2.5% & 97.5% quantiles of sim runs)
+  if (p==1){
+    png(filename=paste(file.tag,"8_projection_quantiles_static.png", sep=""), width=650, height=575, units="px")
+    par(mfrow=c(1,1), mar=c(5, 5, 4, 2) + 0.1, cex.lab=1.5, cex.axis=1.5, cex.main=2)
+    matplot(x=0:yrf,y=log(quants.rstat.df[,3:5]), type="l",lty=c(2,1,2),lwd=c(1,2,1),col="black", xlab="Year", ylab="Ln(Annual Females)")
+    polygon(c(0:yrf,yrf:0),c(log(quants.rstat.df[,3]),log(rev(quants.rstat.df[,5]))),col=ocol,border=FALSE)
+    title(main=title.proj)   # "Simulation projection (static)"
+    dev.off()
+  }
+  
+  # 'r' dynamic: plot from sim'n: 
+  # median predicted trajectory w/ 2.5% and 97.5% intervals (at each year, takes median, 2.5% & 97.5% quantiles of sim runs)
+  if (p==2) {
+    png(filename=paste(file.tag,"8_projection_quantiles_dynamic.png", sep=""), width=650, height=575, units="px")
+    par(mfrow=c(1,1), mar=c(5, 5, 4, 2) + 0.1, cex.lab=1.5, cex.axis=1.5, cex.main=2)
+    matplot(x=0:yrf,y=log(quants.rdyn.df[,3:5]), type="l",lty=c(2,1,2),lwd=c(1,2,1),col="black", xlab="Year", ylab="Ln(Annual Females)")
+    polygon(c(0:yrf,yrf:0),c(log(quants.rdyn.df[,3]),log(rev(quants.rdyn.df[,5]))),col=ocol,border=FALSE)
+    title(main=title.proj)  # "Simulation projection (dynamic)"
+    dev.off()
+  }
+}
+##==============================================================================
+
+
+
+
+##==============================================================================
+# DEFINE plotting FUNCTION to show all sim runs + abundance thresholds
+# plot SIMULATION PROJECTION POINTS predicted by EACH SIMULATION RUN at each year in the future to show distribution of outcomes 
+# shows all simulation runs
+require(ggplot2)
+plot.simruns <- function(r.sel="rstat", thresh.lines=FALSE) {    # choose rdyn or rstat and whether to add lines for thresholds
+  if(r.sel=="rstat") {pN <- pN.rstat; g.title <- title.proj}  # "Simulation projection (static)"}     # 'r' static: runs from simulation with r static for each run
+  if(r.sel=="rdyn")  {pN <- pN.rdyn; g.title <- title.proj}   # "Simulation projection (dynamic)"}
+  #head(as.vector(pN.))            # creates the vector going column by column (i.e., sim 1 yr by yr, then sim 2 yr by yr, etc.)
+  rep4plot=cbind(rep(1:nrow(pN),times=ncol(pN)),as.vector(pN))  # Zach's fix to Rob's code (same as my guess below)
+  colnames(rep4plot)=c("x","y")   # x = Year; y = Nests
+  x=rep4plot[,1]
+  y=log(rep4plot[,2])   # can change here to log(Nests) or regular exponential curve of Nests
+  df <- data.frame(x = x, y = y, d = densCols(x, y, colramp = colorRampPalette(rev(rainbow(10, end = 4/6)))))
+  p <- ggplot(df) +
+    geom_point(aes(x, y, col = d), size = 1) +
+    scale_color_identity() +
+    theme_bw() +
+    labs(x = "Year",y="Ln(Annual Females)", title=g.title) + 
+    theme(title = element_text(color = "blue", size = 21, face="bold")) +
+    theme(axis.text = element_text(color = "black", size = 16)) +
+    theme(axis.title.x = element_text(color = "black", size = 17, margin = margin(t = 12, r = 0, b = 0, l = 0))) +   # original: size = 16
+    theme(axis.title.y = element_text(color = "black", size = 17,margin = margin(t = 0, r = 12, b = 0, l = 0))) +
+    theme(plot.margin = unit(c(0.5,0.5,0.5,0.5), "cm"))
+  
+  # add mean & 95% CI abundance thresholds as horizontal lines for 50%, 25%, and 12.5% abund. 
+  if(thresh.lines==TRUE) {
+    thresh.vals50 <- 0.50*quantile(log(CurFem), probs=c(0.025, 0.50, 0.975))   # CurFem must be defined outside the function
+    thresh.vals25 <- 0.25*quantile(log(CurFem), probs=c(0.025, 0.50, 0.975))
+    thresh.vals12 <- 0.125*quantile(log(CurFem), probs=c(0.025, 0.50, 0.975))
+    p <- p +  geom_hline(yintercept=thresh.vals50[1], colour="black", linetype="dashed") +  # 50% abund thresh lower 95% CI
+      geom_hline(yintercept=thresh.vals50[2], colour="black", linetype="solid") +  # median
+      geom_hline(yintercept=thresh.vals50[3], colour="black", linetype="dashed") +    # upper 95% CI
+      geom_hline(yintercept=thresh.vals25[1], colour="black", linetype="dashed") +  # 25% abund thresh lower 95% CI
+      geom_hline(yintercept=thresh.vals25[2], colour="black", linetype="solid") +  # median
+      geom_hline(yintercept=thresh.vals25[3], colour="black", linetype="dashed") +    # upper 95% CI
+      geom_hline(yintercept=thresh.vals12[1], colour="black", linetype="dashed") +  # 12.5% abund thresh lower 95% CI
+      geom_hline(yintercept=thresh.vals12[2], colour="black", linetype="solid") +  # median
+      geom_hline(yintercept=thresh.vals12[3], colour="black", linetype="dashed")    # upper 95% CI
+  }
+  print(p)
+  if(r.sel=="rstat") p.rstat <- p    # save graph images outside of function
+  if(r.sel=="rdyn") p.rdyn <- p
+}
+
+png(filename=paste(file.tag,"9_projection_allruns_static.png", sep=""), width=650, height=575, units="px")
+plot.simruns(r.sel="rstat", thresh.lines=FALSE)
+dev.off()
+
+png(filename=paste(file.tag,"9_projection_allruns_dynamic.png", sep=""), width=650, height=575, units="px")
+plot.simruns(r.sel="rdyn", thresh.lines=FALSE)
+dev.off()
+##==============================================================================
+
+
+
+
+
+
+
+##==============================================================================
+## EVALUATION PROBABILITIES OF REACHING ABUNDANCE THRESHOLDS: 
+
+# For a given year in the future (5, 10, 25, 50, 100)
+# Calculate probability of reaching abundance thresholds 
+# As the proportion of simulation runs falling below the threshold for that year
+# PIRO wants 95% CI associated with this probability.... currently do this as bootstrap of simulation runs for each evaluation year
+
+# select whether to use the projections that used the 'r dynamic' or 'r static' approach  
+#rsel <- "rstat"
+rsel <- "rdyn"
+
+# based on selection above, pick the corresponding projection matrix
+if(rsel=="rdyn")  pN.sel <- pN.rdyn
+if(rsel=="rstat") pN.sel <- pN.rstat
+
+
+# calculate "current" abundance
+# can simply use N0 from simulation if data type is Total Females (already factors in run sum total earlier in model)
+# N0 <- pN.sel[1,]   #  first row of sim matrix (same for rdyn & rstat) is Year 0 draw of N in 2016 from dist (final data year for loggers)
+
+# for both rdynamic & rstatic approaches; start year 0 of sim with random draw from model predicted X[fy]
+# starting point for projection will be ANNUAL estimate for final data year,
+# but will need previous 2 years estimates also to calculate a "Current Abundance" in terms of Index of Total Females (add 3 final years together) 
+# because exponentiated, these values below are always positive
+# X.fym0 <- exp(jags.model$sims.list$X[,fy-0])   # model predicted X for final year minus 0
+# X.fym1 <- exp(jags.model$sims.list$X[,fy-1])   # model predicted X for final year minus 1
+# X.fym2 <- exp(jags.model$sims.list$X[,fy-2])   # model predicted X for final year minus 2
+
+which(pN.sel[1,] != X.fym0)   # confirming first row of sim matrix output is year 0, same sequence as X.fym0 above
+j <- 1002
+c(X.fym0[j], X.fym1[j], X.fym2[j])   # reminder: these X vals are already exponentiated to Annual Females (not in Ln space)
+
+
+# calculate Current TOTAL FEMALES from last data year (best estimate for current abundance for baseline)
+# vector with length nsim -- different starting point of Current TOTAL FEMALES for each sim
+#if(data.type=="Total_Females") CurFem <- N0  # if projections are of TOTAL Females (data as Total Female runsums), just take final yr 
+
+# CODE HERE FOR WERMON -- need to tweak if trying for other Annual_Females data
+# For Wermon, only recent data within a remig int of 3 yrs are 2014 & 2015... so taking AVERAGE of the two years
+# this represents "Current Annual Females" and we base our threshold calcs for future Annual Females projections on this
+#if(data.type=="Annual_Females") {CurFem <- (N0 + exp(rnorm(nsim,jags.model$mean$X[fy-1],jags.model$sd$X[fy-1]))) / 2 }           
+if(data.type=="Annual_Females") {CurFem <- X.fym0 + X.fym1 + X.fym2}         
+summary(CurFem)               # stats
+length(CurFem)                              # should be number of sims
+
+# Plot sim runs with abundance thresholds 
+# not going to do this for Annual Projections since Abundance thresholds are in terms of Total Females rather than Annual
+#png(filename=paste(file.tag,"9_projection_allruns_dynamic_thresholds.png", sep=""), width=650, height=575, units="px")
+#plot.simruns(r.sel=rsel, thresh.lines=TRUE)
+#dev.off()
+
+# select here whether to use pN.rdyn or pN.rstat projected abundance matrix
+dim(pN.sel)                  # 101 rows because first row is N0, final data year (year 0) which is starting point for simulation years 1-100
+popsize <- t(pN.sel[-1, ])   # transpose to get 10,000 sim rows and 100 year columns; remove that first row (YEAR 0)
+dim(popsize)                 # now in proper format: rows = # sims (10,000) and cols = # years in future (1-100)
+
+# set up array of 1 matrix per threshold to store 1 if pop is above a threshold, 0 if at or below it
+tmax <- yrf
+pop.aboveT <- array(1, c(nsim, tmax, 3))  # order is: rows=sims, cols=yrs, matrices: 3 threshold matrices w/ nrows=10000 sims, ncols=100 yrs)
+dim(pop.aboveT)
+
+# Need projections in terms of Projected Total Females in the population to compare to prescribed abundance thresholds of interest
+# create empty matrix ProjFem that has rows = # sims (10,000) and cols = # years in future (1-100)
+ProjFem <- matrix(NA, nrow=nsim, ncol=tmax)
+
+# define start year for projection time series
+ if(data.type=="Annual_Females") sy <- remig       # if projections are of Annual Nests, start on future year 3 to compute run sum backward
+# if(data.type=="Total_Females")  sy <- 1 # if projections are of TOTAL Females (already runsummed), start on future year 1
+#sy <- 1
+
+# Fill in matrix of PROJECTED TOTAL FEMALES for each year to prepare for compare each to ABUNDANCE THRESHOLDS
+for (i in 1:nsim) {
+  for(tt in sy:tmax) {                   # start at year 3 since projections are of ANNUAL NESTS (not a run sum of total abund each year)
+     if(data.type=="Annual_Females") ProjFem[i,tt] <- sum(popsize[i,((tt-(remig-1)):tt)])   # 3-yr Summed Annual Nesters 
+    # if(data.type=="Total_Females") ProjFem[i,tt] <- popsize[i,tt]       # already projected as TOTAL not Annual (no need to run sum) 
+    #ProjFem[i,tt] <- popsize[i,tt]       # new code: do same thing for both types of projections (annual or total females)
+  }  
+}  
+colMeans(ProjFem)
+plot(x=1:tmax, y=colMeans(ProjFem, na.rm=TRUE), ylab="Mean of Projections")
+plot(x=1:tmax, y=apply(ProjFem, MARGIN=2, FUN=quantile, probs=0.5, na.rm=TRUE), ylab="Median of Projections")
+
+# define abundance thresholds of interest: e.g., 50% of current abundance (total females in 2016 or sum annual nests or nesters from 2014-2016)
+# Create an ABUNDANCE THRESHOLD matrix specific to each simulation run
+# Each column is for a different abundance threshold (50% of current, 25%, or 12.5%)
+ThreshTotFem <- matrix(NA, nrow=nsim, ncol=3)
+ThreshTotFem[ ,1] <- 0.5*CurFem    # 50% thresh in column 1
+ThreshTotFem[ ,2] <- 0.25*CurFem   # 25% thresh in column 2
+ThreshTotFem[ ,3] <- 0.125*CurFem  # 12.5% thresh in column 3
+
+# To Compare ProjFem to Specified Abundance thresholds (specific to each simulation run)
+# go through each threshold "th", each sim "i", and projected year "y" 
+# leave as 1 if ProjFem is > ThreshTotFem and update to 0 if ProjFem <= ThreshTotFem
+for(th in 1:3){
+  for (i in 1:nsim) {
+    for (y in 1:tmax) {
+      # row i = sim num, col y = fut year, th = thresh mat 
+      if(!is.na(ProjFem[i, y]) & ProjFem[i, y] <= ThreshTotFem[i, th]) {pop.aboveT[i,y,th] <- 0}   
+    }
+  }  
+}
+##==============================================================================
+
+
+
+
+##==============================================================================
+# Go through pop.aboveT output for each abundance threshold
+# Check if any sim runs *END* below the threshold (disregard runs in which pop dips below thresh but recovers to end above thresh)
+# For sim runs that *END* below threshold, calculate the years until it drops and stays below thresh
+# PIRO (A) & (B): Calculate mean, median, and 95% CI limits for "Years to Threshold" using all the sims that *END* below threshold
+# PIRO request (C): estimate the probability of the pop reaching those thresholds (50%, 25%, 12.5% of current abundance)
+# in 5, 10, 25, 50, and 100 year time intervals with associated 95% confidence intervals   
+
+TIMEtoTHRESH <- data.frame(matrix(nrow=3, ncol=6), row.names=c("50% abund", "25% abund", "12.5% abund"))
+names(TIMEtoTHRESH) <- c("probEndAbove", "probEndBelow", "MeanYrsToThresh", "2.5%", "50%", "97.5%")
+TIMEtoTHRESH
+
+eval.yrs <- c(5,10,25,50,100)   # year in future at which to evaluate prob of reaching the abundance thresholds
+PROBatYEAR <- data.frame(matrix(nrow=3, ncol=15), row.names=c("50% abund", "25% abund", "12.5% abund"))
+names(PROBatYEAR) <- c("Y5", "Y5l", "Y5u", "Y10", "Y10l", "Y10u", "Y25", "Y25l", "Y25u",
+                       "Y50", "Y50l", "Y50u", "Y100", "Y100l", "Y100u")
+PROBatYEAR
+
+# THRESHOLDS: cycle through  
+for (th in 1:3){
+  # for a threshold matrix (1= sim/yr projection above curr abund thresh %; 0= at or below thresh)
+  # for all runs ending in 1, consider them a success -- pop did not fall/stay below the thresh
+  simsSums <- rowSums(pop.aboveT[,,th])     # sum each row (sim); if a run stayed above thresh whole time, sum = 100 
+  simsDropBelow <- which(simsSums<tmax)     # identify rows that may DROP below thresh at some point (but may still recover & end ABOVE thresh)
+  simsEndBelow <- which(pop.aboveT[,tmax,th]!=1) # identify sim runs (rows) that DON'T end in 1; ended at tmax below thresh
+  simsEndAbove <- which(pop.aboveT[,tmax,th]==1) # identify sim runs (rows) that DO end in 1; ended at tmax below thresh
+  simsDropBelowEndAbove <- which(simsSums<tmax & pop.aboveT[,tmax,th]==1)  # sim runs that drop below thresh but recover to end above thresh
+  
+  # if no sim runs end below thresh, then prob of reaching thresh within 100 yrs is 0 and "Years to reach thresh" is NA
+  if(length(simsEndBelow)==0) {probEndBelow <- 0; probEndAbove <- 1; YrsToThresh <- NA; YrsToThresh.mean <- NA; YrsToThresh.quants <- c(NA, NA, NA)}
+  
+  # if some sim runs end below thresh, then look to see when they fall below and stay below (max year when pop.aboveT = 1 for that sim run)  
+  if(length(simsEndBelow)!=0) {    
+    probEndBelow <- length(simsEndBelow)/nsim
+    probEndAbove <- length(simsEndAbove)/nsim
+    
+    yr.hits <- function(x){          # function finds the maximum year (indx in vector) that is ABOVE THRESH (equal to 1)
+      if(sum(x)==0) {yr <- 0}        # catches any sims where N is never above thresh (hits thresh at year 0)
+      if(sum(x)>0)  {yr <- max(which(x==1))}
+      return(yr)
+    }
+    
+    YrsToThresh <- apply(X=pop.aboveT[simsEndBelow, , th], MARGIN=1, FUN=yr.hits)    # function(x){max(which(x==1))}
+    YrsToThresh.mean <- mean(YrsToThresh)
+    YrsToThresh.quants <- quantile(YrsToThresh, probs=c(0.025, 0.50, 0.975))
+  }
+  
+  # Package the output for each threshold
+  out <- c(probEndAbove, probEndBelow, round(YrsToThresh.mean, 1), round(YrsToThresh.quants,1)) 
+  out.df <- as.data.frame(t(out))
+  names(out.df) <- c("probEndAbove", "probEndBelow", "MeanYrsToThresh", "2.5%", "50%", "97.5%")
+  TIMEtoTHRESH[th,] <- out.df
+  
+  # Prob of reach the threshold at year 5, 10, 25, 50, 100
+  pop.aboveT.edit <- pop.aboveT
+  pop.aboveT.edit[simsDropBelowEndAbove, , th] <- 1    # change 0s to 1s for sim runs that dropped below thresh but recovered to end above
+  
+  # EVALUATION YEARS: cycle through
+  for (ey in 1:length(eval.yrs)) {
+    fut.yr <- eval.yrs[ey]
+    simsReach <- which(pop.aboveT.edit[ , fut.yr, th]==0)  # to get prob of reaching thresh in that fut.yr (don't later recover), calc nmbr sim rows=0 
+    PROBatYEAR[th, 1+(ey-1)*3] <- length(simsReach)/nsim  
+    
+    # Bootstrap 95% CI from the nsim results for the YEAR and THRESH
+    CI = 0.95
+    nboot = nsim       # set bootstrap number of runs = nsim
+    x = as.vector(pop.aboveT.edit[ , fut.yr, th])    # col of specified YEAR for the threshold; 
+    n = length(x)                                    # should be same as nsimss
+    xStat = length(which(x == 0))     # calculate the statistic on original sample: Prob of runs falling below an abund threshold
+    # Generate 'nboot' number of bootstrap samples, i.e. an n x nboot array of  (rows=n ; cols=nboots)
+    tmpdata = sample(x=x,size=n*nboot, replace=TRUE)         # random resamples from x
+    bootstrapsample = matrix(tmpdata, nrow=n, ncol=nboot)
+    # Compute the Probability stat for each resample (column of bootstrapsample)
+    bsStats =  apply(X=bootstrapsample, MARGIN=2, FUN=function(simvec){length(which(simvec == 0))}) # MARGIN=2 for columns of matrix
+    bsStats.mean = mean(bsStats)   # mean of the bootstrapped sample statistics = the sample statistic calculated on the original sample
+    # Compute delta* for each bootstrap sample [delta* = resample stat - original sample stat (xbar)]
+    deltastar = bsStats - xStat    # (integer) diff in number of runs falling at/below threshold between bootstrap sample and original sample
+    # Find the Lower and Upper CI quantile for deltastar
+    ciU = 1-(1-CI)/2      # lower/upper confidence interval limits e.g. 0.025 for 2.5% & 0.975 for 97.5% for a 95% CI
+    ciL = 0+(1-CI)/2      
+    d = quantile(deltastar, c(ciL, ciU))  #  the quantile() function is sophisticated about choosing a quantile between two data points.  
+    # Calculate the specified confidence interval for original sample stat.
+    ci = xStat - c(d[2], d[1])
+    ci.prob <- ci/nsim
+    # Add Bootstrapped CI to the storage matrix for this threshold row in appropriate year cols
+    PROBatYEAR[th, (2+(ey-1)*3): (3+(ey-1)*3)] <- ci.prob 
+    
+  } # END CYCLE THROUGH EVALUTION YEARS
+}  # END CYCLE THROUGH THRESHOLDS
+##==============================================================================
+
+
+
+
+
+##==============================================================================
+TIMEtoTHRESH  # Answers PIRO request (A) and (B)
+#write.table(x=TIMEtoTHRESH, file=paste(file.tag,"10_TimeToThresholds.txt", sep=""), sep="\t", quote=FALSE)
+write.csv(x=TIMEtoTHRESH, file=paste(file.tag,"10_TimeToThresholds.csv", sep=""), quote=FALSE)
+
+
+PROBatYEAR    # Answers PIRO request (C)
+t(round(PROBatYEAR,3))
+
+# reorganize for PIRO ease of interp
+PROBatYEAR2 <- as.data.frame(matrix(nrow=9, ncol=5))
+row.names(PROBatYEAR2) <- c("50.0% est","50.0% low", "50.0% upp",         # these % are abund thresholds
+                            "25.0% est","25.0% low", "25.0% upp",
+                            "12.5% est","12.5% low", "12.5% upp")
+names(PROBatYEAR2) <- c("yr 5", "yr 10", "yr 25", "yr 50", "yr 100") 
+
+PROBatYEAR2[c(1,4,7), ] <- PROBatYEAR[c(1,2,3), c(1,4,7,10,13)]   # 50%,25%,12.5% abund prob at yr 5, 10, 25, 50, 100
+PROBatYEAR2[c(2,5,8), ] <- PROBatYEAR[c(1,2,3), c(2,5,8,11,14)]        # 50%,25%,12.5% abund prob LOWER CI at yr 5, 10, 25, 50, 100          
+PROBatYEAR2[c(3,6,9), ] <- PROBatYEAR[c(1,2,3), c(3,6,9,12,15)]        # 50%,25%,12.5% abund prob UPPER CI at yr 5, 10, 25, 50, 100          
+
+PROBatYEAR2
+
+#write.table(x=round(t(PROBatYEAR), 3), file=paste(file.tag,"11_ProbabilityAtYears.txt", sep=""), sep="\t", quote=FALSE)
+#write.table(x=round(PROBatYEAR2, 3), file=paste(file.tag,"11_ProbabilityAtYears.txt", sep=""), sep="\t", quote=FALSE)
+write.csv(x=round(PROBatYEAR2, 3), file=paste(file.tag,"11_ProbabilityAtYears.csv", sep=""),  quote=FALSE)
+
+
+Umean         # Answers PIRO request  (D) population's mean log growth rate 
+Umed          # also report median, best for Bayes results
+Uvar          # Answers PIRO request  (D) variance of mean log growth rate
+Uci           # Answers PIRO request  (D) 95% confidence interval
+
+
+lambda.mean   # Answers PIRO request  (E) mean finite rate of increase, lambda
+lambda.med    # also report median, best for Bayes results
+lambda.ci     # Answers PIRO request  (D) 95% confidence interval for lambda
+##==============================================================================
+
+
+```
+
+
+```
+

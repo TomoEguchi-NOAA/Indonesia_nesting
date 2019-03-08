@@ -200,3 +200,225 @@ model.names <- function(){
   return(models)
   
 }
+
+run.singleUQ <- function(dat, 
+                         jags.params, 
+                         model.loc, 
+                         MCMC.params, 
+                         seed){
+  
+  n.timeseries= nrow(dat)
+  # Model-specific parameters
+  # multiple time series -> single population process
+  n.states <- 1
+  whichPop <- rep(1, n.timeseries)
+  
+  Z <- matrix(0, n.timeseries+1, n.states+1)   # matrix with rows as n.timeseries and cols as n.states (pops)
+  Z[n.timeseries+1, ] <- NA                  # add a row of NAs to keep jagsUI from converting single time series matrix into vector
+  Z[ , n.states+1] <- NA                     # add a col of NAs to keep jagsUI from converting single state matrix into vector
+  for(i in 1:n.timeseries) Z[i, whichPop[i]] <- 1
+  
+  # add a row (ie time series of data) to trick jagsUI into NOT converting single time series matrix to vector
+  jags.data <- list(Y = rbind(dat, NA), 
+                    n.yrs = ncol(dat),
+                    n.timeseries= n.timeseries,
+                    Z = Z,
+                    a_mean = 0,
+                    a_sd = 4,
+                    u_mean = 0,
+                    u_sd = 0.5,
+                    q_alpha = 0.01,
+                    q_beta = 0.01,
+                    r_alpha = 0.01,
+                    r_beta = 0.01,
+                    x0_mean = dat[1,1],
+                    x0_sd = 10)
+  
+  jags.model <- jags(jags.data, 
+                     inits = NULL, 
+                     parameters.to.save= jags.params, 
+                     model.file=model.loc, 
+                     n.chains = MCMC.params$n.chains, 
+                     n.burnin = MCMC.params$n.burnin, 
+                     n.thin = MCMC.params$n.thin, 
+                     n.iter = MCMC.params$n.samples, 
+                     DIC = T, 
+                     parallel=T, 
+                     seed=seed)
+  
+  # not sure how pareto statistic can be computed for multi-location data
+  # with missing data... 
+  #loo.out <- pareto.k.diag(jags.model, MCMC.params, jags.data)
+  
+  jm.out <- list(jags.data = jags.data,
+                 params = jags.params,
+                 out = jags.model)
+  
+  return(jm.out)
+  
+}
+
+run.independentUQ <- function(dat, 
+                              jags.params, 
+                              model.loc, 
+                              MCMC.params, 
+                              seed){
+  
+  n.timeseries <- nrow(dat)
+  x0_mean <- numeric(length=n.timeseries)
+  x0_sd <- numeric(length=n.timeseries)
+  for(i in 1:n.timeseries) {
+    icol <- min(which(!is.na(dat[i,])))   # use the first non-NA data point in time series i as it's prior mean
+    x0_mean[i] <- dat[i, icol]            
+    x0_sd[i] <- 10     # we went with wide sd by testing for both JM and W for leathers; 10 works to make it super wide so as to not influence Wermon
+  }
+  
+  
+  # Model-specific parameters
+  whichPop <- 1:n.timeseries         # multiple time series -> unique population processes
+  n.states <- max(whichPop)
+  
+  Z <- matrix(0,n.timeseries+1,n.states+1)   # matrix with rows as n.timeseries and cols as n.states (pops)
+  Z[n.timeseries+1, ] <- NA                  # add a row of NAs to keep jagsUI from converting single time series matrix into vector
+  Z[ , n.states+1] <- NA                     # add a col of NAs to keep jagsUI from converting single state matrix into vector
+  for(i in 1:length(whichPop)) Z[i,whichPop[i]] <- 1
+  
+  jags.data <- list(Y = rbind(dat, NA),
+                    n.yrs = ncol(dat),
+                    n.timeseries = n.timeseries,
+                    n.states = n.states,
+                    Z = Z,
+                    u_mean = 0,
+                    u_sd = 0.5,
+                    q_alpha = 0.01,
+                    q_beta = 0.01,
+                    r_alpha = 0.01,
+                    r_beta = 0.01,
+                    x0_mean = x0_mean,
+                    x0_sd = x0_sd)
+  
+  jags.model <- jags(jags.data, 
+                     inits = NULL, 
+                     parameters.to.save= jags.params, 
+                     model.file=model.loc, 
+                     n.chains = MCMC.params$n.chains, 
+                     n.burnin = MCMC.params$n.burnin, 
+                     n.thin = MCMC.params$n.thin, 
+                     n.iter = MCMC.params$n.samples, 
+                     DIC = T, 
+                     parallel=T, 
+                     seed=set.seed)
+  
+  jm.out <- list(jags.data = jags.data,
+                 params = jags.params,
+                 out = jags.model)
+  
+  return(jm.out)
+}
+
+run.independentQs_singleU <- function(dat, 
+                                      jags.params, 
+                                      model.loc, 
+                                      MCMC.params, 
+                                      seed){
+  n.timeseries <- nrow(dat)
+  
+  # Model-specific parameters
+  whichPop <- 1:n.timeseries         # multiple time series -> unique population processes
+  n.states <- max(whichPop)
+  
+  Z <- matrix(0,n.timeseries+1, n.states+1)   # matrix with rows as n.timeseries and cols as n.states (pops)
+  Z[n.timeseries+1, ] <- NA                  # add a row of NAs to keep jagsUI from converting single time series matrix into vector
+  Z[ , n.states+1] <- NA                     # add a col of NAs to keep jagsUI from converting single state matrix into vector
+  for(i in 1:length(whichPop)) Z[i,whichPop[i]] <- 1
+  
+  jags.data <- list(Y = rbind(dat, NA),
+                    n.yrs = ncol(dat),
+                    n.timeseries = n.timeseries,
+                    n.states = n.states,
+                    Z = Z,
+                    u_mean = 0,
+                    u_sd = 0.5,
+                    q_alpha = 0.01,
+                    q_beta = 0.01,
+                    r_alpha = 0.01,
+                    r_beta = 0.01,
+                    x0_mean = dat[1,1],
+                    x0_sd = 10)
+  
+  jags.model <- jags(jags.data, 
+                     inits = NULL, 
+                     parameters.to.save= jags.params, 
+                     model.file=model.loc, 
+                     n.chains = MCMC.params$n.chains, 
+                     n.burnin = MCMC.params$n.burnin, 
+                     n.thin = MCMC.params$n.thin, 
+                     n.iter = MCMC.params$n.samples, 
+                     DIC = T, 
+                     parallel=T, 
+                     seed=set.seed)
+  
+  jm.out <- list(jags.data = jags.data,
+                 params = jags.params,
+                 out = jags.model)
+  
+}
+  
+  
+run.independentUs_singleQ <- function(dat, 
+                                      jags.params, 
+                                      model.loc, 
+                                      MCMC.params, 
+                                      seed){
+  
+  n.timeseries <- nrow(dat)
+  x0_mean <- numeric(length=n.timeseries)
+  x0_sd <- numeric(length=n.timeseries)
+  for(i in 1:n.timeseries) {
+    icol <- min(which(!is.na(dat[i,])))   # use the first non-NA data point in time series i as it's prior mean
+    x0_mean[i] <- dat[i, icol]            
+    x0_sd[i] <- 10     # we went with wide sd by testing for both JM and W for leathers; 10 works to make it super wide so as to not influence Wermon
+  }
+  
+  
+  # Model-specific parameters
+  whichPop <- 1:n.timeseries         # multiple time series -> unique population processes
+  n.states <- max(whichPop)
+  
+  Z <- matrix(0,n.timeseries+1,n.states+1)   # matrix with rows as n.timeseries and cols as n.states (pops)
+  Z[n.timeseries+1, ] <- NA                  # add a row of NAs to keep jagsUI from converting single time series matrix into vector
+  Z[ , n.states+1] <- NA                     # add a col of NAs to keep jagsUI from converting single state matrix into vector
+  for(i in 1:length(whichPop)) Z[i,whichPop[i]] <- 1
+  
+  jags.data <- list(Y = rbind(dat, NA),
+                    n.yrs = ncol(dat),
+                    n.timeseries = n.timeseries,
+                    n.states = n.states,
+                    Z = Z,
+                    u_mean = 0,
+                    u_sd = 0.5,
+                    q_alpha = 0.01,
+                    q_beta = 0.01,
+                    r_alpha = 0.01,
+                    r_beta = 0.01,
+                    x0_mean = x0_mean,
+                    x0_sd = x0_sd)
+  
+  jags.model <- jags(jags.data, 
+                     inits = NULL, 
+                     parameters.to.save= jags.params, 
+                     model.file=model.loc, 
+                     n.chains = MCMC.params$n.chains, 
+                     n.burnin = MCMC.params$n.burnin, 
+                     n.thin = MCMC.params$n.thin, 
+                     n.iter = MCMC.params$n.samples, 
+                     DIC = T, 
+                     parallel=T, 
+                     seed=set.seed)
+  
+  jm.out <- list(jags.data = jags.data,
+                 params = jags.params,
+                 out = jags.model)
+  
+  return(jm.out)
+}
