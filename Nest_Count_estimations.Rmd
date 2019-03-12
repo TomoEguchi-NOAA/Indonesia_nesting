@@ -27,7 +27,7 @@ ggplot2::theme_set(base_theme)
 # get JM data first:
 data.0.JM <- read.csv('data/NestCounts_JM_09Feb2018.csv')
 
-# create time-duration filed (in yrs)
+# create time-duration field (in yrs)
 # define dates with begin and end dates:
 data.0.JM %>% reshape2::melt(id.vars = "YEAR", 
                              variable.name = "month",

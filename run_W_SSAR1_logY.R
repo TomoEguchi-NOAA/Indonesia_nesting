@@ -9,19 +9,14 @@ library(coda)
 library(loo)
 
 
-MCMC.n.chains <- 5
-MCMC.n.samples <- 500000
-MCMC.n.burnin <- 350000
-MCMC.n.thin <- 50
-
-MCMC.params <- list(n.chains = MCMC.n.chains,
-                    n.samples = MCMC.n.samples,
-                    n.burnin = MCMC.n.burnin,
-                    n.thin = MCMC.n.thin)
+MCMC.params <- list(n.chains = 5,
+                    n.samples = 500000,
+                    n.burnin = 350000,
+                    n.thin = 50)
 
 year.begin <- 2006
 #year.end <- 2014
-year.end <- 2017
+year.end <- 2013
 loc <- "W"
 data.jags <- data.extract(location = loc, 
                           year.begin = year.begin, 

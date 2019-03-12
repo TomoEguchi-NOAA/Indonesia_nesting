@@ -83,7 +83,10 @@ data.extract <- function(location, year.begin, year.end){
   return(out)
 }
 
-run.jagsUI <- function(jags.data, jags.params, model.file, MCMC.params){
+run.jagsUI <- function(jags.data, jags.params, model.file, MCMC.params = list(n.chains = 5,
+                                                                              n.samples = 500000,
+                                                                              n.burnin = 350000,
+                                                                              n.thin = 50)){
   tic <- Sys.time()
   jm <- jags(jags.data,
              inits = NULL,

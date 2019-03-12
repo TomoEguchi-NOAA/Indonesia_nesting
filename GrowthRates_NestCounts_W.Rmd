@@ -7,18 +7,23 @@ Computes rates of change in counts of nests at Wermon nesting beach for each sea
 
 ```{r}
 rm(list=ls())
-source("HILL_BiOp_functions.R")
+source("Dc_Indonesia_nesting_Fcns.R")
 library(reshape2)
 library(ggridges)
-run.date1 <- "2018-10-26"
+run.date <- "2019-03-12"
+m <- 7   # best model number - comes from NestCountImputation_W.Rmd.
+year.begin <- 2006
+year.end <- 2019
 
-M17 <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_var_thetaM_W_2006_2017_",
-                      run.date1, ".rds"))
+models.df <- model.names()
+str.root <- strsplit(strsplit(as.character(models.df[m, 'names']), 
+                              "model_")[[1]][2], ".txt")[[1]]
+M <- readRDS(paste0("RData/jagsout_", str.root, "_W_", year.begin, "_", year.end, ".rds"))
 
-M17$Xs.stats %>% mutate(season = ifelse(month < 4, year - 1, year)) %>% 
+M$Xs.stats %>% mutate(season = ifelse(month < 4, year - 1, year)) %>% 
   mutate(summer = ifelse(month > 3 & month < 10, 1, 0)) -> Xs.stats
 
-M17$ys.stats %>% mutate(season = ifelse(month < 4, year - 1, year)) %>% 
+M$ys.stats %>% mutate(season = ifelse(month < 4, year - 1, year)) %>% 
   mutate(summer = ifelse(month > 3 & month < 10, 1, 0)) -> ys.stats
 
 seasons <- as.matrix(unique(Xs.stats$season))
@@ -27,7 +32,7 @@ X.posterior.seasons <- lapply(apply(seasons,
                                     MARGIN = 1,
                                     FUN = extract.posterior.jagsUI, 
                                     Xs.stats = Xs.stats, 
-                                    samples = M17$jags.out$jm$samples),
+                                    samples = M$jags.out$jm$samples),
                               FUN = function(x){
                                 n.summer <- exp(x$samples[, x$summer == 1]) %>% rowSums() 
                                 n.winter <- exp(x$samples[, x$summer == 0]) %>% rowSums() 
@@ -60,10 +65,10 @@ winter.lambda <- t(apply(winter.samples,
                          FUN = function(x) x[2:length(x)]/x[1:(length(x) - 1)],
                          MARGIN = 1))
 summer.lambda.df <- as.data.frame(summer.lambda) 
-colnames(summer.lambda.df) <- 2007:2017
+colnames(summer.lambda.df) <- (year.begin+1):(year.begin + ncol(summer.lambda.df))
 
 winter.lambda.df <- as.data.frame(winter.lambda)
-colnames(winter.lambda.df) <- 2007:2017
+colnames(winter.lambda.df) <- (year.begin+1):(year.begin + ncol(summer.lambda.df))
 
 summer.lambda.df %>% melt(value.name = "lambda", 
                           variable.name = "Year") -> summer.df
@@ -92,12 +97,12 @@ p.lambda.winter <- ggplot(data = winter.df) +
 
 
 ggsave(plot = p.lambda.summer,
-       filename = "figures/W_summer_lambda.png",
+       filename = paste0("figures/W_summer_lambda_", m, ".png"),
        device = "png",
        dpi = 600)
 
 ggsave(plot = p.lambda.winter,
-       filename = "figures/W_winter_lambda.png",
+       filename = paste0("figures/W_winter_lambda_", m, ".png"),
        device = "png",
        dpi = 600)
 

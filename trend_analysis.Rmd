@@ -27,7 +27,7 @@ MCMC.params <- list(n.chains = mcmc.chains,
 # analysis constants
 # years to be analyzed for Jamursba-Medi and Wermon
 JM.yrs <- 2001:2017
-W.yrs <- 2006:2017
+W.yrs <- 2006:2018
 
 
 ```
@@ -43,11 +43,12 @@ JM <- read.csv("data/JM_annual_estimated_counts_v2.csv",
 
 JMdat <- JM[which(JM$Season %in% JM.yrs), ]
 
-W <- read.csv("data/W_annual_estimated_counts.csv", 
+W.bestM <- 7
+W <- read.csv(paste0("data/estimatedX_W_M", W.bestM, ".csv"), 
               header=T)  # Jamursba Medi (1 peak nesting in summer)
 
-Wdat <- W[which(W$Season %in% W.yrs), ]   # only keep specific data years per group discussions
-Wdat[which(Wdat$Season %in% 2013:2015) , 3:5] <- NA  # for seasons 2013-2015, make data = NA since not using; retains time sequence
+Wdat <- W[which(W$season %in% W.yrs), ]   # only keep specific data years 
+Wdat[which(Wdat$season %in% 2013:2015) , 3:5] <- NA  # for seasons 2013-2015, make data = NA since not using; retains time sequence
 
 # 3. COMBINE JM & W into one dataset with 2 time series and run model on that
 thedata.leathers <- left_join(JMdat, Wdat, by = "Season") %>%
