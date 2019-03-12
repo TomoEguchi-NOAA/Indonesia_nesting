@@ -32,10 +32,10 @@ sum.posterior <- function(yr, months = c(1:12), Xs.stats, zm) {
 
 data.extract <- function(location, year.begin, year.end){
   if (location == "JM"){
-    data.0 <- read.csv("data/JM_nests.csv")
+    data.0 <- read.csv("data/JM_nests_March2019.csv")
     data.0 %>% mutate(Nests = JM.1) -> data.0
   } else if (location == "W"){
-    data.0 <- read.csv('data/W_nests.csv')
+    data.0 <- read.csv('data/W_nests_March2019.csv')
     data.0 %>% mutate(Nests = W.1) -> data.0
   }
   # create regularly spaced time series:
