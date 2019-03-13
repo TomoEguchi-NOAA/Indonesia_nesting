@@ -1336,8 +1336,11 @@ X.posterior.seasons <- lapply(apply(seasons,
                                     samples = M$jags.out$jm$samples),
                               FUN = function(x){
                                 n.summer <- exp(x$samples[, x$summer == 1]) %>% rowSums() 
-                                n.winter <- exp(x$samples[, x$summer == 0]) %>% rowSums() 
-                                return(data.frame(summer = n.summer, winter = n.winter))
+                                n.winter <- exp(x$samples[, x$summer == 0]) %>% rowSums()
+                                n.season <- exp(x$samples) %>% rowSums()
+                                return(data.frame(summer = n.summer, 
+                                                  winter = n.winter,
+                                                  all = n.season))
                               } )
 
 
@@ -1347,10 +1350,11 @@ Xs.season <- as.data.frame(matrix(unlist(lapply(X.posterior.seasons,
                                                                   MARGIN = 2,
                                                                   FUN = quantile, 
                                                                   probs = c(0.025, 0.5, 0.975))})),
-                                  ncol = 6, byrow = T))
+                                  ncol = 9, byrow = T))
 
 colnames(Xs.season) <- c("Summer.low", "Summer.median", "Summer.high",
-                         "Winter.low", "Winter.median", "Winter.high")
+                         "Winter.low", "Winter.median", "Winter.high",
+                         "all.low", "all.median", "all.high")
 Xs.season <- mutate(Xs.season, 
                     season = as.vector(seasons))
 

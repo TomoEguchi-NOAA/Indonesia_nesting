@@ -26,7 +26,10 @@ MCMC.params <- list(n.chains = mcmc.chains,
 
 # analysis constants
 # years to be analyzed for Jamursba-Medi and Wermon
-JM.yrs <- 2001:2017
+begin.year <- 2001
+end.year <- 2018
+
+JM.yrs <- 2001:2018
 W.yrs <- 2006:2018
 
 
@@ -37,25 +40,37 @@ This document describes trend analysis of leatherback turtles at nesting beaches
 
 Data are annual number of females or nests. These data are from the BiOp analysis and will be changed in the future.  The numbers of females are derived from the numbers of nests by dividing them with a fixed clutch frequency so results would not be different between the two.  For reducing a layer, which would require another level of uncertainty to properly analyze these data, I will use the number of nests. 
 ```{r}
-JM <- read.csv("data/JM_annual_estimated_counts_v2.csv", 
-               header=T)  # Jamursba Medi (1 peak nesting in summer)
+# JM <- read.csv("data/JM_annual_estimated_counts_v2.csv", 
+#                header=T)  # Jamursba Medi (1 peak nesting in summer)
 
-
-JMdat <- JM[which(JM$Season %in% JM.yrs), ]
+JM.bestM <- 8
+JM <- read.csv(paste0("data/estimatedX_JM_M", JM.bestM, ".csv"), 
+                header=T)
+JMdat <- JM[which(JM$season %in% JM.yrs), ]
 
 W.bestM <- 7
 W <- read.csv(paste0("data/estimatedX_W_M", W.bestM, ".csv"), 
               header=T)  # Jamursba Medi (1 peak nesting in summer)
 
 Wdat <- W[which(W$season %in% W.yrs), ]   # only keep specific data years 
-Wdat[which(Wdat$season %in% 2013:2015) , 3:5] <- NA  # for seasons 2013-2015, make data = NA since not using; retains time sequence
+Wdat[which(Wdat$season %in% 2013:2015) , 
+     c("Summer.median", "Winter.median", "all.median")] <- NA  # for seasons 2013-2015, make data = NA since not using; retains time sequence
 
 # 3. COMBINE JM & W into one dataset with 2 time series and run model on that
-thedata.leathers <- left_join(JMdat, Wdat, by = "Season") %>%
-  transmute(Season = Season, low_JM = low.x, median_JM = median.x, 
-            high_JM = high.x, observed_JM = observed.x, 
-            low_W = low.y, median_W = median.y, high_W = high.y,
-            observed_W = observed.y)
+thedata <- left_join(JMdat, Wdat, by = "season") %>%
+  transmute(Season = season, 
+            Summer.median.JM = Summer.median.x, 
+            Winter.median.JM = Winter.median.x,
+            All.median.JM = all.median.x,
+            Summer.median.W = Summer.median.y, 
+            Winter.median.W = Winter.median.y,
+            All.median.W = all.median.y,
+            Summer.observed.JM = summer.x, 
+            Winter.observed.JM = winter.x,
+            All.observed.JM = summer.x + winter.x,
+            Summer.observed.W = summer.y, 
+            Winter.observed.W = winter.y,
+            All.observed.W = summer.y + winter.y)
 
 ```
 
@@ -63,22 +78,23 @@ Once data are filtered, set data up for analysis.
 
 First one is Jamusrba-Medi and Wermon combined with a common trend (U) and one process variance (Q)
 ```{r}
-scenario <- "Dc_singleUQ_Annual_JM_W_Summer_Winter"
-outfile <- paste0("RData/", scenario, ".rds")
-file.tag <- paste0(scenario,"_", Sys.Date(),"_")
-  
-thedata <- thedata.leathers
-modl <- "singleUQ"
-data.type <- "Annual_Females"
-pop.name <- c("Jamursba Medi Leatherback Turtles", "Wermon Leatherback Turtles")
-pop.name.combo <- "Western Pacific Leatherback Turtles"
+# scenario <- "Dc_singleUQ_Annual_JM_W_Summer_Winter"
+# outfile <- paste0("RData/", scenario, ".rds")
+# file.tag <- paste0(scenario,"_", Sys.Date(),"_")
+#   
+# thedata <- thedata.leathers
+# modl <- "singleUQ"
+# data.type <- "Annual_Females"
+# pop.name <- c("Jamursba Medi Leatherback Turtles", "Wermon Leatherback Turtles")
+# pop.name.combo <- "Western Pacific Leatherback Turtles"
 
 ```
 
 We need to 
 ```{r}
 # Transform data into natural log (Ln) space and PLOT DATA
-log.data <- log(thedata[, c("median_JM", "median_W")])     
+#log.data <- log(thedata[, c("median_JM", "median_W")])     
+log.data <- log(thedata[, c("All.median.JM", "All.median.W")])     
 # Ln(TOTAL NUMBER OF FEMALES)
 dat <- t(log.data)    # tranpose to have rows = time series and cols = years of data
 
@@ -91,7 +107,8 @@ dat <- t(log.data)    # tranpose to have rows = time series and cols = years of 
 
 ```{r}
   
-if(!file.exists("Rdata/singleUQ_out.rds")){
+if(!file.exists(paste0("Rdata/singleUQ_out_", 
+                       begin.year, "_", end.year, ".rds"))){
   jags.params <- c("A", "U", "Q", "R", "X0", "X", "loglik")
   model.loc <- "models/model_singleUQ.txt"
   
@@ -105,7 +122,8 @@ if(!file.exists("Rdata/singleUQ_out.rds")){
                          seed)
   
   jm.out$data <- thedata
-  saveRDS(jm.out, file = "Rdata/singleUQ_out.rds")
+  saveRDS(jm.out, file = paste0("Rdata/singleUQ_out_", 
+                                begin.year, "_", end.year, ".rds"))
   print(jm.out$out)
 
 } 
@@ -117,7 +135,8 @@ In the second model, both U (slope) and Q (process variance) are independent bet
 ```{r}
 # Model 2:  'independentUQs' ... multiple time series -> multiple population processes (trends)
 
-if(!file.exists("Rdata/independentUQ_out.rds")){
+if(!file.exists(paste0("Rdata/independentUQ_out_", 
+                       begin.year, "_", end.year, ".rds"))){
   jags.params <- c("U", "Q", "R", "X0", "X", "loglik")
   model.loc <- paste("models/model_independentUQs.txt", sep="")
   
@@ -132,7 +151,8 @@ if(!file.exists("Rdata/independentUQ_out.rds")){
   
   jm.out$data <- thedata
   
-  saveRDS(jm.out, file = "Rdata/independentUQ_out.rds")
+  saveRDS(jm.out, file = paste0("Rdata/independentUQ_out_", 
+                                begin.year, "_", end.year, ".rds"))
   print(jm.out$out)
 } 
 
@@ -141,7 +161,8 @@ if(!file.exists("Rdata/independentUQ_out.rds")){
 Model 3 has single slope (U) and location specific process variance (Q).
 
 ```{r}
-if(!file.exists("Rdata/independentQs_singleU_out.rds")){
+if(!file.exists(paste0("Rdata/independentQs_singleU_out_", 
+                       begin.year, "_", end.year, ".rds"))){
   jags.params <- c("U", "Q", "R", "X0", "X", "loglik")
   model.loc <- "models/model_independentQs_singleU.txt"
   
@@ -155,7 +176,8 @@ if(!file.exists("Rdata/independentQs_singleU_out.rds")){
   
   jm.out$data <- thedata
   
-  saveRDS(jm.out, file = "Rdata/independentQs_singleU_out.rds")
+  saveRDS(jm.out, file = paste0("Rdata/independentQs_singleU_out_", 
+                                begin.year, "_", end.year, ".rds"))
   print(jm.out$out)
 } 
 ```
@@ -163,7 +185,8 @@ if(!file.exists("Rdata/independentQs_singleU_out.rds")){
 Model 4 has single process variance (Q) and location specific slope (U).
 
 ```{r}
-if(!file.exists("Rdata/independentUs_singleQ_out.rds")){
+if(!file.exists(paste0("Rdata/independentUs_singleQ_out_", 
+                       begin.year, "_", end.year, ".rds"))){
   jags.params <- c("U", "Q", "R", "X0", "X", "loglik")
   model.loc <- "models/model_independentUs_singleQ.txt"
   
@@ -177,22 +200,27 @@ if(!file.exists("Rdata/independentUs_singleQ_out.rds")){
   
   jm.out$data <- thedata
   
-  saveRDS(jm.out, file = "Rdata/independentUs_singleQ_out.rds")
+  saveRDS(jm.out, file = paste0("Rdata/independentUs_singleQ_out_", 
+                                begin.year, "_", end.year, ".rds"))
   print(jm.out$out)
 } 
 ```
 
 
-Once the three models are run, we compare these using DIC. I haven't figured out how to use looic for this dataset because of missing data points and multi-dimensional likelihood values.  I think I can just treat them as independent values but that requires converting sizes of the log likelihood matrix... so, that's not done yet.
+Once the four models are run, we compare these using DIC. I haven't figured out how to use looic for this dataset because of missing data points and multi-dimensional likelihood values.  I think I can just treat them as independent values but that requires converting sizes of the log likelihood matrix... so, that's not done yet.
 
 ```{r}
-tmp <- readRDS("RData/singleUQ_out.rds")
+tmp <- readRDS(paste0("RData/singleUQ_out_", 
+                      begin.year, "_", end.year, ".rds"))
 U1Q1.DIC <- tmp$out$DIC
-tmp <- readRDS("RData/independentQs_singleU_out.rds")
+tmp <- readRDS(paste0("RData/independentQs_singleU_out_", 
+                      begin.year, "_", end.year, ".rds"))
 U1Q2.DIC <- tmp$out$DIC
-tmp <- readRDS("RData/independentUQ_out.rds")
+tmp <- readRDS(paste0("RData/independentUQ_out_", 
+                      begin.year, "_", end.year, ".rds"))
 U2Q2.DIC <- tmp$out$DIC
-tmp <- readRDS("RData/independentUs_singleQ_out.rds")
+tmp <- readRDS(paste0("RData/independentUs_singleQ_out_", 
+                      begin.year, "_", end.year, ".rds"))
 U2Q1.DIC <- tmp$out$DIC
 
 c(U1Q1.DIC, U1Q2.DIC, U2Q2.DIC, U2Q1.DIC)
@@ -203,7 +231,8 @@ c(U1Q1.DIC, U1Q2.DIC, U2Q2.DIC, U2Q1.DIC)
 Using the simplest model results in the lowest DIC value. So, use that for the following seciton.
 
 ```{r}
-jags.model <- readRDS("RData/singleUQ_out.rds")
+jags.model <- readRDS(paste0("RData/singleUQ_out_", 
+                             begin.year, "_", end.year, ".rds"))
 
 # create a dataframe for plotting - need median, upper, and lower 95% limits for each 
 # pop
@@ -253,18 +282,14 @@ Look at the posterior of the slope parameter (U).
 bayesplot::mcmc_dens(jags.model$out$samples, "U")
 ```
 
-Majority (84%) of the posterior is less than 0, indicating a decline. 
+Majority (%) of the posterior is less than 0, indicating a decline. 
 
 Next, we split into summer and winter.
 ```{r}
 # 4. Summer/Winter LEATHERBACKS (again, Tomo's estimates - we are only using medians for now)
 
-# import both summer and winter data files (each has separate time series within for JM and W)
-thedata <- read.csv("data/estimated_counts_summer.csv", 
-                        header=T)  # Jamursba Medi (1 peak nesting in summer)
-
 # Transform data into natural log (Ln) space and PLOT DATA
-log.data <- log(thedata[, c("median_JM", "median_W")])     
+log.data <- log(thedata[, c("Summer.median.JM", "Summer.median.W")])   
 # Ln(TOTAL NUMBER OF FEMALES)
 dat <- t(log.data)    # tranpose to have rows = time series and cols = years of data
 
@@ -273,7 +298,8 @@ dat <- t(log.data)    # tranpose to have rows = time series and cols = years of 
 Then run the three models on just summer and winter separately.
 
 ```{r}
-if(!file.exists("Rdata/singleUQ_summer_out.rds")){
+if(!file.exists(paste0("Rdata/singleUQ_summer_out_", 
+                       begin.year, "_", end.year, ".rds"))){
   jags.params <- c("A", "U", "Q", "R", "X0", "X", "loglik")
   model.loc <- "models/model_singleUQ.txt"
   
@@ -287,7 +313,8 @@ if(!file.exists("Rdata/singleUQ_summer_out.rds")){
                          seed)
   
   jm.out$data <- thedata
-  saveRDS(jm.out, file = "Rdata/singleUQ_summer_out.rds")
+  saveRDS(jm.out, file = paste0("Rdata/singleUQ_summer_out_", 
+                                begin.year, "_", end.year, ".rds"))
   print(jm.out$out)
 
 } 
@@ -295,7 +322,8 @@ if(!file.exists("Rdata/singleUQ_summer_out.rds")){
 ```
 
 ```{r}
-if(!file.exists("Rdata/independentUQ_summer_out.rds")){
+if(!file.exists(paste0("Rdata/independentUQ_summer_out_", 
+                       begin.year, "_", end.year, ".rds"))){
   jags.params <- c("U", "Q", "R", "X0", "X", "loglik")
   model.loc <- "models/model_independentUQs.txt"
                      
@@ -310,13 +338,15 @@ if(!file.exists("Rdata/independentUQ_summer_out.rds")){
   
   jm.out$data <- thedata
   
-  saveRDS(jm.out, file = "Rdata/independentUQ_summer_out.rds")
+  saveRDS(jm.out, file = paste0("Rdata/independentUQ_summer_out_", 
+                                begin.year, "_", end.year, ".rds"))
   print(jm.out$out)
 } 
 ```
 
 ```{r}
-if(!file.exists("Rdata/independentQs_singleU_summer_out.rds")){
+if(!file.exists(paste0("Rdata/independentQs_singleU_summer_out_", 
+                       begin.year, "_", end.year, ".rds"))){
   jags.params <- c("U", "Q", "R", "X0", "X", "loglik")
   model.loc <- "models/model_independentQs_singleU.txt"
   
@@ -330,13 +360,15 @@ if(!file.exists("Rdata/independentQs_singleU_summer_out.rds")){
   
   jm.out$data <- thedata
   
-  saveRDS(jm.out, file = "Rdata/independentQs_singleU_summer_out.rds")
+  saveRDS(jm.out, file = paste0("Rdata/independentQs_singleU_summer_out_", 
+                                begin.year, "_", end.year, ".rds"))
   print(jm.out$out)
 } 
 ```
 
 ```{r}
-if(!file.exists("Rdata/independentUs_singleQ_summer_out.rds")){
+if(!file.exists(paste0("Rdata/independentUs_singleQ_summer_out_", 
+                       begin.year, "_", end.year, ".rds"))){
   jags.params <- c("U", "Q", "R", "X0", "X", "loglik")
   model.loc <- "models/model_independentUs_singleQ.txt"
   
@@ -350,20 +382,25 @@ if(!file.exists("Rdata/independentUs_singleQ_summer_out.rds")){
   
   jm.out$data <- thedata
   
-  saveRDS(jm.out, file = "Rdata/independentUs_singleQ_summer_out.rds")
+  saveRDS(jm.out, file = paste0("Rdata/independentUs_singleQ_summer_out_", 
+                                begin.year, "_", end.year, ".rds"))
   print(jm.out$out)
 } 
 ```
 
 
 ```{r}
-tmp <- readRDS("RData/singleUQ_summer_out.rds")
+tmp <- readRDS(paste0("RData/singleUQ_summer_out_", 
+                      begin.year, "_", end.year, ".rds"))
 U1Q1.DIC <- tmp$out$DIC
-tmp <- readRDS("RData/independentQs_singleU_summer_out.rds")
+tmp <- readRDS(paste0("RData/independentQs_singleU_summer_out_", 
+                      begin.year, "_", end.year,  ".rds"))
 U1Q2.DIC <- tmp$out$DIC
-tmp <- readRDS("RData/independentUQ_summer_out.rds")
+tmp <- readRDS(paste0("RData/independentUQ_summer_out_", 
+                      begin.year, "_", end.year,  ".rds"))
 U2Q2.DIC <- tmp$out$DIC
-tmp <- readRDS("RData/independentUs_singleQ_summer_out.rds")
+tmp <- readRDS(paste0("RData/independentUs_singleQ_summer_out_", 
+                      begin.year, "_", end.year,  ".rds"))
 U2Q1.DIC <- tmp$out$DIC
 
 c(U1Q1.DIC, U1Q2.DIC, U2Q2.DIC, U2Q1.DIC)
@@ -374,7 +411,8 @@ c(U1Q1.DIC, U1Q2.DIC, U2Q2.DIC, U2Q1.DIC)
 Using the simplest model results in the lowest DIC value. So, use that for the following seciton.
 
 ```{r}
-jags.model <- readRDS("RData/singleUQ_summer_out.rds")
+jags.model <- readRDS(paste0("RData/singleUQ_summer_out_", 
+                             begin.year, "_", end.year, ".rds"))
 
 # create a dataframe for plotting - need median, upper, and lower 95% limits for each 
 # pop
@@ -431,12 +469,10 @@ Then winter
 # 4. Summer/Winter LEATHERBACKS (again, Tomo's estimates - we are only using medians for now)
 
 # import both summer and winter data files (each has separate time series within for JM and W)
-thedata <- read.csv("data/estimated_counts_winter.csv", 
-                        header=T)  
-
-
 # Transform data into natural log (Ln) space and PLOT DATA
-log.data <- log(thedata[, c("median_JM", "median_W")])     
+#log.data <- log(thedata[, c("median_JM", "median_W")])     
+log.data <- log(thedata[, c("Winter.median.JM", "Winter.median.W")])   
+#
 # Ln(TOTAL NUMBER OF FEMALES)
 dat <- t(log.data)    # tranpose to have rows = time series and cols = years of data
 
@@ -445,7 +481,8 @@ dat <- t(log.data)    # tranpose to have rows = time series and cols = years of 
 Then run the three models on just summer and winter separately.
 
 ```{r}
-if(!file.exists("Rdata/singleUQ_winter_out.rds")){
+if(!file.exists(paste0("Rdata/singleUQ_winter_out_", 
+                       begin.year, "_", end.year,  ".rds"))){
   jags.params <- c("A", "U", "Q", "R", "X0", "X", "loglik")
   model.loc <- "models/model_singleUQ.txt"
   
@@ -459,7 +496,8 @@ if(!file.exists("Rdata/singleUQ_winter_out.rds")){
                          seed)
   
   jm.out$data <- thedata
-  saveRDS(jm.out, file = "Rdata/singleUQ_winter_out.rds")
+  saveRDS(jm.out, file = paste0("Rdata/singleUQ_winter_out_", 
+                                begin.year, "_", end.year,  ".rds"))
   print(jm.out$out)
 
 } 
@@ -467,7 +505,8 @@ if(!file.exists("Rdata/singleUQ_winter_out.rds")){
 ```
 
 ```{r}
-if(!file.exists("Rdata/independentUQ_winter_out.rds")){
+if(!file.exists(paste0("Rdata/independentUQ_winter_out_", 
+                       begin.year, "_", end.year, ".rds"))){
   jags.params <- c("U", "Q", "R", "X0", "X", "loglik")
   model.loc <- "models/model_independentUQs.txt"
                      
@@ -482,13 +521,15 @@ if(!file.exists("Rdata/independentUQ_winter_out.rds")){
   
   jm.out$data <- thedata
   
-  saveRDS(jm.out, file = "Rdata/independentUQ_winter_out.rds")
+  saveRDS(jm.out, file = paste0("Rdata/independentUQ_winter_out_", 
+                                begin.year, "_", end.year, ".rds"))
   print(jm.out$out)
 } 
 ```
 
 ```{r}
-if(!file.exists("Rdata/independentQs_singleU_winter_out.rds")){
+if(!file.exists(paste0("Rdata/independentQs_singleU_winter_out_", 
+                       begin.year, "_", end.year, ".rds"))){
   jags.params <- c("U", "Q", "R", "X0", "X", "loglik")
   model.loc <- "models/model_independentQs_singleU.txt"
   
@@ -502,13 +543,15 @@ if(!file.exists("Rdata/independentQs_singleU_winter_out.rds")){
   
   jm.out$data <- thedata
   
-  saveRDS(jm.out, file = "Rdata/independentQs_singleU_winter_out.rds")
+  saveRDS(jm.out, file = paste0("Rdata/independentQs_singleU_winter_out_", 
+                                begin.year, "_", end.year, ".rds"))
   print(jm.out$out)
 } 
 ```
 
 ```{r}
-if(!file.exists("Rdata/independentUs_singleQ_winter_out.rds")){
+if(!file.exists(paste0("Rdata/independentUs_singleQ_winter_out_", 
+                       begin.year, "_", end.year, ".rds"))){
   jags.params <- c("U", "Q", "R", "X0", "X", "loglik")
   model.loc <- "models/model_independentUs_singleQ.txt"
   
@@ -522,7 +565,8 @@ if(!file.exists("Rdata/independentUs_singleQ_winter_out.rds")){
   
   jm.out$data <- thedata
   
-  saveRDS(jm.out, file = "Rdata/independentUs_singleQ_winter_out.rds")
+  saveRDS(jm.out, file = paste0("Rdata/independentUs_singleQ_winter_out_", 
+                                begin.year, "_", end.year, ".rds"))
   print(jm.out$out)
 } 
 ```
@@ -530,13 +574,17 @@ if(!file.exists("Rdata/independentUs_singleQ_winter_out.rds")){
 
 
 ```{r}
-tmp <- readRDS("RData/singleUQ_winter_out.rds")
+tmp <- readRDS(paste0("RData/singleUQ_winter_out_", 
+                      begin.year, "_", end.year, ".rds"))
 U1Q1.DIC <- tmp$out$DIC
-tmp <- readRDS("RData/independentQs_singleU_winter_out.rds")
+tmp <- readRDS(paste0("RData/independentQs_singleU_winter_out_", 
+                      begin.year, "_", end.year, ".rds"))
 U1Q2.DIC <- tmp$out$DIC
-tmp <- readRDS("RData/independentUQ_winter_out.rds")
+tmp <- readRDS(paste0("RData/independentUQ_winter_out_", 
+                      begin.year, "_", end.year, ".rds"))
 U2Q2.DIC <- tmp$out$DIC
-tmp <- readRDS("RData/independentUs_singleQ_winter_out.rds")
+tmp <- readRDS(paste0("RData/independentUs_singleQ_winter_out_", 
+                      begin.year, "_", end.year, ".rds"))
 U2Q1.DIC <- tmp$out$DIC
 
 c(U1Q1.DIC, U1Q2.DIC, U2Q2.DIC, U2Q1.DIC)
@@ -546,7 +594,8 @@ c(U1Q1.DIC, U1Q2.DIC, U2Q2.DIC, U2Q1.DIC)
 
 
 ```{r}
-jags.model <- readRDS("RData/singleUQ_winter_out.rds")
+jags.model <- readRDS(paste0("RData/singleUQ_winter_out_", 
+                             begin.year, "_", end.year, ".rds"))
 
 # create a dataframe for plotting - need median, upper, and lower 95% limits for each 
 # pop
@@ -596,4 +645,4 @@ bayesplot::mcmc_dens(jags.model$out$samples, "U")
 ```
 
 
-74% of U is < 0. 
+X% of U is < 0. 

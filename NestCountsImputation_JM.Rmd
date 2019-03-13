@@ -7,8 +7,10 @@ output: html_document
 rm(list=ls())
 knitr::opts_chunk$set(echo = TRUE)
 source("Dc_Indonesia_nesting_fcns.R")
-run.date <- "2019-03-05"
+run.date <- "2019-03-12"
 models.df <- model.names()
+year.begin <- 1999
+year.end <- 2018
 ```
 
 This document describes how leatherback turtle nest count data were imputed for Jamursba-Medi. All models were ran separately and results stored in .rds files. 
@@ -55,7 +57,7 @@ y[t] ~ N(x[t], v.obs)
 ```{r model1, cache=TRUE, include=TRUE}
 #M <- readRDS("RData/SSAR1_logY_norm_norm_JM_1999_2018-10-12.rds")
 str.root <- strsplit(strsplit(as.character(models.df[1, 'names']), "model_")[[1]][2], ".txt")[[1]]
-M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_1999_2017_",
+M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
                     run.date, ".rds"))
 
 M1.loo.out <- M$jags.out$loo.out$loo.out
@@ -102,7 +104,7 @@ y[t] ~ N(x[t], v.obs)
 
 ```{r model2, cache=TRUE, include=TRUE}
 str.root <- strsplit(strsplit(as.character(models.df[2, 'names']), "model_")[[1]][2], ".txt")[[1]]
-M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_1999_2017_",
+M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
                     run.date, ".rds"))
 
 M2.loo.out <- M$jags.out$loo.out$loo.out
@@ -150,7 +152,7 @@ y[t] ~ N(x[t], v.obs)
 
 ```{r model3, cache=TRUE, include=TRUE}
 str.root <- strsplit(strsplit(as.character(models.df[3, 'names']), "model_")[[1]][2], ".txt")[[1]]
-M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_1999_2017_",
+M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
                     run.date, ".rds"))
 
 # M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_varM_JM_1999_2017_",
@@ -179,7 +181,7 @@ y[t] ~ N(x[t], v.obs)
 ```{r model4, cache=T, include=TRUE}
 
 str.root <- strsplit(strsplit(as.character(models.df[4, 'names']), "model_")[[1]][2], ".txt")[[1]]
-M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_1999_2017_",
+M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
                     run.date, ".rds"))
 
 # M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_theta_JM_1999_2017_",
@@ -232,7 +234,7 @@ y[t] ~ N(x[t], v.obs)
 
 ```{r model5, cache=TRUE, include=TRUE}
 str.root <- strsplit(strsplit(as.character(models.df[5, 'names']), "model_")[[1]][2], ".txt")[[1]]
-M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_1999_2017_",
+M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
                     run.date, ".rds"))
 
 #M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_var_theta_JM_1999_2017_", run.date, ".rds"))
@@ -281,7 +283,7 @@ y[t] ~ N(x[t], v.obs)
 ```{r model6, cache=TRUE, include=TRUE}
 
 str.root <- strsplit(strsplit(as.character(models.df[6, 'names']), "model_")[[1]][2], ".txt")[[1]]
-M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_1999_2017_",
+M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
                     run.date, ".rds"))
 
 # M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_varM_theta_JM_1999_2017_",
@@ -331,7 +333,7 @@ y[t] ~ N(x[t], v.obs)
 
 ```{r model7, cache=TRUE, include=TRUE}
 str.root <- strsplit(strsplit(as.character(models.df[7, 'names']), "model_")[[1]][2], ".txt")[[1]]
-M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_1999_2017_",
+M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
                     run.date, ".rds"))
 
 #M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_thetaM_JM_1999_2017_", run.date, ".rds"))
@@ -380,7 +382,7 @@ y[t] ~ N(x[t], v.obs, df)
 
 ```{r model8, cache=TRUE, include=TRUE}
 str.root <- strsplit(strsplit(as.character(models.df[8, 'names']), "model_")[[1]][2], ".txt")[[1]]
-M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_1999_2017_",
+M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
                     run.date, ".rds"))
 
 #M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_var_thetaM_JM_1999_2017_", run.date, ".rds"))
@@ -430,7 +432,7 @@ y[t] ~ N(x[t], v.obs)
 
 ```{r model9, cache=TRUE, include=TRUE}
 str.root <- strsplit(strsplit(as.character(models.df[9, 'names']), "model_")[[1]][2], ".txt")[[1]]
-M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_1999_2017_",
+M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
                     run.date, ".rds"))
 
 #M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_varM_thetaM_JM_1999_2017_", 
@@ -481,7 +483,7 @@ y[t] ~ t(x[t], v.obs, df)
 
 ```{r model10, cache=TRUE, include=TRUE}
 str.root <- strsplit(strsplit(as.character(models.df[10, 'names']), "model_")[[1]][2], ".txt")[[1]]
-M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_1999_2017_",
+M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
                     run.date, ".rds"))
 
 # M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_JM_1999_2017_",
@@ -530,7 +532,7 @@ y[t] ~ t(x[t], v.obs, df)
 
 ```{r model11, cache=TRUE, include=TRUE}
 str.root <- strsplit(strsplit(as.character(models.df[11, 'names']), "model_")[[1]][2], ".txt")[[1]]
-M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_1999_2017_",
+M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
                     run.date, ".rds"))
 
 # M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_var_JM_1999_2017_",
@@ -581,7 +583,7 @@ y[t] ~ t(x[t], v.obs, df)
 
 ```{r model12, cache=T, include=TRUE}
 str.root <- strsplit(strsplit(as.character(models.df[12, 'names']), "model_")[[1]][2], ".txt")[[1]]
-M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_1999_2017_",
+M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
                     run.date, ".rds"))
 
 # M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_varM_JM_1999_2017_", 
@@ -631,7 +633,7 @@ y[t] ~ t(x[t], v.obs, df)
 
 ```{r model13, cache=T, include=TRUE}
 str.root <- strsplit(strsplit(as.character(models.df[13, 'names']), "model_")[[1]][2], ".txt")[[1]]
-M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_1999_2017_",
+M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
                     run.date, ".rds"))
 
 # M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_theta_JM_1999_2017_", 
@@ -680,7 +682,7 @@ y[t] ~ N(x[t], v.obs, df)
 
 ```{r model14, cache=TRUE, include=TRUE}
 str.root <- strsplit(strsplit(as.character(models.df[14, 'names']), "model_")[[1]][2], ".txt")[[1]]
-M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_1999_2017_",
+M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
                     run.date, ".rds"))
 
 # M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_var_theta_JM_1999_2017_", 
@@ -729,7 +731,7 @@ y[t] ~ t(x[t], v.obs, df)
 
 ```{r model15, cache=TRUE, include=TRUE}
 str.root <- strsplit(strsplit(as.character(models.df[15, 'names']), "model_")[[1]][2], ".txt")[[1]]
-M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_1999_2017_",
+M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
                     run.date, ".rds"))
 
 # M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_varM_theta_JM_1999_2017_", 
@@ -778,7 +780,7 @@ y[t] ~ t(x[t], v.obs, df)
 
 ```{r model16, cache=TRUE, include=TRUE}
 str.root <- strsplit(strsplit(as.character(models.df[16, 'names']), "model_")[[1]][2], ".txt")[[1]]
-M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_1999_2017_",
+M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
                     run.date, ".rds"))
 
 # M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_thetaM_JM_1999_2017_",
@@ -827,7 +829,7 @@ y[t] ~ t(x[t], v.obs, df)
 
 ```{r model17, cache=TRUE, include=TRUE}
 str.root <- strsplit(strsplit(as.character(models.df[17, 'names']), "model_")[[1]][2], ".txt")[[1]]
-M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_1999_2017_",
+M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
                     run.date, ".rds"))
 
 # M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_var_thetaM_JM_1999_2017_",
@@ -876,7 +878,7 @@ y[t] ~ t(x[t], v.obs, df)
 
 ```{r model18, cache=TRUE, include=TRUE}
 str.root <- strsplit(strsplit(as.character(models.df[18, 'names']), "model_")[[1]][2], ".txt")[[1]]
-M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_1999_2017_",
+M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
                     run.date, ".rds"))
 
 # M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_varM_thetaM_JM_1999_2017_",
@@ -915,7 +917,7 @@ ggplot(data = pareto.df) +
 ```
 
 #Model Comparison
-First, we compared all models using using ELPD values although Pareto k statistics indicated that models 1, 2, 8, 11, 13, and 17 had acceptable predictive performance. 
+First, we compared all models using using ELPD values although Pareto k statistics indicated that models 2, 8, 11, 13, and 17 had acceptable predictive performance. 
 
 ```{r ModelComparison, include=TRUE}
 M.compare <- compare(M1.loo.out, M2.loo.out, M3.loo.out, 
@@ -927,22 +929,24 @@ M.compare <- compare(M1.loo.out, M2.loo.out, M3.loo.out,
 print(M.compare)
 ```
 
-Interesting to see that those models that are acceptable according to Pareto k statistics are worse ones according to looic scores. I will use M5 (the best according to looic alone), M11 (best looking at Pareto k statistics alone), and M1 (best among acceptable Pareto k statisitcs models). 
+Interesting to see that those models that are acceptable according to Pareto k statistics are worse ones according to looic scores. I will use M5 (the best according to looic alone), M13 (best looking at Pareto k statistics alone), and M8 (best among acceptable Pareto k statisitcs models). 
 
 Model 5, 
 
 Posterior distributions of thetas:
 
-```{r posterior_M6_theta, fig.cap="Figure. Posterior distributions of slope parameters for M5"}
-bayesplot::mcmc_dens(M5.jm$samples, c("theta.1[1]", "theta.1[2]", "theta.1[3]", "theta.1[4]",
+```{r posterior_M5_theta, fig.cap="Figure. Posterior distributions of slope parameters for M5"}
+m <- 5
+best.jm <- M5.jm
+bayesplot::mcmc_dens(best.jm$samples, c("theta.1[1]", "theta.1[2]", "theta.1[3]", "theta.1[4]",
                                       "theta.1[5]", "theta.1[6]", "theta.1[7]", "theta.1[8]",
                                       "theta.1[9]", "theta.1[10]", "theta.1[11]", "theta.1[12]"))
 ```
 
 Posterior distributions of sigma.pro1:
 
-```{r posterior_M6_theta, fig.cap="Figure. Posterior distributions of slope parameters for M5"}
-bayesplot::mcmc_dens(M5.jm$samples, c("sigma.pro1[1]", "sigma.pro1[2]", 
+```{r posterior_M5_theta, fig.cap="Figure. Posterior distributions of slope parameters for M5"}
+bayesplot::mcmc_dens(best.jm$samples, c("sigma.pro1[1]", "sigma.pro1[2]", 
                                       "sigma.pro1[3]", "sigma.pro1[4]",
                                       "sigma.pro1[5]", "sigma.pro1[6]",
                                       "sigma.pro1[7]", "sigma.pro1[8]",
@@ -950,48 +954,53 @@ bayesplot::mcmc_dens(M5.jm$samples, c("sigma.pro1[1]", "sigma.pro1[2]",
                                       "sigma.pro1[11]", "sigma.pro1[12]"))
 ```
 
-Model 11, 
+Model 13, 
 
 The posterior distributions of the model are shown below.
 
-```{r posterior_M11, fig.cap="Figure. Posterior distribuitons of slope parameters for M11"}
-bayesplot::mcmc_dens(M11.jm$samples, c("theta.1", "theta.2"))
+```{r posterior_M13, fig.cap="Figure. Posterior distribuitons of slope parameters for M13"}
+#m <- 13
+best2.jm <- M13.jm
+bayesplot::mcmc_dens(best2.jm$samples, c("theta.1", "theta.2"))
 ```
 
-```{r posterior_M11_df, fig.cap="Figure. Posterior distributions of degrees-of-freedom parameter for M11"}
+```{r posterior_M13_df, fig.cap="Figure. Posterior distributions of degrees-of-freedom parameter for M13"}
 
-bayesplot::mcmc_dens(M11.jm$samples, "df")
+bayesplot::mcmc_dens(best2.jm$samples, "df")
 ```
 The slope parameters indicated increasing trend to July and decreased from August through November. 
 
-```{r posterior_M11_2, fig.cap="Figure. Posterior distributions for the standard deviation of the process (sigma.pro1) and standard deviation of observations (sigma.obs)."}
-bayesplot::mcmc_dens(M11.jm$samples, c("sigma.pro1", "sigma.obs"))
+```{r posterior_M13_2, fig.cap="Figure. Posterior distributions for the standard deviation of the process (sigma.pro1) and standard deviation of observations (sigma.obs)."}
+bayesplot::mcmc_dens(best2.jm$samples, c("sigma.pro1", "sigma.obs"))
 ```
 
-In Model 1, 
+In Model 8, 
 
-```{r posterior_M1_theta, fig.cap="Figure. Posterior distributions of slope parameters for M1"}
-bayesplot::mcmc_dens(M1.jm$samples, "theta.1")
+```{r posterior_M8_theta, fig.cap="Figure. Posterior distributions of slope parameters for M8"}
+best3.jm <- M8.jm
+bayesplot::mcmc_dens(best3.jm$samples, c("theta.1[1]", "theta.1[2]", "theta.1[3]", "theta.1[4]",
+                                      "theta.1[5]", "theta.1[6]", "theta.1[7]", "theta.1[8]",
+                                      "theta.1[9]", "theta.1[10]", "theta.1[11]", "theta.1[12]"))
 ```
 
-```{r posterior_M1_sigmas, fig.cap="Figure. Posterior distributions of process and sampling standard deviations"}
+```{r posterior_M8_sigmas, fig.cap="Figure. Posterior distributions of process and sampling standard deviations"}
 
-bayesplot::mcmc_dens(M1.jm$samples, c("sigma.pro1", "sigma.obs"))
+bayesplot::mcmc_dens(best3.jm$samples, c("sigma.pro1", "sigma.obs"))
 ```
-
-
 
 
 We use these models to impute missing data points and compared results.
 
 
 ```{r}
-str.root <- strsplit(strsplit(as.character(models.df[1, 'names']), "model_")[[1]][2], ".txt")[[1]]
-M1 <- readRDS(paste0("RData/jagsout_", str.root, "_JM_1999_2017_",
+m <- 5 #13 or 8
+
+str.root <- strsplit(strsplit(as.character(models.df[m, 'names']), "model_")[[1]][2], ".txt")[[1]]
+M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
                     run.date, ".rds"))
 
-Xs.stats <- M1$Xs.stats
-ys.stats <- M1$ys.stats
+Xs.stats <- M$Xs.stats
+ys.stats <- M$ys.stats
 p.1 <- ggplot() +
   #geom_point(data = ys.stats,
   #           aes(x = time, y = mode_y), color = "blue") +
@@ -1018,12 +1027,14 @@ print(p.1)
 ```
 
 ```{r}
-str.root <- strsplit(strsplit(as.character(models.df[5, 'names']), "model_")[[1]][2], ".txt")[[1]]
-M5 <- readRDS(paste0("RData/jagsout_", str.root, "_JM_1999_2017_",
+m <- 13 #5 #13 or 8
+
+str.root <- strsplit(strsplit(as.character(models.df[m, 'names']), "model_")[[1]][2], ".txt")[[1]]
+M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
                     run.date, ".rds"))
 
-Xs.stats <- M5$Xs.stats
-ys.stats <- M5$ys.stats
+Xs.stats <- M$Xs.stats
+ys.stats <- M$ys.stats
 p.1 <- ggplot() +
   #geom_point(data = ys.stats,
   #           aes(x = time, y = mode_y), color = "blue") +
@@ -1050,12 +1061,14 @@ print(p.1)
 ```
 
 ```{r}
-str.root <- strsplit(strsplit(as.character(models.df[11, 'names']), "model_")[[1]][2], ".txt")[[1]]
-M11 <- readRDS(paste0("RData/jagsout_", str.root, "_JM_1999_2017_",
+m <- 8#5 #13 or 8
+
+str.root <- strsplit(strsplit(as.character(models.df[m, 'names']), "model_")[[1]][2], ".txt")[[1]]
+M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
                     run.date, ".rds"))
 
-Xs.stats <- M11$Xs.stats
-ys.stats <- M11$ys.stats
+Xs.stats <- M$Xs.stats
+ys.stats <- M$ys.stats
 p.1 <- ggplot() +
   #geom_point(data = ys.stats,
   #           aes(x = time, y = mode_y), color = "blue") +
@@ -1081,49 +1094,99 @@ p.1 <- ggplot() +
 print(p.1)
 ```
 
-Qualitatively... M11 seems to provide "better" predictions. So, go with that. 
+Qualitatively... M8 seems to provide "better" predictions. So, go with that. 
 
 Combine all counts per year.
 
 ```{r }
-Xs.stats <- M11$Xs.stats
-ys.stats <- M11$ys.stats
+m <- 8#5 #13 or 8
 
-# need to pool counts per nesting season - not by calendar year
-Xs.stats %>% mutate(season = ifelse(month < 4, year - 1, year)) %>% 
+str.root <- strsplit(strsplit(as.character(models.df[m, 'names']), "model_")[[1]][2], ".txt")[[1]]
+M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
+                    run.date, ".rds"))
+
+M$Xs.stats %>% mutate(season = ifelse(month < 4, year - 1, year)) %>% 
   mutate(summer = ifelse(month > 3 & month < 10, 1, 0)) -> Xs.stats
-ys.stats %>% mutate(season = ifelse(month < 4, year - 1, year)) -> ys.stats
+
+M$ys.stats %>% mutate(season = ifelse(month < 4, year - 1, year)) %>% 
+  mutate(summer = ifelse(month > 3 & month < 10, 1, 0)) -> ys.stats
 
 seasons <- as.matrix(unique(Xs.stats$season))
 
-X.posterior.season <- lapply(apply(seasons, 
-                                   MARGIN = 1,
-                                   FUN = extract.posterior.jagsUI, 
-                                   Xs.stats = Xs.stats, 
-                                   samples = M7.jm$samples),
-                             FUN = function(x) exp(x$samples) %>% rowSums())
+#######################
+X.posterior.seasons <- lapply(apply(seasons, 
+                                    MARGIN = 1,
+                                    FUN = extract.posterior.jagsUI, 
+                                    Xs.stats = Xs.stats, 
+                                    samples = M$jags.out$jm$samples),
+                              FUN = function(x){
+                                n.summer <- exp(x$samples[, x$summer == 1]) %>% rowSums() 
+                                n.winter <- exp(x$samples[, x$summer == 0]) %>% rowSums() 
+                                n.season <- exp(x$samples) %>% rowSums()
+                                return(data.frame(summer = n.summer, 
+                                                  winter = n.winter,
+                                                  all = n.season))
+                              } )
 
-Xs.season <- as.data.frame(matrix(unlist(lapply(X.posterior.season, 
-                                              FUN = quantile,
-                                              c(0.025, 0.5, 0.975))),
-                                ncol = 3, byrow = T)) 
-colnames(Xs.season) <- c("low", "median", "high")
-Xs.season <-mutate(Xs.season, 
-                   season = seasons)
 
-ys.stats %>% group_by(season) %>%
-  summarize(obs = sum(obsY, na.rm = T)) -> ys.season
+Xs.season <- as.data.frame(matrix(unlist(lapply(X.posterior.seasons, 
+                                                FUN = function(x){
+                                                  qtiles <- apply(x, 
+                                                                  MARGIN = 2,
+                                                                  FUN = quantile, 
+                                                                  probs = c(0.025, 0.5, 0.975))})),
+                                  ncol = 9, byrow = T))
+
+colnames(Xs.season) <- c("Summer.low", "Summer.median", "Summer.high",
+                         "Winter.low", "Winter.median", "Winter.high",
+                         "all.low", "all.median", "all.high")
+Xs.season <- mutate(Xs.season, 
+                    season = as.vector(seasons))
+
+ys.stats %>% group_by(season, summer) %>%
+  summarize(obs = sum(obsY, na.rm = T)) -> tmp.y.season
+
+ys.season <- data.frame(season = seasons,
+                        summer = unlist(c(NA, as.vector(filter(tmp.y.season, summer == 1)[, "obs"]))),
+                        winter = unlist(filter(tmp.y.season, summer == 0)[, "obs"]))
+
+Xs.season %>% left_join(ys.season, by = "season") -> Xy.season
+
+write.csv(Xy.season, 
+          file = paste0("data/estimatedX_JM_M", m, ".csv"),
+          quote = F, row.names = F)
+
 
 p.JM.estimated.counts <- ggplot() + 
   geom_point(data = Xs.season,
-             aes(x = season, y = median))+
+             aes(x = season, 
+                 y = Summer.median), 
+             color = "purple")+
   geom_errorbar(data = Xs.season,
-                aes(x = season, ymin = low, ymax = high)) + 
+                aes(x = season, 
+                    ymin = Summer.low, 
+                    ymax = Summer.high), 
+                color = "purple") + 
   geom_point(data = ys.season,
              aes(x = season, 
-                 y = obs),
-             color = "red") +
-  labs(title = 'Jamursba-Medi', x = 'Season', y = "Nest counts")
+                 y = summer),
+             color = "green") +
+  geom_point(data = Xs.season,
+             aes(x = season+0.5, 
+                 y = Winter.median), 
+             color = "blue")+
+  geom_errorbar(data = Xs.season,
+                aes(x = season+0.5, 
+                    ymin = Winter.low, 
+                    ymax = Winter.high), 
+                color = "blue") + 
+  geom_point(data = ys.season,
+             aes(x = season+0.5, 
+                 y = winter),
+             color = "green") +
+  
+  labs(title = 'Wermon', x = 'Season', y = "Nest counts")
+
 
 ggsave(filename = "figures/CountsPerSeason_best_JM.png",
        device = "png", dpi = 600,
