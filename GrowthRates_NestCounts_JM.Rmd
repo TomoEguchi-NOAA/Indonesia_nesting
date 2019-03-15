@@ -9,13 +9,12 @@ knitr::opts_chunk$set(echo = TRUE)
 source("Dc_Indonesia_nesting_fcns.R")
 library(ggridges)
 library(reshape2)
-run.date <- "2018-10-26"
 ```
 
 This document uses the best model from NestCountsImputatoin_JM.Rmd to compute the annual change in nest counts over the time period (Nt/Nt-1). The best model was determined as Model 7.
 
 ```{r}
-run.date <- "2019-03-12"
+run.date <- "2019-03-14"
 m <- 8   # best model number - comes from NestCountImputation_W.Rmd.
 year.begin <- 1999
 year.end <- 2018

@@ -7,7 +7,7 @@ output: html_document
 rm(list=ls())
 knitr::opts_chunk$set(echo = TRUE)
 source("Dc_Indonesia_nesting_fcns.R")
-run.date <- "2019-03-12"
+run.date <- "2019-03-14"
 models.df <- model.names()
 year.begin <- 1999
 year.end <- 2018
@@ -929,7 +929,7 @@ M.compare <- compare(M1.loo.out, M2.loo.out, M3.loo.out,
 print(M.compare)
 ```
 
-Interesting to see that those models that are acceptable according to Pareto k statistics are worse ones according to looic scores. I will use M5 (the best according to looic alone), M13 (best looking at Pareto k statistics alone), and M8 (best among acceptable Pareto k statisitcs models). 
+Interesting to see that those models that are acceptable according to Pareto k statistics are worse ones according to looic scores. I will use M5 (the best according to looic alone), M2 (best looking at Pareto k statistics alone), and M8 (best among acceptable Pareto k statisitcs models). 
 
 Model 5, 
 
@@ -945,7 +945,7 @@ bayesplot::mcmc_dens(best.jm$samples, c("theta.1[1]", "theta.1[2]", "theta.1[3]"
 
 Posterior distributions of sigma.pro1:
 
-```{r posterior_M5_theta, fig.cap="Figure. Posterior distributions of slope parameters for M5"}
+```{r posterior_M5_sigma, fig.cap="Figure. Posterior distributions of slope parameters for M5"}
 bayesplot::mcmc_dens(best.jm$samples, c("sigma.pro1[1]", "sigma.pro1[2]", 
                                       "sigma.pro1[3]", "sigma.pro1[4]",
                                       "sigma.pro1[5]", "sigma.pro1[6]",
@@ -958,16 +958,12 @@ Model 13,
 
 The posterior distributions of the model are shown below.
 
-```{r posterior_M13, fig.cap="Figure. Posterior distribuitons of slope parameters for M13"}
+```{r posterior_M2, fig.cap="Figure. Posterior distribuitons of slope parameters for M2"}
 #m <- 13
-best2.jm <- M13.jm
+best2.jm <- M2.jm
 bayesplot::mcmc_dens(best2.jm$samples, c("theta.1", "theta.2"))
 ```
 
-```{r posterior_M13_df, fig.cap="Figure. Posterior distributions of degrees-of-freedom parameter for M13"}
-
-bayesplot::mcmc_dens(best2.jm$samples, "df")
-```
 The slope parameters indicated increasing trend to July and decreased from August through November. 
 
 ```{r posterior_M13_2, fig.cap="Figure. Posterior distributions for the standard deviation of the process (sigma.pro1) and standard deviation of observations (sigma.obs)."}
@@ -993,7 +989,7 @@ We use these models to impute missing data points and compared results.
 
 
 ```{r}
-m <- 5 #13 or 8
+m <- 2 #5 # or 8
 
 str.root <- strsplit(strsplit(as.character(models.df[m, 'names']), "model_")[[1]][2], ".txt")[[1]]
 M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
@@ -1027,7 +1023,7 @@ print(p.1)
 ```
 
 ```{r}
-m <- 13 #5 #13 or 8
+m <- 5 #13 or 8
 
 str.root <- strsplit(strsplit(as.character(models.df[m, 'names']), "model_")[[1]][2], ".txt")[[1]]
 M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
@@ -1099,7 +1095,7 @@ Qualitatively... M8 seems to provide "better" predictions. So, go with that.
 Combine all counts per year.
 
 ```{r }
-m <- 8#5 #13 or 8
+m <- 8#5 #2 
 
 str.root <- strsplit(strsplit(as.character(models.df[m, 'names']), "model_")[[1]][2], ".txt")[[1]]
 M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
@@ -1185,7 +1181,7 @@ p.JM.estimated.counts <- ggplot() +
                  y = winter),
              color = "green") +
   
-  labs(title = 'Wermon', x = 'Season', y = "Nest counts")
+  labs(title = 'Jamursba-Medi', x = 'Season', y = "Nest counts")
 
 
 ggsave(filename = "figures/CountsPerSeason_best_JM.png",
