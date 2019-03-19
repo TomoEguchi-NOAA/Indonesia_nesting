@@ -220,7 +220,7 @@ run.singleUQ <- function(dat,
                          MCMC.params, 
                          seed){
   
-  n.timeseries= nrow(dat)
+  n.timeseries <- nrow(dat)
   # Model-specific parameters
   # multiple time series -> single population process
   n.states <- 1
