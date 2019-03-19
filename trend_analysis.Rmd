@@ -300,7 +300,9 @@ bayesplot::mcmc_dens(jags.model$out$samples, c("U[1]", "U[2]"))
 
 ```
 
-Majority (```r signif(jags.model$out$summary["U[1]", "f"], 3) * 100``` and ```r signif(jags.model$out$summary["U[2]", "f"], 3) * 100```%) of the posterior is less than 0, indicating a decline. 
+
+Majority (```r signif(jags.model$out$summary["U[1]", "f"], 3) * 100``` and ```r signif(jags.model$out$summary["U[2]", "f"], 3) * 100``` %) of the posterior is less than 0, indicating a decline. 
+
 
 ```{r}
 jags.data <- jags.model$jags.data
@@ -686,6 +688,7 @@ Look at the posterior of the slope parameter (U).
 ```{r}
 bayesplot::mcmc_dens(jags.model$out$samples, "U")
 ```
+
 
 Majority (```r signif(jags.model$out$summary["U", "f"], 3) * 100``` %) of the posterior is less than 0, indicating a decline. 
 
