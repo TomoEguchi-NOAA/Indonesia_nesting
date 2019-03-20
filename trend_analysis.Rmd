@@ -95,7 +95,7 @@ dat <- t(log.data.JM)    # tranpose to have rows = time series and cols = years 
 # the prior matters for Wermon - setting mean to first JM data point skews Wermon to JM trend due to poor W data
 # making it specific to each time series for independentUQ
 
-if(!file.exists(paste0("Rdata/singleUQ_JM_", 
+if(!file.exists(paste0("Rdata/singleUQ_JM_only_", 
                        begin.year, "_", end.year, "_", run.date, ".rds"))){
   jags.params <- c("A", "U", "Q", "R", "X0", "X", "loglik")
   model.loc <- "models/model_singleUQ.txt"
@@ -110,22 +110,33 @@ if(!file.exists(paste0("Rdata/singleUQ_JM_",
                          seed)
   
   jm.out$data <- thedata
-  saveRDS(jm.out, file = paste0("Rdata/singleUQ_JM_", 
+  saveRDS(jm.out, file = paste0("Rdata/singleUQ_JM_only_", 
                                 begin.year, "_", end.year,  "_", run.date, ".rds"))
   print(jm.out$out)
 
 } else {
-  jm.out <- readRDS(file = paste0("Rdata/singleUQ_JM_", 
+  jm.out <- readRDS(file = paste0("Rdata/singleUQ_JM_only_", 
                                 begin.year, "_", end.year,  "_", run.date, ".rds"))
 }
 
 ```
 
-Majority (```r signif(jm.out$out$summary["U", "f"], 3) * 100``` %) of the posterior of U is less than 0, indicating a decline. 
+```{r}
+signif(jm.out$out$summary["U", "f"], 3) * 100
+```
+
 
 ```{r}
-bayesplot::mcmc_dens(jm.out$out$samples, "U")
+p.1 <- bayesplot::mcmc_dens(jm.out$out$samples, "U")
+p.1 <- p.1 + labs(y = "Density")
+
+ggsave(p.1,
+       filename = "figures/posterior_U_JM_only.png",
+       device = "png",
+       dpi = 600)
+print(p.1)
 ```
+
 
 Then plot the predictions and data. 
 
@@ -185,8 +196,228 @@ ggsave(p.1, filename = "figures/JM_only_trend_annual.png",
 p.1
 ```
 
+Look at the summer only
+```{r}
+log.data.JM <- log(thedata[, "Summer.median.JM"])     
+# Ln(TOTAL NUMBER OF FEMALES)
+dat <- t(log.data.JM)    # tranpose to have rows = time series and cols = years of data
 
-Then Wermon
+# Note: The initial state, x0, is treated as a model parameter. 
+# the prior matters for Wermon - setting mean to first JM data point skews Wermon to JM trend due to poor W data
+# making it specific to each time series for independentUQ
+
+if(!file.exists(paste0("Rdata/singleUQ_JM_only_summer_", 
+                       begin.year, "_", end.year, "_", run.date, ".rds"))){
+  jags.params <- c("A", "U", "Q", "R", "X0", "X", "loglik")
+  model.loc <- "models/model_singleUQ.txt"
+  
+  # Run model
+  seed <- 132
+  
+  jm.out <- run.singleUQ(dat, 
+                         jags.params, 
+                         model.loc, 
+                         MCMC.params, 
+                         seed)
+  
+  jm.out$data <- thedata
+  saveRDS(jm.out, file = paste0("Rdata/singleUQ_JM_only_summer_", 
+                                begin.year, "_", end.year,  "_", run.date, ".rds"))
+  print(jm.out$out)
+
+} else {
+  jm.out <- readRDS(file = paste0("Rdata/singleUQ_JM_only_summer_", 
+                                begin.year, "_", end.year,  "_", run.date, ".rds"))
+}
+
+```
+
+```{r}
+signif(jm.out$out$summary["U", "f"], 3) * 100
+```
+
+
+```{r}
+p.1 <- bayesplot::mcmc_dens(jm.out$out$samples, "U")
+p.1 <- p.1 + labs(y = "Density")
+
+ggsave(p.1,
+       filename = "figures/posterior_U_JM_only_summer.png",
+       device = "png",
+       dpi = 600)
+print(p.1)
+```
+
+Then plot the predictions and data. 
+
+```{r}
+JM.log.df <- data.frame(median = jm.out$out$q50$X,
+                        lower = jm.out$out$q2.5$X,
+                        upper = jm.out$out$q97.5$X,
+                        data = jm.out$jags.data$Y[1,],
+                        obsd = log(thedata$Summer.observed.JM),
+                        time = thedata$Season,
+                        loc = 1)
+
+JM.log.df %>% transmute(median = exp(median),
+                        lower = exp(lower),
+                        upper = exp(upper),
+                        data = exp(data),
+                        time = time,
+                        obsd = exp(obsd),
+                        loc = loc) -> JM.df
+
+p.1.log <- ggplot(data = JM.log.df) + 
+  geom_ribbon(aes(x = time, ymin = lower, ymax = upper),
+              fill = fill.color,
+              alpha = fill.alpha) +
+  geom_line(aes(x = time, y = median),
+            color = line.color) + 
+  geom_point(aes(x = time, y = data),
+             color = data.color,
+             size = data.size) +
+  geom_point(aes(x = time, y = obsd),
+             color = obsd.color,
+             size = obsd.size)+
+  scale_x_continuous(breaks = seq(2001, 2018, by = 2)) +   
+  labs(x = "", y = "ln(nests)", title = "Jamursba-Medi (Summer)")
+
+ggsave(p.1.log, filename = "figures/JM_only_trend_summer_log.png",
+       device = "png", dpi = 600)
+
+p.1 <- ggplot(data = JM.df) + 
+  geom_ribbon(aes(x = time, ymin = lower, ymax = upper),
+              fill = fill.color,
+              alpha = fill.alpha) +
+  geom_line(aes(x = time, y = median),
+            color = line.color) + 
+  geom_point(aes(x = time, y = data),
+             color = data.color,
+             size = data.size) +
+  geom_point(aes(x = time, y = obsd),
+             color = obsd.color,
+             size = obsd.size)+
+  scale_x_continuous(breaks = seq(2001, 2018, by = 2)) +   
+  labs(x = "", y = "Nests", title = "Jamursba-Medi (Summer)")
+
+ggsave(p.1, filename = "figures/JM_only_trend_summer.png",
+       device = "png", dpi = 600)
+
+p.1
+```
+
+Look at the winter only
+```{r}
+log.data.JM <- log(thedata[, "Winter.median.JM"])     
+# Ln(TOTAL NUMBER OF FEMALES)
+dat <- t(log.data.JM)    # tranpose to have rows = time series and cols = years of data
+
+# Note: The initial state, x0, is treated as a model parameter. 
+# the prior matters for Wermon - setting mean to first JM data point skews Wermon to JM trend due to poor W data
+# making it specific to each time series for independentUQ
+
+if(!file.exists(paste0("Rdata/singleUQ_JM_only_winter_", 
+                       begin.year, "_", end.year, "_", run.date, ".rds"))){
+  jags.params <- c("A", "U", "Q", "R", "X0", "X", "loglik")
+  model.loc <- "models/model_singleUQ.txt"
+  
+  # Run model
+  seed <- 132
+  
+  jm.out <- run.singleUQ(dat, 
+                         jags.params, 
+                         model.loc, 
+                         MCMC.params, 
+                         seed)
+  
+  jm.out$data <- thedata
+  saveRDS(jm.out, file = paste0("Rdata/singleUQ_JM_only_winter_", 
+                                begin.year, "_", end.year,  "_", run.date, ".rds"))
+  print(jm.out$out)
+
+} else {
+  jm.out <- readRDS(file = paste0("Rdata/singleUQ_JM_only_winter_", 
+                                begin.year, "_", end.year,  "_", run.date, ".rds"))
+}
+
+```
+
+```{r}
+signif(jm.out$out$summary["U", "f"], 3) * 100
+```
+
+
+```{r}
+p.1 <- bayesplot::mcmc_dens(jm.out$out$samples, "U")
+p.1 <- p.1 + labs(y = "Density")
+
+ggsave(p.1,
+       filename = "figures/posterior_U_JM_only_winter.png",
+       device = "png",
+       dpi = 600)
+print(p.1)
+```
+
+Then plot the predictions and data. 
+
+```{r}
+JM.log.df <- data.frame(median = jm.out$out$q50$X,
+                        lower = jm.out$out$q2.5$X,
+                        upper = jm.out$out$q97.5$X,
+                        data = jm.out$jags.data$Y[1,],
+                        obsd = log(thedata$Winter.observed.JM),
+                        time = thedata$Season,
+                        loc = 1)
+
+JM.log.df %>% transmute(median = exp(median),
+                        lower = exp(lower),
+                        upper = exp(upper),
+                        data = exp(data),
+                        time = time,
+                        obsd = exp(obsd),
+                        loc = loc) -> JM.df
+
+p.1.log <- ggplot(data = JM.log.df) + 
+  geom_ribbon(aes(x = time, ymin = lower, ymax = upper),
+              fill = fill.color,
+              alpha = fill.alpha) +
+  geom_line(aes(x = time, y = median),
+            color = line.color) + 
+  geom_point(aes(x = time, y = data),
+             color = data.color,
+             size = data.size) +
+  geom_point(aes(x = time, y = obsd),
+             color = obsd.color,
+             size = obsd.size)+
+  scale_x_continuous(breaks = seq(2001, 2018, by = 2)) +   
+  labs(x = "", y = "ln(nests)", title = "Jamursba-Medi (Winter)")
+
+ggsave(p.1.log, filename = "figures/JM_only_trend_winter_log.png",
+       device = "png", dpi = 600)
+
+p.1 <- ggplot(data = JM.df) + 
+  geom_ribbon(aes(x = time, ymin = lower, ymax = upper),
+              fill = fill.color,
+              alpha = fill.alpha) +
+  geom_line(aes(x = time, y = median),
+            color = line.color) + 
+  geom_point(aes(x = time, y = data),
+             color = data.color,
+             size = data.size) +
+  geom_point(aes(x = time, y = obsd),
+             color = obsd.color,
+             size = obsd.size)+
+  scale_x_continuous(breaks = seq(2001, 2018, by = 2)) +   
+  labs(x = "", y = "Nests", title = "Jamursba-Medi (Winter)")
+
+ggsave(p.1, filename = "figures/JM_only_trend_winter.png",
+       device = "png", dpi = 600)
+
+p.1
+```
+
+
+Then Wermon for both seasons combined.
 
 ```{r}
 log.data.W <- log(thedata[, "All.median.W"])     
@@ -197,7 +428,7 @@ dat <- t(na.omit(log.data.W))    # tranpose to have rows = time series and cols 
 # the prior matters for Wermon - setting mean to first JM data point skews Wermon to JM trend due to poor W data
 # making it specific to each time series for independentUQ
 
-if(!file.exists(paste0("Rdata/singleUQ_W_2006_", 
+if(!file.exists(paste0("Rdata/singleUQ_W_only_2006_", 
                        end.year, "_", run.date, ".rds"))){
   jags.params <- c("A", "U", "Q", "R", "X0", "X", "loglik")
   model.loc <- "models/model_singleUQ.txt"
@@ -212,21 +443,31 @@ if(!file.exists(paste0("Rdata/singleUQ_W_2006_",
                          seed)
   
   jm.out$data <- thedata
-  saveRDS(jm.out, file = paste0("Rdata/singleUQ_W_2006_", 
+  saveRDS(jm.out, file = paste0("Rdata/singleUQ_W_only_2006_", 
                                 end.year,  "_", run.date, ".rds"))
   print(jm.out$out)
 
 } else {
-  jm.out <- readRDS(file = paste0("Rdata/singleUQ_W_2006_", 
+  jm.out <- readRDS(file = paste0("Rdata/singleUQ_W_only_2006_", 
                                 end.year,  "_", run.date, ".rds"))
 }
 
 ```
 
-Majority (```r signif(jm.out$out$summary["U", "f"], 3) * 100``` %) of the posterior of U is less than 0, indicating a decline. 
+```{r}
+signif(jm.out$out$summary["U", "f"], 3) * 100
+```
+
 
 ```{r}
-bayesplot::mcmc_dens(jm.out$out$samples, "U")
+p.1 <- bayesplot::mcmc_dens(jm.out$out$samples, "U")
+p.1 <- p.1 + labs(y = "Density")
+
+ggsave(p.1,
+       filename = "figures/posterior_U_W_only.png",
+       device = "png",
+       dpi = 600)
+print(p.1)
 ```
 
 Then plot the predictions and data. 
@@ -260,7 +501,7 @@ p.1.log <- ggplot(data = W.log.df) +
   geom_point(aes(x = time, y = obsd),
              color = obsd.color,
              size = obsd.size)+
-  scale_x_continuous(breaks = seq(2001, 2018, by = 2)) +   
+  scale_x_continuous(breaks = seq(2006, 2018, by = 2)) +   
   labs(x = "", y = "ln(nests)", title = "Wermon")
 
 ggsave(p.1.log, filename = "figures/W_only_trend_annual_log.png",
@@ -278,7 +519,7 @@ p.1 <- ggplot(data = W.df) +
   geom_point(aes(x = time, y = obsd),
              color = obsd.color,
              size = obsd.size)+
-  scale_x_continuous(breaks = seq(2001, 2018, by = 2)) +   
+  scale_x_continuous(breaks = seq(2006, 2018, by = 2)) +   
   labs(x = "", y = "Nests", title = "Wermon")
 
 ggsave(p.1, filename = "figures/W_only_trend_annual.png",
@@ -287,7 +528,229 @@ ggsave(p.1, filename = "figures/W_only_trend_annual.png",
 p.1
 ```
 
-The similar analysis can be done using independent-U and single-Q or independent-Q model output. Using the simpler of the two:
+Summer only for Wermon.
+
+```{r}
+log.data.W <- log(thedata[, "Summer.median.W"])     
+# Ln(TOTAL NUMBER OF FEMALES)
+dat <- t(na.omit(log.data.W))    # tranpose to have rows = time series and cols = years of data
+
+# Note: The initial state, x0, is treated as a model parameter. 
+# the prior matters for Wermon - setting mean to first JM data point skews Wermon to JM trend due to poor W data
+# making it specific to each time series for independentUQ
+
+if(!file.exists(paste0("Rdata/singleUQ_W_only_summer_2006_", 
+                       end.year, "_", run.date, ".rds"))){
+  jags.params <- c("A", "U", "Q", "R", "X0", "X", "loglik")
+  model.loc <- "models/model_singleUQ.txt"
+  
+  # Run model
+  seed <- 132
+  
+  jm.out <- run.singleUQ(dat, 
+                         jags.params, 
+                         model.loc, 
+                         MCMC.params, 
+                         seed)
+  
+  jm.out$data <- thedata
+  saveRDS(jm.out, file = paste0("Rdata/singleUQ_W_only_summer_2006_", 
+                                end.year,  "_", run.date, ".rds"))
+  print(jm.out$out)
+
+} else {
+  jm.out <- readRDS(file = paste0("Rdata/singleUQ_W_only_summer_2006_", 
+                                end.year,  "_", run.date, ".rds"))
+}
+
+```
+
+```{r}
+signif(jm.out$out$summary["U", "f"], 3) * 100
+```
+
+
+```{r}
+p.1 <- bayesplot::mcmc_dens(jm.out$out$samples, "U")
+p.1 <- p.1 + labs(y = "Density")
+
+ggsave(p.1,
+       filename = "figures/posterior_U_W_only_summer.png",
+       device = "png",
+       dpi = 600)
+print(p.1)
+```
+
+Then plot the predictions and data. 
+
+```{r}
+W.log.df <- data.frame(median = jm.out$out$q50$X,
+                        lower = jm.out$out$q2.5$X,
+                        upper = jm.out$out$q97.5$X,
+                        data = jm.out$jags.data$Y[1,],
+                        obsd = log(thedata$Summer.observed.W[6:18]),
+                        time = thedata$Season[6:18],
+                        loc = 1)
+
+W.log.df %>% transmute(median = exp(median),
+                        lower = exp(lower),
+                        upper = exp(upper),
+                        data = exp(data),
+                        time = time,
+                        obsd = exp(obsd),
+                        loc = loc) -> W.df
+
+p.1.log <- ggplot(data = W.log.df) + 
+  geom_ribbon(aes(x = time, ymin = lower, ymax = upper),
+              fill = fill.color,
+              alpha = fill.alpha) +
+  geom_line(aes(x = time, y = median),
+            color = line.color) + 
+  geom_point(aes(x = time, y = data),
+             color = data.color,
+             size = data.size) +
+  geom_point(aes(x = time, y = obsd),
+             color = obsd.color,
+             size = obsd.size)+
+  scale_x_continuous(breaks = seq(2006, 2018, by = 2)) +   
+  labs(x = "", y = "ln(nests)", title = "Wermon (Summer)")
+
+ggsave(p.1.log, filename = "figures/W_only_trend_summer_log.png",
+       device = "png", dpi = 600)
+
+p.1 <- ggplot(data = W.df) + 
+  geom_ribbon(aes(x = time, ymin = lower, ymax = upper),
+              fill = fill.color,
+              alpha = fill.alpha) +
+  geom_line(aes(x = time, y = median),
+            color = line.color) + 
+  geom_point(aes(x = time, y = data),
+             color = data.color,
+             size = data.size) +
+  geom_point(aes(x = time, y = obsd),
+             color = obsd.color,
+             size = obsd.size)+
+  scale_x_continuous(breaks = seq(2006, 2018, by = 2)) +   
+  labs(x = "", y = "Nests", title = "Wermon (Summer)")
+
+ggsave(p.1, filename = "figures/W_only_trend_summer.png",
+       device = "png", dpi = 600)
+
+p.1
+```
+
+Then Winter only.
+
+```{r}
+log.data.W <- log(thedata[, "Winter.median.W"])     
+# Ln(TOTAL NUMBER OF FEMALES)
+dat <- t(na.omit(log.data.W))    # tranpose to have rows = time series and cols = years of data
+
+# Note: The initial state, x0, is treated as a model parameter. 
+# the prior matters for Wermon - setting mean to first JM data point skews Wermon to JM trend due to poor W data
+# making it specific to each time series for independentUQ
+
+if(!file.exists(paste0("Rdata/singleUQ_W_only_winter_2006_", 
+                       end.year, "_", run.date, ".rds"))){
+  jags.params <- c("A", "U", "Q", "R", "X0", "X", "loglik")
+  model.loc <- "models/model_singleUQ.txt"
+  
+  # Run model
+  seed <- 132
+  
+  jm.out <- run.singleUQ(dat, 
+                         jags.params, 
+                         model.loc, 
+                         MCMC.params, 
+                         seed)
+  
+  jm.out$data <- thedata
+  saveRDS(jm.out, file = paste0("Rdata/singleUQ_W_only_winter_2006_", 
+                                end.year,  "_", run.date, ".rds"))
+  print(jm.out$out)
+
+} else {
+  jm.out <- readRDS(file = paste0("Rdata/singleUQ_W_only_winter_2006_", 
+                                end.year,  "_", run.date, ".rds"))
+}
+
+```
+
+```{r}
+signif(jm.out$out$summary["U", "f"], 3) * 100
+```
+
+
+```{r}
+p.1 <- bayesplot::mcmc_dens(jm.out$out$samples, "U")
+p.1 <- p.1 + labs(y = "Density")
+
+ggsave(p.1,
+       filename = "figures/posterior_U_W_only_winter.png",
+       device = "png",
+       dpi = 600)
+print(p.1)
+```
+
+Then plot the predictions and data. 
+
+```{r}
+W.log.df <- data.frame(median = jm.out$out$q50$X,
+                        lower = jm.out$out$q2.5$X,
+                        upper = jm.out$out$q97.5$X,
+                        data = jm.out$jags.data$Y[1,],
+                        obsd = log(thedata$Winter.observed.W[6:18]),
+                        time = thedata$Season[6:18],
+                        loc = 1)
+
+W.log.df %>% transmute(median = exp(median),
+                        lower = exp(lower),
+                        upper = exp(upper),
+                        data = exp(data),
+                        time = time,
+                        obsd = exp(obsd),
+                        loc = loc) -> W.df
+
+p.1.log <- ggplot(data = W.log.df) + 
+  geom_ribbon(aes(x = time, ymin = lower, ymax = upper),
+              fill = fill.color,
+              alpha = fill.alpha) +
+  geom_line(aes(x = time, y = median),
+            color = line.color) + 
+  geom_point(aes(x = time, y = data),
+             color = data.color,
+             size = data.size) +
+  geom_point(aes(x = time, y = obsd),
+             color = obsd.color,
+             size = obsd.size)+
+  scale_x_continuous(breaks = seq(2006, 2018, by = 2)) +   
+  labs(x = "", y = "ln(nests)", title = "Wermon (Winter)")
+
+ggsave(p.1.log, filename = "figures/W_only_trend_winter_log.png",
+       device = "png", dpi = 600)
+
+p.1 <- ggplot(data = W.df) + 
+  geom_ribbon(aes(x = time, ymin = lower, ymax = upper),
+              fill = fill.color,
+              alpha = fill.alpha) +
+  geom_line(aes(x = time, y = median),
+            color = line.color) + 
+  geom_point(aes(x = time, y = data),
+             color = data.color,
+             size = data.size) +
+  geom_point(aes(x = time, y = obsd),
+             color = obsd.color,
+             size = obsd.size)+
+  scale_x_continuous(breaks = seq(2006, 2018, by = 2)) +   
+  labs(x = "", y = "Nests", title = "Wermon (Winter)")
+
+ggsave(p.1, filename = "figures/W_only_trend_winter.png",
+       device = "png", dpi = 600)
+
+p.1
+```
+
+Rather than splitting the dataset in two, we can use the data from the two beach simultaneously. using independent-U and single-Q or independent-Q model output. Using the simpler of the two:
 
 ```{r}
 jags.model <- readRDS(file = "RData/independentUs_singleQ_out_2001_2018_2019-03-14.rds")
@@ -296,12 +759,28 @@ jags.model <- readRDS(file = "RData/independentUs_singleQ_out_2001_2018_2019-03-
 
 Look at the slope parameters for JM (1) and W (2)
 ```{r}
-bayesplot::mcmc_dens(jags.model$out$samples, c("U[1]", "U[2]"))
+
+p.1 <- bayesplot::mcmc_dens(jags.model$out$samples, c("U[1]", "U[2]"))
+p.1 <- p.1 + labs(y = "Density")
+
+ggsave(p.1,
+       filename = "figures/posterior_Us.png",
+       device = "png",
+       dpi = 600)
+print(p.1)
 
 ```
 
+```{r}
+# proportion of U[1] less than 0.
+signif(jags.model$out$summary["U[1]", "f"], 3) * 100
+```
 
-Majority (```r signif(jags.model$out$summary["U[1]", "f"], 3) * 100``` and ```r signif(jags.model$out$summary["U[2]", "f"], 3) * 100``` %) of the posterior is less than 0, indicating a decline. 
+
+```{r}
+# proportion of U[2] less than 0.
+signif(jags.model$out$summary["U[2]", "f"], 3) * 100
+```
 
 
 ```{r}
@@ -419,7 +898,7 @@ ggsave(p.2, filename = "figures/W_trend_annual_indU.png",
 print(p.2)
 ```
 
-
+Here we start the analysis with two datasets together and compare models.
 First one is Jamusrba-Medi and Wermon combined with a common trend (U) and one process variance (Q)
 
 We need to set up data with two time series. 
@@ -686,11 +1165,20 @@ print(p.2)
 
 Look at the posterior of the slope parameter (U).
 ```{r}
-bayesplot::mcmc_dens(jags.model$out$samples, "U")
+p.1 <- bayesplot::mcmc_dens(jags.model$out$samples, "U")
+p.1 <- p.1 + labs(y = "Density")
+
+ggsave(p.1,
+       filename = "figures/posterior_singleU.png",
+       device = "png",
+       dpi = 600)
+print(p.1)
 ```
 
+```{r}
+signif(jags.model$out$summary["U", "f"], 3) * 100
+```
 
-Majority (```r signif(jags.model$out$summary["U", "f"], 3) * 100``` %) of the posterior is less than 0, indicating a decline. 
 
 
 Next, we split into summer and winter.
@@ -941,10 +1429,20 @@ print(p.4)
 
 Look at the posterior of the slope parameter (U).
 ```{r}
-bayesplot::mcmc_dens(jags.model_summer$out$samples, "U")
+p.1 <- bayesplot::mcmc_dens(jags.model_summer$out$samples, "U")
+p.1 <- p.1 + labs(y = "Density")
+
+ggsave(p.1,
+       filename = "figures/posterior_U_summer.png",
+       device = "png",
+       dpi = 600)
+print(p.1)
 ```
 
-Majority of (```r signif(jags.model_summer$out$summary["U", "f"], 3) * 100```) % of the posterior is less than 0. 
+```{r}
+signif(jags.model_summer$out$summary["U", "f"], 3) * 100
+```
+
 
 Then winter
 
@@ -1194,8 +1692,17 @@ print(p.6)
 
 Look at the posterior of the slope parameter (U).
 ```{r}
-bayesplot::mcmc_dens(jags.model_winter$out$samples, "U")
+p.1 <- bayesplot::mcmc_dens(jags.model_winter$out$samples, "U")
+p.1 <- p.1 + labs(y = "Density")
+
+ggsave(p.1,
+       filename = "figures/posterior_U_winter.png",
+       device = "png",
+       dpi = 600)
+print(p.1)
 ```
 
+```{r}
+signif(jags.model_winter$out$summary["U", "f"], 3) * 100
+```
 
-Majority (```r signif(jags.model_winter$out$summary["U", "f"], 3) * 100``` %) of U is < 0. 
