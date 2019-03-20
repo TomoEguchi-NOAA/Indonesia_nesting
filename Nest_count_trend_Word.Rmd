@@ -117,7 +117,8 @@ knitr::include_graphics("figures/JM_only_trend_annual.png")
 
 
 The posterior distribuiton of the slope parameter is shown in the next figure. 
-```{r posterior_U_JM_only, echo=FALSE, fig.cap="Posterior distribution of the slope parameter for JM, when the only one dataset was used.", out.width = '50%'}
+
+```{r posterior_U_JM_only, echo=FALSE, fig.cap = "Posterior distribution of the slope parameter for JM, when the only one dataset was used.", out.width = "50%"}
 knitr::include_graphics("figures/posterior_U_JM_only.png")
 ```
 
@@ -126,6 +127,7 @@ As we can see, the majority (```r JM.U.f ``` %) of the slope was less than 0, in
 (1a - Wermon)
 
 A similar analysis was conducted for Wermon. Because there were no data prior to 2006, the analysis was conducted only from 2006. 
+
 ```{r W_find_results, echo=FALSE}
 W_only.out <- readRDS(file = paste0("Rdata/singleUQ_W_only_2006_", 
                                 end.year,  "_", run.date, ".rds"))
@@ -139,7 +141,8 @@ knitr::include_graphics("figures/W_only_trend_annual.png")
 ```
 
 The posterior distribution of the slope parameter is shown in the next figure. 
-```{r posterior_U_W_only, echo=FALSE, fig.cap="Posterior distribution of the slope parameter for W, when the only one dataset was used.", out.width = '50%'}
+
+```{r posterior_U_W_only, echo=FALSE, fig.cap = "Posterior distribution of the slope parameter for W, when the only one dataset was used.", out.width = "50%"}
 knitr::include_graphics("figures/posterior_U_W_only.png")
 ```
 
