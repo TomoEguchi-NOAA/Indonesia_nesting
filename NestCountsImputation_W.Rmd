@@ -9,6 +9,17 @@ knitr::opts_chunk$set(echo = TRUE)
 source("Dc_Indonesia_nesting_fcns.R")
 run.date <- "2019-03-14"
 
+fill.color <-  "darkseagreen"
+fill.color.summer <- "darksalmon"
+fill.color.winter <- "lightblue1"
+fill.alpha <-  0.65
+line.color <-  "darkblue"
+line.color.summer <- "red3"
+line.color.winter <- "greenyellow"
+data.color <- "black"
+data.size <- 1.5
+obsd.color <- "gold2"
+
 models.df <- model.names()
 ```
 
@@ -1120,6 +1131,13 @@ M.compare <- compare(M2.loo.out, M7.loo.out, M8.loo.out,
 print(M.compare)
 ```
 
+```{r}
+tmp <- data.frame(M.compare) %>%
+  select(elpd_diff, looic, se_looic)
+knitr::kable(tmp, format = "html", digits = 2,
+      caption = "A comparison of five models based on their predictaive performance. ")
+```
+
 Among the "good" k pareto statistics models, M7 and M16 are the best from looic values. So, let's take a look at the posteriors. 
 
 Model 7, 
@@ -1157,23 +1175,45 @@ p.1 <- ggplot() +
   #           aes(x = time, y = mode_y), color = "blue") +
   #geom_line(data = Xs.stats,
   #          aes(x = time, y = mode_X), color = 'blue') +
-  geom_line(data = Xs.stats,
-            aes(x = time, y = exp(high_X)), color = "purple",
-            linetype = 2) +
+  geom_ribbon(data = Xs.stats,
+              aes(x = time, 
+                  ymin = exp(low_X), 
+                  ymax = exp(high_X)),
+              fill = fill.color,
+              alpha = fill.alpha) +
+  # geom_line(data = Xs.stats,
+  #           aes(x = time, y = exp(high_X)), color = "purple",
+  #           linetype = 2) +
   geom_point(data = Xs.stats,
-             aes(x = time, y = exp(median_X)), color = "purple",
+             aes(x = time, 
+                 y = exp(median_X)), 
+             color = line.color,
              alpha = 0.5) +
   geom_line(data = Xs.stats,
-            aes(x = time, y = exp(median_X)), color = "purple",
+            aes(x = time, 
+                y = exp(median_X)), 
+            color = line.color,
             alpha = 0.5) +
-  geom_line(data = Xs.stats,
-            aes(x = time, y = exp(low_X)), color = "purple",
-            linetype = 2) +
+  # geom_line(data = Xs.stats,
+  #           aes(x = time, y = exp(low_X)), color = "purple",
+  #           linetype = 2) +
   geom_point(data = ys.stats,
-             aes(x = time, y = obsY), color = "green",
-             alpha = 0.5)
+             aes(x = time, y = obsY), 
+             color = obsd.color,
+             alpha = 0.5) + 
+  scale_x_continuous(breaks = seq(2006, 2013, 5),
+                     limits = c(2006, 2013)) +
+  labs(x = '', y = '# nests', title = "Wermon")  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 print(p.1)
+
+ggsave(p.1,
+       filename = "figures/W_imputed_M7.png",
+       device = "png", dpi = 600,
+       height = 4, width = 6, units = "in")
+
 ```
 
 Then, combine all counts per year.
@@ -1292,47 +1332,58 @@ if (!file.exists(paste0('RData/', "jagsout_",
 
 ```
 
-
-Then, bring in the results for the entire dataset. 
+Plot the long time series:
 ```{r}
 M <- readRDS(paste0('RData/', "jagsout_", 
                         filename.out, '.rds'))
+#M7.jm <- M7$jags.out$jm
 
-M$Xs.stats %>% mutate(season = ifelse(month < 4, year - 1, year)) %>% 
-  mutate(summer = ifelse(month > 3 & month < 10, 1, 0)) -> Xs.stats
-
-M$ys.stats %>% mutate(season = ifelse(month < 4, year - 1, year)) %>% 
-  mutate(summer = ifelse(month > 3 & month < 10, 1, 0)) -> ys.stats
-
-seasons <- as.matrix(unique(Xs.stats$season))
-
+Xs.stats <- M$Xs.stats
+ys.stats <- M$ys.stats
 p.1 <- ggplot() +
   #geom_point(data = ys.stats,
   #           aes(x = time, y = mode_y), color = "blue") +
   #geom_line(data = Xs.stats,
   #          aes(x = time, y = mode_X), color = 'blue') +
-  geom_line(data = Xs.stats,
-            aes(x = time, y = exp(high_X)), color = "purple",
-            linetype = 2) +
+  geom_ribbon(data = Xs.stats,
+              aes(x = time, 
+                  ymin = exp(low_X), 
+                  ymax = exp(high_X)),
+              fill = fill.color,
+              alpha = fill.alpha) +
+  # geom_line(data = Xs.stats,
+  #           aes(x = time, y = exp(high_X)), color = "purple",
+  #           linetype = 2) +
   geom_point(data = Xs.stats,
-             aes(x = time, y = exp(median_X)), color = "purple",
+             aes(x = time, 
+                 y = exp(median_X)), 
+             color = line.color,
              alpha = 0.5) +
   geom_line(data = Xs.stats,
-            aes(x = time, y = exp(median_X)), color = "purple",
+            aes(x = time, 
+                y = exp(median_X)), 
+            color = line.color,
             alpha = 0.5) +
-  geom_line(data = Xs.stats,
-            aes(x = time, y = exp(low_X)), color = "purple",
-            linetype = 2) +
+  # geom_line(data = Xs.stats,
+  #           aes(x = time, y = exp(low_X)), color = "purple",
+  #           linetype = 2) +
   geom_point(data = ys.stats,
-             aes(x = time, y = obsY), color = "green",
-             alpha = 0.5) +
-  labs(title = "Wermon", y = "Nest counts", x = "Time")
+             aes(x = time, y = obsY), 
+             color = obsd.color,
+             alpha = 0.5) + 
+  scale_x_continuous(breaks = seq(2006, 2019, 5),
+                     limits = c(2006, 2019)) +
+  labs(x = '', y = '# nests', title = "Wermon")  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 print(p.1)
-ggsave(plot = p.1,
-       filename = "figures/estimated_counts_W.png",
-       device = "png",
-       dpi = 600)
+
+ggsave(p.1,
+       filename = "figures/W_imputed_2006_2018_M7.png",
+       device = "png", dpi = 600,
+       height = 4, width = 6, units = "in")
+
 ```
 
 Split between summer and winter. 
@@ -1372,48 +1423,57 @@ ys.stats %>% group_by(season, summer) %>%
 ys.season <- data.frame(season = seasons,
                         summer = unlist(c(NA, as.vector(filter(tmp.y.season, summer == 1)[, "obs"]))),
                         winter = unlist(filter(tmp.y.season, summer == 0)[, "obs"]))
-  
-p.W.estimated.counts <- ggplot() + 
-  geom_point(data = Xs.season,
-             aes(x = season, 
-                 y = Summer.median), 
-             color = "purple")+
-  geom_errorbar(data = Xs.season,
-                aes(x = season, 
-                    ymin = Summer.low, 
-                    ymax = Summer.high), 
-                color = "purple") + 
-  geom_point(data = ys.season,
-             aes(x = season, 
-                 y = summer),
-             color = "green") +
-  geom_point(data = Xs.season,
-             aes(x = season+0.5, 
-                 y = Winter.median), 
-             color = "blue")+
-  geom_errorbar(data = Xs.season,
-                aes(x = season+0.5, 
-                    ymin = Winter.low, 
-                    ymax = Winter.high), 
-                color = "blue") + 
-  geom_point(data = ys.season,
-             aes(x = season+0.5, 
-                 y = winter),
-             color = "green") +
-  
-  labs(title = 'Wermon', x = 'Season', y = "Nest counts")
-
-print(p.W.estimated.counts)
-# ggsave(plot = p.W.estimated.counts,
-#        filename = "figures/estimated_counts_perSeason_W.png",
-#        device = "png",
-#        dpi = 600)
 
 Xs.season %>% left_join(ys.season, by = "season") -> Xy.season
 
-write.csv(Xy.season, 
-          file = paste0("data/estimatedX_W_M", m, "_", run.date, ".csv"),
-          quote = F, row.names = F)
+if (!file.exists(paste0("data/estimatedX_W_M", m, "_", run.date, ".csv")))
+  write.csv(Xy.season, 
+            file = paste0("data/estimatedX_W_M", m, "_", run.date, ".csv"),
+            quote = F, row.names = F)
+
+p.W.estimated.counts <- ggplot() + 
+  geom_ribbon(data = Xs.season,
+              aes(x = season, 
+                  ymin = Summer.low, 
+                  ymax = Summer.high),
+              fill = fill.color.summer,
+              alpha = fill.alpha) +
+  geom_point(data = Xs.season,
+             aes(x = season, 
+                 y = Summer.median), 
+             color = line.color.summer) +
+  geom_point(data = ys.season,
+             aes(x = season, 
+                 y = summer),
+             color = data.color) +
+  
+  geom_ribbon(data = Xs.season,
+                aes(x = season, 
+                    ymin = Winter.low, 
+                    ymax = Winter.high), 
+                color = fill.color.winter,
+              alpha = fill.alpha) + 
+  geom_point(data = Xs.season,
+             aes(x = season, 
+                 y = Winter.median), 
+             color = line.color.winter)+
+  
+  geom_point(data = ys.season,
+             aes(x = season, 
+                 y = winter),
+             color = data.color) + 
+  scale_x_continuous(breaks = seq(2006, 2019, 5),
+                     limits = c(2006, 2019)) +
+  labs(x = '', y = '# nests', title = "Wermon")  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+
+print(p.W.estimated.counts)
+ggsave(filename = "figures/CountsPerSeason_best_W.png",
+       device = "png", dpi = 600, width = 6,
+       height = 4, units = "in",
+       plot = p.W.estimated.counts)
+
 
 ```
 

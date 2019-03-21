@@ -95,6 +95,22 @@ thedata <- left_join(JMdat, Wdat, by = "season") %>%
 ```
 
 
+First, I show the estimated nest counts for Jamursba-Medi (JM) and Wermon (W) when the model with one slope and one variance was used.  Because the two datasets were combined, there are estimated counts for the years without data at Wermon.  When two separate analyses were coducted for the two beaches, the estimates for the missing data years are absent.  
+
+```{r singleUQ_JM_trend, echo=FALSE, fig.cap="Estimated (black is imputed median, blue line and green band are from exponential population growth model) and observed (red) nest counts at Jamursba-Medi nesting beach. ", out.width="100%"}
+knitr::include_graphics("figures/JM_trend_annual_log.png")
+```
+
+
+```{r singleUQ_W_trend, echo=FALSE, fig.cap="Estimated (black is imputed median, blue line and green band are from exponential population growth model) and observed (red) nest counts at Wermon nesting beach. ", out.width="100%"}
+knitr::include_graphics("figures/W_trend_annual_log.png")
+```
+
+Although different model and data combinations (e.g., using each beach separately, assuming two slope, etc.) result in slightly different results, specifically widths of 95% credible bands, the overall results are essentially the same.
+
+In the following, I will present the posterior distributions of the slope parameters for each question. 
+
+
 (1) A separate trend each for Jamursba-Medi (JM) and Wermon (W) using data for April to March each year to compare with Tapilatu et al.
 
 There are a couple ways to tackle this question. One is to analyze two datasets separately and estiamte the trend for each dataset.  Another is to use both datasets simultaneously but obtain two separate trends, while using information from the two datasets. All analyses have been completed in trend_analysis.Rmd and other scripts that are referenced in it.  Here, I just bring out the results and create this document.  To update the results, I need to run other scripts before updating this document. 
@@ -109,24 +125,16 @@ JM_only.out <- readRDS(file = paste0("Rdata/singleUQ_JM_only_",
 JM.U.f <- signif(JM_only.out$out$summary["U", "f"], 3) * 100
 ```
 
-The following figure shows the observed and imputed nest counts for the Jamursba-Medi nesting beach.  
-
-```{r JM_trend_plot, echo=FALSE, fig.cap = "Estimated (black is imputed median, blue line and green band are from exponential population growth model) and observed (red) nest counts at Jamursba-Medi nesting beach. when using data from JM only"}
-knitr::include_graphics("figures/JM_only_trend_annual.png")
-```
-
-
-The posterior distribuiton of the slope parameter is shown in the next figure. 
+The majority (```r JM.U.f ``` %) of the slope was less than 0, indicating a strong likelihood of decline for JM.  The median of the slope was ```r signif(JM_only.out$out$summary["U", "50%"], 2)``` and its 95% CI = [```r signif(JM_only.out$out$summary["U", "2.5%"], 2)```, ```r signif(JM_only.out$out$summary["U", "97.5%"], 2)```].
 
 ```{r posterior_U_JM_only, echo=FALSE, fig.cap = "Posterior distribution of the slope parameter for JM, when the only one dataset was used.", out.width = "50%"}
 knitr::include_graphics("figures/posterior_U_JM_only.png")
 ```
 
-As we can see, the majority (```r JM.U.f ``` %) of the slope was less than 0, indicating a strong likelihood of decline for JM.  The median of the slope was ```r signif(JM_only.out$out$summary["U", "50%"], 2)``` and its 95% CI = [```r signif(JM_only.out$out$summary["U", "2.5%"], 2)```, ```r signif(JM_only.out$out$summary["U", "97.5%"], 2)```].
 
 (1a - Wermon)
 
-A similar analysis was conducted for Wermon. Because there were no data prior to 2006, the analysis was conducted only from 2006. 
+Because there were no data prior to 2006, the analysis was conducted only from 2006. 
 
 ```{r W_find_results, echo=FALSE}
 W_only.out <- readRDS(file = paste0("Rdata/singleUQ_W_only_2006_", 
@@ -134,51 +142,28 @@ W_only.out <- readRDS(file = paste0("Rdata/singleUQ_W_only_2006_",
 W.U.f <- signif(W_only.out$out$summary["U", "f"], 3) * 100
 ```
 
-The observed and imputed nest counts can be seen in the following figure. 
-
-```{r W_trend_plot, echo=FALSE, fig.cap = "Estimated (black is imputed median, blue line and green band are from exponential population growth model) and observed (red) nest counts at Wermon nesting beach when only data from Wermon were used.", out.width="50%"}
-knitr::include_graphics("figures/W_only_trend_annual.png")
-```
-
-The posterior distribution of the slope parameter is shown in the next figure. 
+The majority (```r W.U.f ``` %) of the slope was less than 0, indicating a strong likelihood of decline for W.  The median of the slope was ```r signif(W_only.out$out$summary["U", "50%"], 2)``` and its 95% CI = [```r signif(W_only.out$out$summary["U", "2.5%"], 2)```, ```r signif(W_only.out$out$summary["U", "97.5%"], 2)```].
 
 ```{r posterior_U_W_only, echo=FALSE, fig.cap = "Posterior distribution of the slope parameter for W, when the only one dataset was used.", out.width = "50%"}
 knitr::include_graphics("figures/posterior_U_W_only.png")
 ```
 
-As we can see, the majority (```r W.U.f ``` %) of the slope was less than 0, indicating a strong likelihood of decline for W.  The median of the slope was ```r signif(W_only.out$out$summary["U", "50%"], 2)``` and its 95% CI = [```r signif(W_only.out$out$summary["U", "2.5%"], 2)```, ```r signif(W_only.out$out$summary["U", "97.5%"], 2)```].
-
 
 (1b) Using two datasets together
-Rather than splitting the dataset in two, we can use the data from the two beaches simultaneously. I used two-slope and one-variance model.
 
 ```{r get_indU_singleQ_results, echo=FALSE}
 jags.model <- readRDS(file = "RData/independentUs_singleQ_out_2001_2018_2019-03-14.rds")
 ```
 
-The slope parameters show declining trends for both beaches.
+For the two beaches, ```r signif(jags.model$out$summary["U[1]", "f"], 3) * 100``` and ```r signif(jags.model$out$summary["U[2]", "f"], 3) * 100``` % of the posteriors were < 0, indicating strong evidence of population decline. Medians and 95% CIs were JM = ```r signif(jags.model$out$summary["U[1]", "50%"], 2)``` (```r signif(jags.model$out$summary["U[1]", "2.5%"], 2)```, ```r signif(jags.model$out$summary["U[1]", "97.5%"], 2) ```) and W = ```r signif(jags.model$out$summary["U[2]", "50%"], 2)``` (```r signif(jags.model$out$summary["U[2]", "2.5%"], 2)```, ```r signif(jags.model$out$summary["U[2]", "97.5%"], 2)```)
 
 ```{r plot_posterior_Us, echo=FALSE, fig.cap = "Posterior distributions of the slope parameters when two datasets were used simultaneously (U[1] = Jamursba-Medi, U[2] = Wermon", out.width="50%"}
 knitr::include_graphics("figures/posterior_Us.png")
 ```
 
-For the two beaches, ```r signif(jags.model$out$summary["U[1]", "f"], 3) * 100``` and ```r signif(jags.model$out$summary["U[2]", "f"], 3) * 100``` % of the posteriors were < 0, indicating strong evidence of population decline. Medians and 95% CIs were JM = ```r signif(jags.model$out$summary["U[1]", "50%"], 2)``` (```r signif(jags.model$out$summary["U[1]", "2.5%"], 2)```, ```r signif(jags.model$out$summary["U[1]", "97.5%"], 2) ```) and W = ```r signif(jags.model$out$summary["U[2]", "50%"], 2)``` (```r signif(jags.model$out$summary["U[2]", "2.5%"], 2)```, ```r signif(jags.model$out$summary["U[2]", "97.5%"], 2)```)
-
-(1b - Jamursba-Medi)
-
-Because using two datsets in one analysis helps reduce uncertainty in variance parameters, confidence bands can be narrower than when only one dataset was used. 
-
-```{r JM_trend_plot_indU_singleQ, echo=FALSE, fig.cap = "Estimated (black is imputed median, blue line and green band are from exponential population growth model) and observed (red) nest counts at Jamursba-Medi nesting beach when two datsets were used simultaneously with two-slope one-variance model.", out.width="50%"}
-knitr::include_graphics("figures/JM_trend_annual_indU_log.png")
-```
-
-(1b - Wermon)
-
-```{r W_trend_plot_indU_singleQ, echo=FALSE, fig.cap = "Estimated (black is imputed median, blue and green band are from exponential population growth model) and observed (red) nest counts at Wermon nesting beach when two datasets were used simultaneously with two-slope one-variance model.", out.width="50%"}
-knitr::include_graphics("figures/W_trend_annual_indU_log.png")
-```
 
 (2) A combined JM + W data trend using April to March data for each year
+
 Analyzing these datasets with a single slope provides the best statistical treatment, rather than summing numbers of two time series. 
 
 ```{r get_singleUQ_out, echo=FALSE}
@@ -188,18 +173,9 @@ singleUQ_out <- readRDS(paste0("RData/singleUQ_out_",
 
 ```
 
-The assumption is there is only one slope for two beaches. 
+The assumption in this analysis is that there is only one slope for two beaches. 
 
-```{r JM_trend_singleUQ, echo=FALSE, fig.cap="Estimated (black is imputed median, blue line and green band are from exponential population growth model) and observed (red) nest counts at Jamursba-Medi nesting beach, when using two datasets, one slope and one variance parameters", out.width="50%"}
-knitr::include_graphics("figures/JM_trend_annual_log.png")
-```
-
-
-```{r W_trend_singleUQ, echo=FALSE, fig.cap="Estimated (black is imputed median, blue and green band are from exponential population growth model) and observed (red) nest counts at Wermon nesting beach, when using two datasets, one slope and one variance parameters", out.width="50%"}
-knitr::include_graphics("figures/W_trend_annual_log.png")
-```
-
-The majority of the slope parameter was less than 0 ( ```r signif(singleUQ_out$out$summary["U", "f"], 3) * 100```%), indicating the evidence of decline.  The median of the slope was ```r signif(singleUQ_out$out$summary["U", "50%"], 2)```, 95% CI =  [```r signif(singleUQ_out$out$summary["U", "2.5%"], 2)```, ```r signif(singleUQ_out$out$summary["U", "97.5%"], 2)```].
+The majority of the slope parameter was less than 0 ( ```r signif(singleUQ_out$out$summary["U", "f"], 3) * 100```%), indicating evidence of decline.  The median of the slope was ```r signif(singleUQ_out$out$summary["U", "50%"], 2)```, 95% CI =  [```r signif(singleUQ_out$out$summary["U", "2.5%"], 2)```, ```r signif(singleUQ_out$out$summary["U", "97.5%"], 2)```].
 
 ```{r posterior_U_singleUQ, echo=FALSE, fig.cap = "Posterior distribution of the slope parameter when two datasets were used simultaneously with one-slope and one-variance model", out.width="50%"}
 
@@ -222,15 +198,15 @@ JM_singleUQ_summer <- readRDS(file = paste0("Rdata/singleUQ_JM_only_summer_",
 ```
 
 ```{r JM_only_trend_summer_plot, echo=FALSE, fig.cap = "Estimated (black is imputed median, blue line and green band are from exponential population growth model) and observed (red) nest counts during summer months at Jamursba-Medi nesting beach when only JM data were used.", out.width="50%"}
-knitr::include_graphics("figures/JM_only_trend_summer.png")
+knitr::include_graphics("figures/JM_only_trend_summer_log.png")
 ```
 
+The majority (```r signif(JM_singleUQ_summer$out$summary["U", "f"], 3) * 100 ``` %) of the slope was less than 0, indicating a strong likelihood of decline for JM during summer months. The median and 95% CI of the slope were ```r signif(JM_singleUQ_summer$out$summary["U", "50%"], 2)```  (```r signif(JM_singleUQ_summer$out$summary["U", "2.5%"], 2)```,  ```r signif(JM_singleUQ_summer$out$summary["U", "97.5%"], 2)```).
 
 ```{r posterior_U_JM_only_summer, echo=FALSE, fig.cap="Posterior distribution of the slope parameter for summer months in JM, when only one dataset was used.", out.width = '50%'}
 knitr::include_graphics("figures/posterior_U_JM_only_summer.png")
 ```
 
-As we can see, the majority (```r signif(JM_singleUQ_summer$out$summary["U", "f"], 3) * 100 ``` %) of the slope was less than 0, indicating a strong likelihood of decline for JM during summer months. The median and 95% CI of the slope were ```r signif(JM_singleUQ_summer$out$summary["U", "50%"], 2)```  (```r signif(JM_singleUQ_summer$out$summary["U", "2.5%"], 2)```,  ```r signif(JM_singleUQ_summer$out$summary["U", "97.5%"], 2)```).
 
 (3a - Wermon)
 ```{r get_W_only_summer, echo=FALSE}
@@ -239,22 +215,22 @@ W_singleUQ_summer <- readRDS(file = paste0("Rdata/singleUQ_W_only_summer_2006_",
 ```
 
 ```{r W_only_trend_summer_plot, echo=FALSE, fig.cap = "Estimated (black is imputed median, blue and green band are from exponential population growth model) and observed (red) nest counts during summer months at Wermon nesting beach when only W data were used.", out.width="50%"}
-knitr::include_graphics("figures/W_only_trend_summer.png")
+knitr::include_graphics("figures/W_only_trend_summer_log.png")
 ```
 
+The majority (```r signif(W_singleUQ_summer$out$summary["U", "f"], 3) * 100 ``` %) of the slope was less than 0, indicating evidence of decline for W during summer months but less so than summer months in JM. The median of the slope was ```r signif(W_singleUQ_summer$out$summary["U", "50%"], 2)``` and its 95% CI [```r signif(W_singleUQ_summer$out$summary["U", "2.5%"], 2)```,  ```r signif(W_singleUQ_summer$out$summary["U", "97.5%"], 2)```].
 
 ```{r posterior_U_W_only_summer, echo=FALSE, fig.cap="Posterior distribution of the slope parameter for summer months in W, when only one dataset was used.", out.width = '50%'}
 knitr::include_graphics("figures/posterior_U_W_only_summer.png")
 ```
 
-As we can see, the majority (```r signif(W_singleUQ_summer$out$summary["U", "f"], 3) * 100 ``` %) of the slope was less than 0, indicating a strong likelihood of decline for W during summer months. The median of the slope was ```r signif(W_singleUQ_summer$out$summary["U", "50%"], 2)``` and its 95% CI [```r signif(W_singleUQ_summer$out$summary["U", "2.5%"], 2)```,  ```r signif(W_singleUQ_summer$out$summary["U", "97.5%"], 2)```].
 
 (3b) Using two datasets simultaneously with two independent slopes
 ```{r get_indUs_summer, echo=FALSE}
 indUs_summer <- readRDS("RData/independentUs_singleQ_summer_out_2001_2018_2019-03-14.rds")
 ```
 
-For the two beaches, ```r signif(indUs_summer$out$summary["U[1]", "f"], 3) * 100``` and ```r signif(indUs_summer$out$summary["U[2]", "f"], 3) * 100``` % of the posteriors were < 0, indicating strong evidence of population decline. Medians and 95% CIs were JM = ```r signif(indUs_summer$out$summary["U[1]", "50%"], 2) ``` (```r signif(indUs_summer$out$summary["U[1]", "2.5%"], 2) ```,  ```r signif(indUs_summer$out$summary["U[1]", "97.5%"], 2) ```) and W = ```r signif(indUs_summer$out$summary["U[2]", "50%"], 2) ``` (```r signif(indUs_summer$out$summary["U[2]", "2.5%"], 2) ```, ```r signif(indUs_summer$out$summary["U[2]", "97.5%"], 2) ```)
+For the two beaches, ```r signif(indUs_summer$out$summary["U[1]", "f"], 3) * 100``` and ```r signif(indUs_summer$out$summary["U[2]", "f"], 3) * 100``` % of the posteriors were < 0, indicating evidence of population decline. Medians and 95% CIs were JM = ```r signif(indUs_summer$out$summary["U[1]", "50%"], 2) ``` (```r signif(indUs_summer$out$summary["U[1]", "2.5%"], 2) ```,  ```r signif(indUs_summer$out$summary["U[1]", "97.5%"], 2) ```) and W = ```r signif(indUs_summer$out$summary["U[2]", "50%"], 2) ``` (```r signif(indUs_summer$out$summary["U[2]", "2.5%"], 2) ```, ```r signif(indUs_summer$out$summary["U[2]", "97.5%"], 2) ```)
 
 ```{r create_posteriorUs_summer, echo=FALSE}
 
@@ -269,6 +245,7 @@ if (!file.exists("figures/posterior_Us_summer.png"))
 
 ```
 
+
 ```{r posterior_Us_summer, echo=FALSE, fig.cap="Posterior distributions of the slope parameters for summer months U[1] = JM, U[2] = W", out.width = '50%'}
 knitr::include_graphics("figures/posterior_Us_summer.png")
 ```
@@ -276,7 +253,7 @@ knitr::include_graphics("figures/posterior_Us_summer.png")
 
 (4) a combined trend for the summer for JM + W (this is to look at the impact of fisheries since many of these animals come across to the US West coast)
 
-This analysis is for using one slope and one variance parameters for the two beaches. 
+This analysis is for using one slope and one variance parameters for the two beaches in summer months. 
 
 ```{r get_singleUQ_summer, echo=FALSE}
 singleUQ_summer <- readRDS("RData/singleUQ_summer_out_2001_2018_2019-03-14.rds")
@@ -290,10 +267,9 @@ knitr::include_graphics("figures/posterior_U_summer.png")
 ```
 
 
-
 (5) A separate trend each for the summer months (1 April  - 30 Sep) in Wermon and the winter months (1 October - March 31) in Wermon because the thinking has been that while winter nesting in Wermon is decreasing, the summer nesting in Wermon is increasing. Also the winter nesting trend can be used to evaluate impact of fisheries for these animals heading south.
 
-Trend analysis for summer months in Wermon has been completed in the (3) above. Here I look at the winter months. 
+Trend analysis for summer months in Wermon has been completed in the (3) above. Here I look at the winter months using data from Wermon only. 
 
 ```{r get_W_only_winter, echo=FALSE}
 W_singleUQ_winter <- readRDS(file = paste0("Rdata/singleUQ_W_only_winter_2006_", 
@@ -309,6 +285,6 @@ knitr::include_graphics("figures/W_only_trend_winter.png")
 knitr::include_graphics("figures/posterior_U_W_only_winter.png")
 ```
 
-As we can see, the majority (```r signif(W_singleUQ_winter$out$summary["U", "f"], 3) * 100 ``` %) of the slope was less than 0, indicating a strong likelihood of decline for JM during summer months. The median of the slope was ```r signif(W_singleUQ_winter$out$summary["U", "50%"], 2)``` and its 95% CI [```r signif(W_singleUQ_winter$out$summary["U", "2.5%"], 2)```,  ```r signif(W_singleUQ_winter$out$summary["U", "97.5%"], 2)```].
+The majority (```r signif(W_singleUQ_winter$out$summary["U", "f"], 3) * 100 ``` %) of the slope was less than 0, indicating a strong likelihood of decline for W during winter months. The median of the slope was ```r signif(W_singleUQ_winter$out$summary["U", "50%"], 2)``` and its 95% CI [```r signif(W_singleUQ_winter$out$summary["U", "2.5%"], 2)```,  ```r signif(W_singleUQ_winter$out$summary["U", "97.5%"], 2)```].
 
 

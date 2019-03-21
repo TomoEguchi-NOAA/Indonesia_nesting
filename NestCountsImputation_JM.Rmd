@@ -11,6 +11,19 @@ run.date <- "2019-03-14"
 models.df <- model.names()
 year.begin <- 1999
 year.end <- 2018
+
+fill.color <-  "darkseagreen"
+fill.color.summer <- "darksalmon"
+fill.color.winter <- "lightblue1"
+fill.alpha <-  0.65
+line.color <-  "darkblue"
+line.color.summer <- "red3"
+line.color.winter <- "greenyellow"
+data.color <- "black"
+data.size <- 1.5
+obsd.color <- "gold2"
+
+obsd.size <- 1
 ```
 
 This document describes how leatherback turtle nest count data were imputed for Jamursba-Medi. All models were ran separately and results stored in .rds files. 
@@ -933,6 +946,14 @@ M.compare <- compare(M2.loo.out, M8.loo.out, M11.loo.out,
 print(M.compare)
 ```
 
+```{r}
+tmp <- data.frame(M.compare) %>%
+  select(elpd_diff, looic, se_looic)
+knitr::kable(tmp, format = "html", digits = 2,
+      caption = "A comparison of five models based on their predictaive performance. ")
+```
+
+
 When comparing all models, it was interesting to see that those models that were acceptable according to Pareto k statistics are worse ones according to looic scores. Here, I use M8 and M17 for the predictions. 
 
 Model 8, 
@@ -980,26 +1001,41 @@ bayesplot::mcmc_dens(M17.jm$samples, c("df"))
 Xs.stats <- M8$Xs.stats
 ys.stats <- M8$ys.stats
 p.1 <- ggplot() +
+  geom_ribbon(data = Xs.stats,
+              aes(x = time, 
+                  ymin = exp(low_X), 
+                  ymax = exp(high_X)),
+              fill = fill.color,
+              alpha = fill.alpha) +
   #geom_point(data = ys.stats,
   #           aes(x = time, y = mode_y), color = "blue") +
   #geom_line(data = Xs.stats,
   #          aes(x = time, y = mode_X), color = 'blue') +
-  geom_line(data = Xs.stats,
-            aes(x = time, y = exp(high_X)), 
-            color = "purple",
-            linetype = 2) +
+  # geom_line(data = Xs.stats,
+  #           aes(x = time, y = exp(high_X)), 
+  #           color = "purple",
+  #           linetype = 2) +
   geom_point(data = Xs.stats,
              aes(x = time, y = exp(median_X)), 
-             color = "purple",
-             alpha = 0.5) +
+             color = line.color,
+             size = 1) +
   geom_line(data = Xs.stats,
             aes(x = time, y = exp(median_X)), 
-            color = "purple",
+            color = line.color,
             alpha = 0.5) +
   geom_point(data = ys.stats,
              aes(x = time, y = obsY), 
-             color = "green",
-             alpha = 0.5)
+             color = obsd.color,
+             alpha = 0.5) + 
+  scale_x_continuous(breaks = seq(1999, 2019, 5),
+                     limits = c(1999, 2019)) +
+  labs(x = '', y = '# nests', title = "Jamursba-Medi")  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+
+ggsave(p.1, filename = "figures/JM_imputed_M8.png",
+       device = "png", height = 4, width = 6, units = "in",
+       dpi = 600)
 
 print(p.1)
 ```
@@ -1009,26 +1045,37 @@ print(p.1)
 Xs.stats <- M17$Xs.stats
 ys.stats <- M17$ys.stats
 p.1 <- ggplot() +
+  geom_ribbon(data = Xs.stats,
+              aes(x = time, 
+                  ymin = exp(low_X), 
+                  ymax = exp(high_X)),
+              fill = fill.color,
+              alpha = fill.alpha) +
   #geom_point(data = ys.stats,
   #           aes(x = time, y = mode_y), color = "blue") +
   #geom_line(data = Xs.stats,
   #          aes(x = time, y = mode_X), color = 'blue') +
-  geom_line(data = Xs.stats,
-            aes(x = time, y = exp(high_X)), 
-            color = "purple",
-            linetype = 2) +
+  # geom_line(data = Xs.stats,
+  #           aes(x = time, y = exp(high_X)), 
+  #           color = "purple",
+  #           linetype = 2) +
   geom_point(data = Xs.stats,
              aes(x = time, y = exp(median_X)), 
-             color = "purple",
+             color = line.color,
              alpha = 0.5) +
   geom_line(data = Xs.stats,
             aes(x = time, y = exp(median_X)), 
-            color = "purple",
+            color = line.color,
             alpha = 0.5) +
   geom_point(data = ys.stats,
              aes(x = time, y = obsY), 
-             color = "green",
-             alpha = 0.5)
+             color = obsd.color,
+             alpha = 0.5) + 
+  scale_x_continuous(breaks = seq(1999, 2019, 5),
+                     limits = c(1999, 2019)) +
+  labs(x = '', y = '# nests', title = "Jamursba-Medi")  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 print(p.1)
 ```
@@ -1091,40 +1138,50 @@ ys.season <- data.frame(season = seasons,
 
 Xs.season %>% left_join(ys.season, by = "season") -> Xy.season
 
-write.csv(Xy.season, 
-          file = paste0("data/estimatedX_JM_M", m, "_", run.date, ".csv"),
-          quote = F, row.names = F)
+if (!file.exists(paste0("data/estimatedX_JM_M", m, "_", run.date, ".csv")))
+  write.csv(Xy.season, 
+            file = paste0("data/estimatedX_JM_M", m, "_", run.date, ".csv"),
+            quote = F, row.names = F)
 
 
 p.JM.estimated.counts <- ggplot() + 
+  geom_ribbon(data = Xs.season,
+              aes(x = season, 
+                  ymin = Summer.low, 
+                  ymax = Summer.high),
+              fill = fill.color.summer,
+              alpha = fill.alpha) +
   geom_point(data = Xs.season,
              aes(x = season, 
                  y = Summer.median), 
-             color = "purple")+
-  geom_errorbar(data = Xs.season,
-                aes(x = season, 
-                    ymin = Summer.low, 
-                    ymax = Summer.high), 
-                color = "purple") + 
+             color = line.color.summer) +
   geom_point(data = ys.season,
              aes(x = season, 
                  y = summer),
-             color = "green") +
-  geom_point(data = Xs.season,
-             aes(x = season+0.5, 
-                 y = Winter.median), 
-             color = "blue")+
-  geom_errorbar(data = Xs.season,
-                aes(x = season+0.5, 
+             color = obsd.color) +
+  
+  geom_ribbon(data = Xs.season,
+                aes(x = season, 
                     ymin = Winter.low, 
                     ymax = Winter.high), 
-                color = "blue") + 
-  geom_point(data = ys.season,
-             aes(x = season+0.5, 
-                 y = winter),
-             color = "green") +
+                color = fill.color.winter,
+              alpha = fill.alpha) + 
+  geom_point(data = Xs.season,
+             aes(x = season, 
+                 y = Winter.median), 
+             color = line.color.winter)+
   
-  labs(title = 'Jamursba-Medi', x = 'Season', y = "Nest counts")
+  geom_point(data = ys.season,
+             aes(x = season, 
+                 y = winter),
+             color = data.color) + 
+  scale_x_continuous(breaks = seq(1999, 2019, 5),
+                     limits = c(1999, 2019)) +
+  labs(x = '', y = '# nests', title = "Jamursba-Medi")  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+  
+  #labs(title = 'Jamursba-Medi', x = 'Season', y = "Nest counts")
 
 
 ggsave(filename = "figures/CountsPerSeason_best_JM.png",

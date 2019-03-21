@@ -49,7 +49,174 @@ obsd.size <- 1
 
 This document describes trend analysis of leatherback turtles at nesting beaches in Indonesia. Bayesian state-space time series analyses, which were developed for HI longline fisheries Biological Opinions, were used to estimate the population growth rates.  Code was obtained from Summer Martin, whose code was based on Boyd et al. (2016?)
 
-Data are annual number of females or nests. These data computed in NestCountsImputation_JM_Rmd and NestCountsImputation_W.Rmd.  
+Raw data:
+
+```{r data_filter, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+
+data.0.JM <- data.extract(location = "JM", year.begin = 1981, year.end = 2019)
+
+data.0.JM$data.1 %>% 
+  mutate(f_month = as.factor(Month),
+         f_year = as.factor(Year),
+         Season = ifelse(Month < 4, Year - 1, Year),
+         season = ifelse(Month > 3 & Month < 10, 
+                         "summer", "winter")) -> data.1.JM
+
+```
+
+
+### Jamursba-Medi
+```{r JM_data, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+p.JM.all <- ggplot(data.1.JM) + 
+  geom_point(aes(x = Frac.Year, y = Nests)) + 
+  geom_line(aes(x = Frac.Year, y = Nests)) +
+  scale_x_continuous(breaks = seq(1980, 2020, 5),
+                     limits = c(1980, 2020)) +
+  labs(x = '', y = '# nests', title = "Jamursba-Medi")  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+
+#print(p.JM.all)
+ggsave(filename = 'figures/JM_all.png',
+       plot = p.JM.all,
+       dpi = 600, height = 6, width = 8, units = "in")
+```
+
+At Jamursba-Medi, there were many years of no data collection between the mid 1980s and late 1990s. A somewhat consistent effort starts in early 2000s and continue to recent years. 
+
+```{r plot_JM_raw_data, echo=FALSE, cache=TRUE, fig.cap = "Figure 1. Nest counts at Jamursba-Medi"}
+knitr::include_graphics("figures/JM_all.png")
+```
+
+No data were collected in 1998. Since then at least some data were collected within each year. After analyzing datasets with different starting years, we found that starting at 1999 resulted in the longest dataset and good convergence of MCMC.  Consequently, we decided to use data since 1999. The cyclical nature or seaonal fluctuations of counts is obvious in the raw counts.
+
+```{r JM_raw_since_1999, echo=FALSE, cache=TRUE, warning=FALSE}
+data.1.JM.1999 <- filter(data.1.JM, Frac.Year > 1998)
+p.JM.1999 <- ggplot(data.1.JM.1999) + 
+  geom_point(aes(x = Frac.Year, y = Nests)) + 
+  geom_line(aes(x = Frac.Year, y = Nests)) +
+  scale_x_continuous(breaks = seq(1999, 2019, 5),
+                     limits = c(1999, 2019)) +
+  labs(x = '', y = '# nests', 
+       title = "Jamursba-Medi")  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+
+ggsave(filename = 'figures/JM_1999.png',
+       plot = p.JM.1999,
+       dpi = 600, height = 6, 
+       width = 8, units = "in")
+```
+
+```{r plot_JM_raw_since_1999, echo=FALSE, cache=TRUE, fig.cap = "Figure 2. Nest counts at Jamursba-Medi since 1999"}
+knitr::include_graphics("figures/JM_1999.png")
+```
+
+
+```{r JM_raw_by_month, echo=FALSE, cache = TRUE, warning=FALSE}
+p.JM.monthly.1999 <- ggplot(data.1.JM.1999) + 
+  geom_point(aes(x = Month, y = Nests, color = f_year)) + 
+  geom_line(aes(x = Month, y = Nests, color = f_year)) +
+  scale_x_continuous(breaks = seq(1, 12, 1)) +
+  labs(x = 'Month', y = '# nests', 
+       title = "Jamursba-Medi", color = "Year")  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+#        legend.position = c(0.9, 0.6))
+
+ggsave(filename = 'figures/JM_monthly_1999.png', 
+       plot = p.JM.monthly.1999,
+       dpi = 600, height = 6, 
+       width = 8, units = "in")
+```
+
+When the number of nests is plotted by month, the seasonal fluctations become more obvious (Figure 3). In general, high counts within a year are seen during summer months (approximately from April to September), whereas low counts are found during winter months (October through March).   
+
+```{r plot_JM_by_month, echo=FALSE, cache=TRUE, fig.cap = "Figure 3. Monthly nest counts at Jamursba-Medi"}
+knitr::include_graphics("figures/JM_monthly_1999.png")
+```
+
+###Wermon
+```{r W_data, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+data.0.W <- data.extract(location = "W", year.begin = 2002, year.end = 2019)
+
+data.0.W$data.1 %>% 
+  mutate(f_month = as.factor(Month),
+         f_year = as.factor(Year),
+         Season = ifelse(Month < 4, Year - 1, Year),
+         season = ifelse(Month > 3 & Month < 10, 
+                         "summer", "winter")) -> data.1.W
+
+p.W.all <- ggplot(data.1.W) + 
+  geom_point(aes(x = Frac.Year, y = Nests)) + 
+  geom_line(aes(x = Frac.Year, y = Nests)) + 
+  labs(title = 'Wermon', x = '', 
+       y = "Nest counts")
+
+ggsave(filename = 'figures/W_all.png', 
+       plot = p.W.all,
+       dpi = 600, height = 6, 
+       width = 8, units = "in")
+```
+
+At Wermon, the sole data point in 2002 was from at least two months. So, for this analysis, I use data from 2003.  Limited amount of data were collected between July 2013 and December 2015.    
+
+```{r plot_W_all, echo=FALSE, cache=TRUE, fig.cap = "Figure 4. Nest counts at Wermon. "}
+knitr::include_graphics("figures/W_all.png")
+```
+
+The temporal nest count pattern at Wermon is different from that of Jamursba-Medi (Figure 3 vs. Figure 5). At Wermon, there are two peaks annually: higher values are found between May and September and between October and April.  
+
+```{r W_raw_by_month, echo=FALSE, cache = TRUE, warning=FALSE}
+data.1.W %>% filter(Year > 2002) -> data.1.W.2003
+
+p.W.monthly <- ggplot(data.1.W.2003) + 
+  geom_point(aes(x = Month, y = Nests, color = f_year)) + 
+  geom_line(aes(x = Month, y = Nests, color = f_year)) +
+  scale_x_continuous(breaks = seq(1, 12, 1)) +
+  labs(x = 'Month', y = '# nests', title = "Wermon",
+       color = "Year")  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+
+ggsave(filename = 'figures/W_monthly.png', 
+       plot = p.W.monthly,
+       dpi = 600, height = 6, 
+       width = 8, units = "in")
+
+```
+
+```{r plot_W_by_month, echo=FALSE, cache=TRUE, fig.cap = "Figure 5. Monthly nest counts at Wermon. "}
+knitr::include_graphics("figures/W_monthly.png")
+```
+
+Observed counts for 2004 and 2005 seem to be outliers with respect to within-year patterns. Because this analysis is to estimate missing values from observed patterns, we remove these years from the data for the following analysis.  
+
+```{r W_by_month_since_2006, echo=FALSE, cache = TRUE, warning=FALSE}
+data.1.W %>% filter(Year > 2005) -> data.1.W.2006
+
+p.W.monthly.2006 <- ggplot(data.1.W.2006) + 
+  geom_point(aes(x = Month, y = Nests, color = f_year)) + 
+  geom_line(aes(x = Month, y = Nests, color = f_year)) +
+  scale_x_continuous(breaks = seq(1, 12, 1)) +
+  labs(x = 'Month', y = '# nests', title = "Wermon",
+       color = "Year")  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+
+ggsave(filename = 'figures/W_monthly_2006.png', 
+       plot = p.W.monthly.2006,
+       dpi = 600, height = 6, 
+       width = 8, units = "in")
+```
+
+
+```{r plot_W_by_month_since_2006, echo=FALSE, cache=TRUE, fig.cap = "Figure 6. Monthly nest counts at Wermon since 2006. "}
+knitr::include_graphics("figures/W_monthly_2006.png")
+```
+
+
+Imputations were conducted in NestCountsImputation_JM_Rmd and NestCountsImputation_W.Rmd. From here, data are annual number of females or nests. These data were computed   
 
 ```{r}
 JM <- read.csv(paste0("data/estimatedX_JM_M", JM.bestM, "_", run.date, ".csv"), 
