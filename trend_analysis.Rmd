@@ -37,6 +37,8 @@ W.yrs <- 2006:2018
 JM.bestM <- 8
 W.bestM <- 7
 
+bayesplot::color_scheme_set("teal")
+
 fill.color <-  "darkseagreen"
 fill.alpha <-  0.65
 line.color <-  "darkblue"
@@ -44,6 +46,9 @@ data.color <- "black"
 data.size <- 1.5
 obsd.color <- "red"
 obsd.size <- 1
+
+posterior.lim.y <- 6.0
+text.y <- 5.5
 ```
 
 
@@ -79,7 +84,7 @@ p.JM.all <- ggplot(data.1.JM) +
 #print(p.JM.all)
 ggsave(filename = 'figures/JM_all.png',
        plot = p.JM.all,
-       dpi = 600, height = 6, width = 8, units = "in")
+       dpi = 600, height = 4, width = 6, units = "in")
 ```
 
 At Jamursba-Medi, there were many years of no data collection between the mid 1980s and late 1990s. A somewhat consistent effort starts in early 2000s and continue to recent years. 
@@ -104,8 +109,8 @@ p.JM.1999 <- ggplot(data.1.JM.1999) +
 
 ggsave(filename = 'figures/JM_1999.png',
        plot = p.JM.1999,
-       dpi = 600, height = 6, 
-       width = 8, units = "in")
+       dpi = 600, height = 4, 
+       width = 6, units = "in")
 ```
 
 ```{r plot_JM_raw_since_1999, echo=FALSE, cache=TRUE, fig.cap = "Figure 2. Nest counts at Jamursba-Medi since 1999"}
@@ -126,8 +131,8 @@ p.JM.monthly.1999 <- ggplot(data.1.JM.1999) +
 
 ggsave(filename = 'figures/JM_monthly_1999.png', 
        plot = p.JM.monthly.1999,
-       dpi = 600, height = 6, 
-       width = 8, units = "in")
+       dpi = 600, height = 4, 
+       width = 6, units = "in")
 ```
 
 When the number of nests is plotted by month, the seasonal fluctations become more obvious (Figure 3). In general, high counts within a year are seen during summer months (approximately from April to September), whereas low counts are found during winter months (October through March).   
@@ -155,8 +160,8 @@ p.W.all <- ggplot(data.1.W) +
 
 ggsave(filename = 'figures/W_all.png', 
        plot = p.W.all,
-       dpi = 600, height = 6, 
-       width = 8, units = "in")
+       dpi = 600, height = 4, 
+       width = 6, units = "in")
 ```
 
 At Wermon, the sole data point in 2002 was from at least two months. So, for this analysis, I use data from 2003.  Limited amount of data were collected between July 2013 and December 2015.    
@@ -181,8 +186,8 @@ p.W.monthly <- ggplot(data.1.W.2003) +
 
 ggsave(filename = 'figures/W_monthly.png', 
        plot = p.W.monthly,
-       dpi = 600, height = 6, 
-       width = 8, units = "in")
+       dpi = 600, height = 4, 
+       width = 6, units = "in")
 
 ```
 
@@ -206,8 +211,8 @@ p.W.monthly.2006 <- ggplot(data.1.W.2006) +
 
 ggsave(filename = 'figures/W_monthly_2006.png', 
        plot = p.W.monthly.2006,
-       dpi = 600, height = 6, 
-       width = 8, units = "in")
+       dpi = 600, height = 4, 
+       width = 6, units = "in")
 ```
 
 
@@ -294,14 +299,26 @@ signif(jm.out$out$summary["U", "f"], 3) * 100
 
 
 ```{r}
+U.stats <- paste0(signif(jm.out$out$summary["U", "50%"], 2), 
+                  " [", signif(jm.out$out$summary["U", "2.5%"], 2), ", ", 
+                  signif(jm.out$out$summary["U", "97.5%"], 2), "]")
+  
 p.1 <- bayesplot::mcmc_dens(jm.out$out$samples, "U")
-p.1 <- p.1 + labs(y = "Density")
-
+p.1 <- p.1 + xlim(c(-1.1, 1.1)) + 
+  ylim(c(0, posterior.lim.y)) + 
+  geom_text(aes(x = 0.5, y = text.y), 
+            label = U.stats, hjust =  "left") + 
+  labs(y = "Density", x = "", title = "Jamursba-Medi (one dataset)") +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+  
+print(p.1)
 ggsave(p.1,
        filename = "figures/posterior_U_JM_only.png",
        device = "png",
-       dpi = 600)
-print(p.1)
+       dpi = 600,
+       height = 4, width = 6, units = "in")
+
 ```
 
 
@@ -337,10 +354,11 @@ p.1.log <- ggplot(data = JM.log.df) +
              color = obsd.color,
              size = obsd.size)+
   scale_x_continuous(breaks = seq(2001, 2018, by = 2)) +   
-  labs(x = "", y = "ln(nests)", title = "Jamursba-Medi")
+  labs(x = "", y = "ln(nests)", title = "Jamursba-Medi (one dataset)")
 
 ggsave(p.1.log, filename = "figures/JM_only_trend_annual_log.png",
-       device = "png", dpi = 600)
+       device = "png", dpi = 600,
+       height = 4, width = 6, units = "in")
 
 p.1 <- ggplot(data = JM.df) + 
   geom_ribbon(aes(x = time, ymin = lower, ymax = upper),
@@ -355,10 +373,13 @@ p.1 <- ggplot(data = JM.df) +
              color = obsd.color,
              size = obsd.size)+
   scale_x_continuous(breaks = seq(2001, 2018, by = 2)) +   
-  labs(x = "", y = "Nests", title = "Jamursba-Medi")
+  labs(x = "", y = "Nests", title = "Jamursba-Medi (one dataset)") +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.1, filename = "figures/JM_only_trend_annual.png",
-       device = "png", dpi = 600)
+       device = "png", dpi = 600,
+       height = 4, width = 6, units = "in")
 
 p.1
 ```
@@ -405,13 +426,24 @@ signif(jm.out$out$summary["U", "f"], 3) * 100
 
 
 ```{r}
+U.stats <- paste0(signif(jm.out$out$summary["U", "50%"], 2), 
+                  " [", signif(jm.out$out$summary["U", "2.5%"], 2), ", ", 
+                  signif(jm.out$out$summary["U", "97.5%"], 2), "]")
+
 p.1 <- bayesplot::mcmc_dens(jm.out$out$samples, "U")
-p.1 <- p.1 + labs(y = "Density")
+p.1 <- p.1 + labs(y = "Density", x = "", title = "Jamursba-Medi (Summer, one dataset)") +
+  xlim(c(-1.1, 1.1)) +
+  ylim(c(0, posterior.lim.y)) + 
+  geom_text(aes(x = 0.5, y = text.y), 
+            label = U.stats, hjust =  "left") + 
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.1,
        filename = "figures/posterior_U_JM_only_summer.png",
        device = "png",
-       dpi = 600)
+       dpi = 600,
+       height = 4, width = 6, units = "in")
 print(p.1)
 ```
 
@@ -447,10 +479,13 @@ p.1.log <- ggplot(data = JM.log.df) +
              color = obsd.color,
              size = obsd.size)+
   scale_x_continuous(breaks = seq(2001, 2018, by = 2)) +   
-  labs(x = "", y = "ln(nests)", title = "Jamursba-Medi (Summer)")
+  labs(x = "", y = "ln(nests)", title = "Jamursba-Medi (Summer)") +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.1.log, filename = "figures/JM_only_trend_summer_log.png",
-       device = "png", dpi = 600)
+       device = "png", dpi = 600,
+       height = 4, width = 6, units = "in")
 
 p.1 <- ggplot(data = JM.df) + 
   geom_ribbon(aes(x = time, ymin = lower, ymax = upper),
@@ -465,10 +500,13 @@ p.1 <- ggplot(data = JM.df) +
              color = obsd.color,
              size = obsd.size)+
   scale_x_continuous(breaks = seq(2001, 2018, by = 2)) +   
-  labs(x = "", y = "Nests", title = "Jamursba-Medi (Summer)")
+  labs(x = "", y = "Nests", title = "Jamursba-Medi (Summer, one dataset)") +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.1, filename = "figures/JM_only_trend_summer.png",
-       device = "png", dpi = 600)
+       device = "png", dpi = 600,
+       height = 4, width = 6, units = "in")
 
 p.1
 ```
@@ -515,13 +553,24 @@ signif(jm.out$out$summary["U", "f"], 3) * 100
 
 
 ```{r}
+U.stats <- paste0(signif(jm.out$out$summary["U", "50%"], 2), 
+                  " [", signif(jm.out$out$summary["U", "2.5%"], 2), ", ", 
+                  signif(jm.out$out$summary["U", "97.5%"], 2), "]")
+
 p.1 <- bayesplot::mcmc_dens(jm.out$out$samples, "U")
-p.1 <- p.1 + labs(y = "Density")
+p.1 <- p.1 + labs(y = "Density", x = "", title = "Jamursba-Medi (Winter, one dataset)") +
+  xlim(c(-1.1, 1.1)) +
+  ylim(c(0, posterior.lim.y)) + 
+  geom_text(aes(x = 0.5, y = text.y), 
+            label = U.stats, hjust =  "left") + 
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.1,
        filename = "figures/posterior_U_JM_only_winter.png",
        device = "png",
-       dpi = 600)
+       dpi = 600,
+       height = 4, width = 6, units = "in")
 print(p.1)
 ```
 
@@ -557,10 +606,13 @@ p.1.log <- ggplot(data = JM.log.df) +
              color = obsd.color,
              size = obsd.size)+
   scale_x_continuous(breaks = seq(2001, 2018, by = 2)) +   
-  labs(x = "", y = "ln(nests)", title = "Jamursba-Medi (Winter)")
+  labs(x = "", y = "ln(nests)", title = "Jamursba-Medi (Winter, one dataset)") +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.1.log, filename = "figures/JM_only_trend_winter_log.png",
-       device = "png", dpi = 600)
+       device = "png", dpi = 600,
+       height = 4, width = 6, units = "in")
 
 p.1 <- ggplot(data = JM.df) + 
   geom_ribbon(aes(x = time, ymin = lower, ymax = upper),
@@ -575,10 +627,13 @@ p.1 <- ggplot(data = JM.df) +
              color = obsd.color,
              size = obsd.size)+
   scale_x_continuous(breaks = seq(2001, 2018, by = 2)) +   
-  labs(x = "", y = "Nests", title = "Jamursba-Medi (Winter)")
+  labs(x = "", y = "Nests", title = "Jamursba-Medi (Winter, one dataset)") +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.1, filename = "figures/JM_only_trend_winter.png",
-       device = "png", dpi = 600)
+       device = "png", dpi = 600,
+       height = 4, width = 6, units = "in")
 
 p.1
 ```
@@ -627,13 +682,25 @@ signif(jm.out$out$summary["U", "f"], 3) * 100
 
 
 ```{r}
+U.stats <- paste0(signif(jm.out$out$summary["U", "50%"], 2), 
+                  " [", signif(jm.out$out$summary["U", "2.5%"], 2), ", ", 
+                  signif(jm.out$out$summary["U", "97.5%"], 2), "]")
+
+
 p.1 <- bayesplot::mcmc_dens(jm.out$out$samples, "U")
-p.1 <- p.1 + labs(y = "Density")
+p.1 <- p.1 + labs(y = "Density", x= "", title = "Wermon (one dataset)") +
+  xlim(c(-1.1, 1.1)) +
+  ylim(c(0, posterior.lim.y)) + 
+  geom_text(aes(x = 0.5, y = text.y), 
+            label = U.stats, hjust =  "left") + 
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.1,
        filename = "figures/posterior_U_W_only.png",
        device = "png",
-       dpi = 600)
+       dpi = 600,
+       height = 4, width = 6, units = "in")
 print(p.1)
 ```
 
@@ -669,10 +736,13 @@ p.1.log <- ggplot(data = W.log.df) +
              color = obsd.color,
              size = obsd.size)+
   scale_x_continuous(breaks = seq(2006, 2018, by = 2)) +   
-  labs(x = "", y = "ln(nests)", title = "Wermon")
+  labs(x = "", y = "ln(nests)", title = "Wermon (one dataset)") +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.1.log, filename = "figures/W_only_trend_annual_log.png",
-       device = "png", dpi = 600)
+       device = "png", dpi = 600,
+       height = 4, width = 6, units = "in")
 
 p.1 <- ggplot(data = W.df) + 
   geom_ribbon(aes(x = time, ymin = lower, ymax = upper),
@@ -687,10 +757,13 @@ p.1 <- ggplot(data = W.df) +
              color = obsd.color,
              size = obsd.size)+
   scale_x_continuous(breaks = seq(2006, 2018, by = 2)) +   
-  labs(x = "", y = "Nests", title = "Wermon")
+  labs(x = "", y = "Nests", title = "Wermon (one dataset)") +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.1, filename = "figures/W_only_trend_annual.png",
-       device = "png", dpi = 600)
+       device = "png", dpi = 600,
+       height = 4, width = 6, units = "in")
 
 p.1
 ```
@@ -738,13 +811,25 @@ signif(jm.out$out$summary["U", "f"], 3) * 100
 
 
 ```{r}
+U.stats <- paste0(signif(jm.out$out$summary["U", "50%"], 2), 
+                  " [", signif(jm.out$out$summary["U", "2.5%"], 2), ", ", 
+                  signif(jm.out$out$summary["U", "97.5%"], 2), "]")
+
 p.1 <- bayesplot::mcmc_dens(jm.out$out$samples, "U")
-p.1 <- p.1 + labs(y = "Density")
+p.1 <- p.1 + labs(y = "Density", x = "", title = "Wermon (Summer, one dataset)") +
+  xlim(c(-1.1, 1.1)) +
+  ylim(c(0, posterior.lim.y)) + 
+  geom_text(aes(x = 0.5, y = text.y), 
+            label = U.stats, hjust =  "left") + 
+
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.1,
        filename = "figures/posterior_U_W_only_summer.png",
        device = "png",
-       dpi = 600)
+       dpi = 600,
+       height = 4, width = 6, units = "in")
 print(p.1)
 ```
 
@@ -780,10 +865,13 @@ p.1.log <- ggplot(data = W.log.df) +
              color = obsd.color,
              size = obsd.size)+
   scale_x_continuous(breaks = seq(2006, 2018, by = 2)) +   
-  labs(x = "", y = "ln(nests)", title = "Wermon (Summer)")
+  labs(x = "", y = "ln(nests)", title = "Wermon (Summer, one dataset)") +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.1.log, filename = "figures/W_only_trend_summer_log.png",
-       device = "png", dpi = 600)
+       device = "png", dpi = 600,
+       height = 4, width = 6, units = "in")
 
 p.1 <- ggplot(data = W.df) + 
   geom_ribbon(aes(x = time, ymin = lower, ymax = upper),
@@ -798,10 +886,13 @@ p.1 <- ggplot(data = W.df) +
              color = obsd.color,
              size = obsd.size)+
   scale_x_continuous(breaks = seq(2006, 2018, by = 2)) +   
-  labs(x = "", y = "Nests", title = "Wermon (Summer)")
+  labs(x = "", y = "Nests", title = "Wermon (Summer, one dataset)") +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.1, filename = "figures/W_only_trend_summer.png",
-       device = "png", dpi = 600)
+       device = "png", dpi = 600,
+       height = 4, width = 6, units = "in")
 
 p.1
 ```
@@ -849,13 +940,25 @@ signif(jm.out$out$summary["U", "f"], 3) * 100
 
 
 ```{r}
+U.stats <- paste0(signif(jm.out$out$summary["U", "50%"], 2), 
+                  " [", signif(jm.out$out$summary["U", "2.5%"], 2), ", ", 
+                  signif(jm.out$out$summary["U", "97.5%"], 2), "]")
+
+
 p.1 <- bayesplot::mcmc_dens(jm.out$out$samples, "U")
-p.1 <- p.1 + labs(y = "Density")
+p.1 <- p.1 + labs(y = "Density", x = "", title = "Wermon (Winter, one dataset)") +
+  xlim(c(-1.1, 1.1)) +
+  ylim(c(0, posterior.lim.y)) + 
+  geom_text(aes(x = 0.5, y = text.y), 
+            label = U.stats, hjust =  "left") + 
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.1,
        filename = "figures/posterior_U_W_only_winter.png",
        device = "png",
-       dpi = 600)
+       dpi = 600,
+       height = 4, width = 6, units = "in")
 print(p.1)
 ```
 
@@ -891,10 +994,13 @@ p.1.log <- ggplot(data = W.log.df) +
              color = obsd.color,
              size = obsd.size)+
   scale_x_continuous(breaks = seq(2006, 2018, by = 2)) +   
-  labs(x = "", y = "ln(nests)", title = "Wermon (Winter)")
+  labs(x = "", y = "ln(nests)", title = "Wermon (Winter, one dataset)") +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.1.log, filename = "figures/W_only_trend_winter_log.png",
-       device = "png", dpi = 600)
+       device = "png", dpi = 600,
+       height = 4, width = 6, units = "in")
 
 p.1 <- ggplot(data = W.df) + 
   geom_ribbon(aes(x = time, ymin = lower, ymax = upper),
@@ -909,10 +1015,13 @@ p.1 <- ggplot(data = W.df) +
              color = obsd.color,
              size = obsd.size)+
   scale_x_continuous(breaks = seq(2006, 2018, by = 2)) +   
-  labs(x = "", y = "Nests", title = "Wermon (Winter)")
+  labs(x = "", y = "Nests", title = "Wermon (Winter, one dataset)") +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.1, filename = "figures/W_only_trend_winter.png",
-       device = "png", dpi = 600)
+       device = "png", dpi = 600,
+       height = 4, width = 6, units = "in")
 
 p.1
 ```
@@ -926,17 +1035,53 @@ jags.model <- readRDS(file = "RData/independentUs_singleQ_out_2001_2018_2019-03-
 
 Look at the slope parameters for JM (1) and W (2)
 ```{r}
+U.stats <- paste0(signif(jags.model$out$summary["U[1]", "50%"], 2), 
+                  " [", signif(jags.model$out$summary["U[1]", "2.5%"], 2), ", ", 
+                  signif(jags.model$out$summary["U[1]", "97.5%"], 2), "]")
 
-p.1 <- bayesplot::mcmc_dens(jags.model$out$samples, c("U[1]", "U[2]"))
-p.1 <- p.1 + labs(y = "Density")
+p.1.U1 <- bayesplot::mcmc_dens(jags.model$out$samples, "U[1]")
+p.1.U1 <- p.1.U1 + labs(y = "Density", x = "", title = "Jamursba-Medi (two datasets)") +
+  xlim(c(-1.1, 1.1)) +
+  ylim(c(0, posterior.lim.y)) + 
+  geom_text(aes(x = 0.5, y = text.y), 
+            label = U.stats, hjust =  "left") + 
 
-ggsave(p.1,
-       filename = "figures/posterior_Us.png",
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+
+U.stats <- paste0(signif(jags.model$out$summary["U[2]", "50%"], 2), 
+                  " [", signif(jags.model$out$summary["U[2]", "2.5%"], 2), ", ", 
+                  signif(jags.model$out$summary["U[2]", "97.5%"], 2), "]")
+
+p.1.U2 <- bayesplot::mcmc_dens(jags.model$out$samples, "U[2]")
+p.1.U2 <- p.1.U2 + labs(y = "Density", x = "", title = "Wermon (two datasets)") +
+  xlim(c(-1.1, 1.1)) +
+  ylim(c(0, posterior.lim.y)) + 
+  geom_text(aes(x = 0.5, y = text.y), 
+            label = U.stats, hjust =  "left") + 
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+
+ggsave(p.1.U1,
+       filename = "figures/posterior_U_JM_indUs.png",
        device = "png",
-       dpi = 600)
-print(p.1)
+       dpi = 600,
+       height = 4, width = 6, units = "in")
+
+ggsave(p.1.U2,
+       filename = "figures/posterior_U_W_indUs.png",
+       device = "png",
+       dpi = 600,
+       height = 4, width = 6, units = "in")
+
+print(p.1.U1)
 
 ```
+
+```{r}
+print(p.1.U2)
+```
+
 
 ```{r}
 # proportion of U[1] less than 0.
@@ -983,10 +1128,13 @@ p.1.log <- ggplot(data = JM.log.df) +
              color = obsd.color,
              size = obsd.size)+
   scale_x_continuous(breaks = seq(2001, 2018, by = 2)) +   
-  labs(x = "", y = "ln(nests)", title = "Jamursba-Medi")
+  labs(x = "", y = "ln(nests)", title = "Jamursba-Medi (two datasets)") +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.1.log, filename = "figures/JM_trend_annual_indU_log.png",
-       device = "png", dpi = 600)
+       device = "png", dpi = 600,
+       height = 4, width = 6, units = "in")
 
 p.1 <- ggplot(data = JM.df) + 
   geom_ribbon(aes(x = time, ymin = lower, ymax = upper),
@@ -1001,10 +1149,13 @@ p.1 <- ggplot(data = JM.df) +
              color = obsd.color,
              size = obsd.size)+
   scale_x_continuous(breaks = seq(2001, 2018, by = 2)) +   
-  labs(x = "", y = "Nests", title = "Jamursba-Medi")
+  labs(x = "", y = "Nests", title = "Jamursba-Medi (two datasets)") +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.1, filename = "figures/JM_trend_annual_indU.png",
-       device = "png", dpi = 600)
+       device = "png", dpi = 600,
+       height = 4, width = 6, units = "in")
 
 p.1
 ```
@@ -1039,10 +1190,13 @@ p.2.log <- ggplot(data = W.log.df) +
              color = obsd.color,
              size = obsd.size)+
   scale_x_continuous(breaks = seq(2001, 2018, by = 2)) +  
-  labs(x = "", y = "ln(nests)", title = "Wermon")
+  labs(x = "", y = "ln(nests)", title = "Wermon, two datasets") +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.2.log, filename = "figures/W_trend_annual_indU_log.png",
-       device = "png", dpi = 600)
+       device = "png", dpi = 600,
+       height = 4, width = 6, units = "in")
 
 p.2 <- ggplot(data = W.df) + 
   geom_ribbon(aes(x = time, ymin = lower, ymax = upper),
@@ -1057,10 +1211,13 @@ p.2 <- ggplot(data = W.df) +
              color = obsd.color,
              size = obsd.size)+
   scale_x_continuous(breaks = seq(2001, 2018, by = 2)) +  
-  labs(x = "", y = "Nests", title = "Wermon")
+  labs(x = "", y = "Nests", title = "Wermon (two datasets)") +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.2, filename = "figures/W_trend_annual_indU.png",
-       device = "png", dpi = 600)
+       device = "png", dpi = 600,
+       height = 4, width = 6, units = "in")
 
 print(p.2)
 ```
@@ -1246,10 +1403,13 @@ p.1.log <- ggplot(data = JM.log.df) +
              color = obsd.color,
              size = obsd.size)+
   scale_x_continuous(breaks = seq(2001, 2018, by = 2)) +   
-  labs(x = "", y = "ln(nests)", title = "Jamursba-Medi")
+  labs(x = "", y = "ln(nests)", title = "Jamursba-Medi, two datasets") +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.1.log, filename = "figures/JM_trend_annual_log.png",
-       device = "png", dpi = 600)
+       device = "png", dpi = 600,
+       height = 4, width = 6, units = "in")
 
 p.1 <- ggplot(data = JM.df) + 
   geom_ribbon(aes(x = time, ymin = lower, ymax = upper),
@@ -1264,10 +1424,13 @@ p.1 <- ggplot(data = JM.df) +
              color = obsd.color,
              size = obsd.size)+
   scale_x_continuous(breaks = seq(2001, 2018, by = 2)) +   
-  labs(x = "", y = "Nests", title = "Jamursba-Medi")
+  labs(x = "", y = "Nests", title = "Jamursba-Medi, two datasets") +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.1, filename = "figures/JM_trend_annual.png",
-       device = "png", dpi = 600)
+       device = "png", dpi = 600,
+       height = 4, width = 6, units = "in")
 
 p.1
 
@@ -1304,10 +1467,13 @@ p.2.log <- ggplot(data = W.log.df) +
              color = obsd.color,
              size = obsd.size)+
   scale_x_continuous(breaks = seq(2001, 2018, by = 2)) +  
-  labs(x = "", y = "ln(nests)", title = "Wermon")
+  labs(x = "", y = "ln(nests)", title = "Wermon, two datasets") +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.2.log, filename = "figures/W_trend_annual_log.png",
-       device = "png", dpi = 600)
+       device = "png", dpi = 600,
+       height = 4, width = 6, units = "in")
 
 p.2 <- ggplot(data = W.df) + 
   geom_ribbon(aes(x = time, ymin = lower, ymax = upper),
@@ -1322,23 +1488,39 @@ p.2 <- ggplot(data = W.df) +
              color = obsd.color,
              size = obsd.size)+
   scale_x_continuous(breaks = seq(2001, 2018, by = 2)) +  
-  labs(x = "", y = "Nests", title = "Wermon")
+  labs(x = "", y = "Nests", title = "Wermon, two datasets") +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.2, filename = "figures/W_trend_annual.png",
-       device = "png", dpi = 600)
+       device = "png", dpi = 600,
+       height = 4, width = 6, units = "in")
 
 print(p.2)
 ```
 
 Look at the posterior of the slope parameter (U).
 ```{r}
+U.stats <- paste0(signif(jm.out$out$summary["U", "50%"], 2), 
+                  " [", signif(jm.out$out$summary["U", "2.5%"], 2), ", ", 
+                  signif(jm.out$out$summary["U", "97.5%"], 2), "]")
+
+
+
 p.1 <- bayesplot::mcmc_dens(jags.model$out$samples, "U")
-p.1 <- p.1 + labs(y = "Density")
+p.1 <- p.1 + labs(y = "Density", x = "", title = "Jamursba-Medi and Wermon") +
+  xlim(c(-1.1, 1.1)) +
+  ylim(c(0, posterior.lim.y)) + 
+  geom_text(aes(x = 0.5, y = text.y), 
+            label = U.stats, hjust =  "left") + 
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.1,
        filename = "figures/posterior_singleU.png",
        device = "png",
-       dpi = 600)
+       dpi = 600,
+       height = 4, width = 6, units = "in")
 print(p.1)
 ```
 
@@ -1510,10 +1692,13 @@ p.3 <- ggplot(data = JM.summer.df) +
              color = obsd.color,
              size = obsd.size)+
   scale_x_continuous(breaks = seq(2001, 2018, by = 2)) +  
-  labs(x = "", y = "Nests", title = "Jamursba-Medi (Summer)")
+  labs(x = "", y = "Nests", title = "Jamursba-Medi (Summer, two datasets)") +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.3, filename = "figures/JM_trend_summer.png",
-       device = "png", dpi = 600)
+       device = "png", dpi = 600,
+       height = 4, width = 6, units = "in")
 
 p.3.log <- ggplot(data = JM.summer.log.df) + 
   geom_ribbon(aes(x = time, ymin = lower, ymax = upper),
@@ -1528,10 +1713,13 @@ p.3.log <- ggplot(data = JM.summer.log.df) +
              color = obsd.color,
              size = obsd.size)+
   scale_x_continuous(breaks = seq(2001, 2018, by = 2)) +  
-  labs(x = "", y = "ln(nests)", title = "Jamursba-Medi (Summer)")
+  labs(x = "", y = "ln(nests)", title = "Jamursba-Medi (Summer, two datasets)") +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.3.log, filename = "figures/JM_trend_summer_log.png",
-       device = "png", dpi = 600)
+       device = "png", dpi = 600,
+       height = 4, width = 6, units = "in")
 
 
 p.3
@@ -1540,12 +1728,12 @@ p.3
 
 ```{r}
 W.summer.log.df <- data.frame(median = jags.model_summer$out$q50$X + jags.model_summer$out$q50$A[2],
-                          lower = jags.model_summer$out$q2.5$X + jags.model_summer$out$q2.5$A[2],
-                          upper = jags.model_summer$out$q97.5$X + jags.model_summer$out$q97.5$A[2],
-                          data = jags.model_summer$jags.data$Y[2,],
-                          time = thedata$Season,
-                          obsd = log(thedata$Summer.observed.W),
-                          loc = 2)
+                              lower = jags.model_summer$out$q2.5$X + jags.model_summer$out$q2.5$A[2],
+                              upper = jags.model_summer$out$q97.5$X + jags.model_summer$out$q97.5$A[2],
+                              data = jags.model_summer$jags.data$Y[2,],
+                              time = thedata$Season,
+                              obsd = log(thedata$Summer.observed.W),
+                              loc = 2)
 
 W.summer.log.df %>% transmute(median = exp(median),
                           lower = exp(lower),
@@ -1568,10 +1756,13 @@ p.4 <- ggplot(data = W.summer.df) +
              color = obsd.color,
              size = obsd.size)+
   scale_x_continuous(breaks = seq(2001, 2018, by = 2)) +  
-  labs(x = "", y = "Nests", title = "Wermon (Summer)")
+  labs(x = "", y = "Nests", title = "Wermon (Summer, two datasets)") +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.4, filename = "figures/W_trend_summer.png",
-       device = "png", dpi = 600)
+       device = "png", dpi = 600,
+       height = 4, width = 6, units = "in")
 
 p.4.log <- ggplot(data = W.summer.log.df) + 
   geom_ribbon(aes(x = time, ymin = lower, ymax = upper),
@@ -1586,23 +1777,38 @@ p.4.log <- ggplot(data = W.summer.log.df) +
              color = obsd.color,
              size = obsd.size)+
   scale_x_continuous(breaks = seq(2001, 2018, by = 2)) +  
-  labs(x = "", y = "ln(nests)", title = "Wermon (Summer)")
+  labs(x = "", y = "ln(nests)", title = "Wermon (Summer, two datasets)") +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.4.log, filename = "figures/W_trend_summer_log.png",
-       device = "png", dpi = 600)
+       device = "png", dpi = 600,
+       height = 4, width = 6, units = "in")
 
 print(p.4)
 ```
 
 Look at the posterior of the slope parameter (U).
 ```{r}
+U.stats <- paste0(signif(jags.model_summer$out$summary["U", "50%"], 2), 
+                  " [", signif(jags.model_summer$out$summary["U", "2.5%"], 2), ", ", 
+                  signif(jags.model_summer$out$summary["U", "97.5%"], 2), "]")
+
 p.1 <- bayesplot::mcmc_dens(jags.model_summer$out$samples, "U")
-p.1 <- p.1 + labs(y = "Density")
+p.1 <- p.1 + xlim(c(-1.1, 1.1)) +
+  labs(y = "Density", x= "", title = "Jamursba-Medi and Wermon (Summer)") +
+  ylim(c(0, posterior.lim.y)) + 
+  geom_text(aes(x = 0.5, y = text.y), 
+            label = U.stats, hjust =  "left") + 
+
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.1,
        filename = "figures/posterior_U_summer.png",
        device = "png",
-       dpi = 600)
+       dpi = 600,
+       height = 4, width = 6, units = "in")
 print(p.1)
 ```
 
@@ -1773,10 +1979,13 @@ p.5 <- ggplot(data = JM.winter.df) +
              color = obsd.color,
              size = obsd.size)+
   scale_x_continuous(breaks = seq(2001, 2018, by = 2)) +  
-  labs(x = "", y = "Nests", title = "Jamursba-Medi (Winter)")
+  labs(x = "", y = "Nests", title = "Jamursba-Medi (Winter, two datasets)") +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.5, filename = "figures/JM_trend_winter.png",
-       device = "png", dpi = 600)
+       device = "png", dpi = 600,
+       height = 4, width = 6, units = "in")
 
 p.5.log <- ggplot(data = JM.winter.log.df) + 
   geom_ribbon(aes(x = time, ymin = lower, ymax = upper),
@@ -1791,10 +2000,13 @@ p.5.log <- ggplot(data = JM.winter.log.df) +
              color = obsd.color,
              size = obsd.size)+
   scale_x_continuous(breaks = seq(2001, 2018, by = 2)) +  
-  labs(x = "", y = "ln(nests)", title = "Jamursba-Medi (Winter)")
+  labs(x = "", y = "ln(nests)", title = "Jamursba-Medi (Winter, two datasets)") +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.5.log, filename = "figures/JM_trend_winter_log.png",
-       device = "png", dpi = 600)
+       device = "png", dpi = 600,
+       height = 4, width = 6, units = "in")
 
 
 p.5
@@ -1831,10 +2043,13 @@ p.6 <- ggplot(data = W.winter.df) +
              color = obsd.color,
              size = obsd.size)+
   scale_x_continuous(breaks = seq(2001, 2018, by = 2)) +  
-  labs(x = "", y = "Nests", title = "Wermon (Winter)")
+  labs(x = "", y = "Nests", title = "Wermon (Winter, two datasets)") +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.6, filename = "figures/W_trend_winter.png",
-       device = "png", dpi = 600)
+       device = "png", dpi = 600,
+       height = 4, width = 6, units = "in")
 
 p.6.log <- ggplot(data = W.winter.log.df) + 
   geom_ribbon(aes(x = time, ymin = lower, ymax = upper),
@@ -1849,23 +2064,37 @@ p.6.log <- ggplot(data = W.winter.log.df) +
              color = obsd.color,
              size = obsd.size)+
   scale_x_continuous(breaks = seq(2001, 2018, by = 2)) +  
-  labs(x = "", y = "ln(nests)", title = "Wermon (Winter)")
+  labs(x = "", y = "ln(nests)", title = "Wermon (Winter, two datasets)") +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.6.log, filename = "figures/W_trend_winter_log.png",
-       device = "png", dpi = 600)
+       device = "png", dpi = 600,
+       height = 4, width = 6, units = "in")
 
 print(p.6)
 ```
 
 Look at the posterior of the slope parameter (U).
 ```{r}
+U.stats <- paste0(signif(jags.model_winter$out$summary["U", "50%"], 2), 
+                  " [", signif(jags.model_winter$out$summary["U", "2.5%"], 2), ", ", 
+                  signif(jags.model_winter$out$summary["U", "97.5%"], 2), "]")
+
 p.1 <- bayesplot::mcmc_dens(jags.model_winter$out$samples, "U")
-p.1 <- p.1 + labs(y = "Density")
+p.1 <- p.1 + xlim(c(-1.1, 1.1)) +
+  labs(y = "Density", x = "", title = "Jamursba-Medi and Wermon (Winter)") +
+  ylim(c(0, posterior.lim.y)) + 
+  geom_text(aes(x = 0.5, y = text.y), 
+            label = U.stats, hjust =  "left") + 
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
 
 ggsave(p.1,
        filename = "figures/posterior_U_winter.png",
        device = "png",
-       dpi = 600)
+       dpi = 600,
+       height = 4, width = 6, units = "in")
 print(p.1)
 ```
 

@@ -14,14 +14,14 @@ year.end <- 2018
 
 fill.color <-  "darkseagreen"
 fill.color.summer <- "darksalmon"
-fill.color.winter <- "lightblue1"
+fill.color.winter <- "gray65"
 fill.alpha <-  0.65
 line.color <-  "darkblue"
 line.color.summer <- "red3"
 line.color.winter <- "greenyellow"
 data.color <- "black"
 data.size <- 1.5
-obsd.color <- "gold2"
+obsd.color <- "red2"
 
 obsd.size <- 1
 ```
@@ -1158,13 +1158,13 @@ p.JM.estimated.counts <- ggplot() +
   geom_point(data = ys.season,
              aes(x = season, 
                  y = summer),
-             color = obsd.color) +
+             color = data.color) +
   
   geom_ribbon(data = Xs.season,
                 aes(x = season, 
                     ymin = Winter.low, 
                     ymax = Winter.high), 
-                color = fill.color.winter,
+                fill = fill.color.winter,
               alpha = fill.alpha) + 
   geom_point(data = Xs.season,
              aes(x = season, 
@@ -1174,7 +1174,8 @@ p.JM.estimated.counts <- ggplot() +
   geom_point(data = ys.season,
              aes(x = season, 
                  y = winter),
-             color = data.color) + 
+             color = data.color,
+             shape = 17) + 
   scale_x_continuous(breaks = seq(1999, 2019, 5),
                      limits = c(1999, 2019)) +
   labs(x = '', y = '# nests', title = "Jamursba-Medi")  +
@@ -1185,7 +1186,7 @@ p.JM.estimated.counts <- ggplot() +
 
 
 ggsave(filename = "figures/CountsPerSeason_best_JM.png",
-       device = "png", dpi = 600,
+       device = "png", dpi = 600,height = 4, width = 6, units = "in",
        plot = p.JM.estimated.counts)
 print(p.JM.estimated.counts)
 ```

@@ -11,14 +11,14 @@ run.date <- "2019-03-14"
 
 fill.color <-  "darkseagreen"
 fill.color.summer <- "darksalmon"
-fill.color.winter <- "lightblue1"
+fill.color.winter <- "gray65"
 fill.alpha <-  0.65
 line.color <-  "darkblue"
 line.color.summer <- "red3"
 line.color.winter <- "greenyellow"
 data.color <- "black"
 data.size <- 1.5
-obsd.color <- "gold2"
+obsd.color <- "red2"
 
 models.df <- model.names()
 ```
@@ -1388,6 +1388,14 @@ ggsave(p.1,
 
 Split between summer and winter. 
 ```{r}
+M$Xs.stats %>% mutate(season = ifelse(month < 4, year - 1, year)) %>% 
+  mutate(summer = ifelse(month > 3 & month < 10, 1, 0)) -> Xs.stats
+
+M$ys.stats %>% mutate(season = ifelse(month < 4, year - 1, year)) %>% 
+  mutate(summer = ifelse(month > 3 & month < 10, 1, 0)) -> ys.stats
+
+seasons <- as.matrix(unique(Xs.stats$season))
+
 X.posterior.seasons <- lapply(apply(seasons, 
                                     MARGIN = 1,
                                     FUN = extract.posterior.jagsUI, 
@@ -1451,7 +1459,7 @@ p.W.estimated.counts <- ggplot() +
                 aes(x = season, 
                     ymin = Winter.low, 
                     ymax = Winter.high), 
-                color = fill.color.winter,
+                fill = fill.color.winter, 
               alpha = fill.alpha) + 
   geom_point(data = Xs.season,
              aes(x = season, 
@@ -1461,7 +1469,9 @@ p.W.estimated.counts <- ggplot() +
   geom_point(data = ys.season,
              aes(x = season, 
                  y = winter),
-             color = data.color) + 
+             color = data.color,
+             fill = data.color,
+             shape = 17) + 
   scale_x_continuous(breaks = seq(2006, 2019, 5),
                      limits = c(2006, 2019)) +
   labs(x = '', y = '# nests', title = "Wermon")  +
