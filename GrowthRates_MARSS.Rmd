@@ -419,8 +419,8 @@ d <- d.in
 C <- "unconstrained"
 c <- c.Four
 
-if (!file.exists(paste0("RData/MARSS_fit7_", run.date, ".rds"))){
-  fit.7 <- MARSS(data.MARSS,
+if (!file.exists(paste0("RData/MARSS_fit8_", run.date, ".rds"))){
+  fit.8 <- MARSS(data.MARSS,
                  model = list(B = B,
                               Q = Q,
                               Z = Z, 
@@ -434,10 +434,10 @@ if (!file.exists(paste0("RData/MARSS_fit7_", run.date, ".rds"))){
                                 trace = 1,
                                 safe = TRUE))
   
-  saveRDS(fit.7, file = paste0("RData/MARSS_fit7_", run.date, ".rds"))
+  saveRDS(fit.8, file = paste0("RData/MARSS_fit8_", run.date, ".rds"))
   
 } else {
-  fit.7 <- readRDS(file = paste0("RData/MARSS_fit7_", run.date, ".rds"))
+  fit.8 <- readRDS(file = paste0("RData/MARSS_fit8_", run.date, ".rds"))
 }
 
 ```
