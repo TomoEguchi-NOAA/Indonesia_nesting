@@ -40,20 +40,20 @@ MCMC.params <- list(n.chains = MCMC.n.chains,
                     n.thin = MCMC.n.thin)
 
 # JM
-year.begin <- 1999
-year.end <- 2018
-loc <- "JM"
-loc.name <- "Jamursba-Medi"
-period <- 12
-maxN <- 10000
+# year.begin <- 1999
+# year.end <- 2018
+# loc <- "JM"
+# loc.name <- "Jamursba-Medi"
+# period <- 12
+# maxN <- 10000
 
 # W
-# year.begin <- 2003
-# year.end <- 2018
-# loc <- "W"
-# loc.name <- "Wermon"
-# period <- 6
-# maxN <- 3000
+year.begin <- 2003
+year.end <- 2018
+loc <- "W"
+loc.name <- "Wermon"
+period <- 6
+maxN <- 3000
 
 data.jags <- data.extract(location = loc, 
                           year.begin = year.begin, 

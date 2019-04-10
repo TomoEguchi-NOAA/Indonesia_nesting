@@ -215,7 +215,7 @@ bayesplot::mcmc_dens(jm$samples, "p.beta.sin")
 
 
 pareto.k <- loo.out$loo.out$diagnostics$pareto_k
-data.y <- na.omit(as.vector(t(jags.data$y))
+data.y <- na.omit(as.vector(t(jags.data$y)))
 
 pareto.df <- data.frame(y = data.y,
                         khat = pareto.k,
