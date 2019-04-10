@@ -86,7 +86,7 @@ jags.data$period <- period
 jm <- jags(jags.data,
            inits = NULL,
            parameters.to.save= jags.params,
-           model.file = 'models/model_SSAR1_logY_norm_norm_trend_Four.txt',
+           model.file = 'models/model_norm_norm_trend_Four.txt',
            n.chains = MCMC.params$n.chains,
            n.burnin = MCMC.params$n.burnin,
            n.thin = MCMC.params$n.thin,
