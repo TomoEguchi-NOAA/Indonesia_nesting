@@ -88,7 +88,13 @@ data.extract <- function(location, year.begin, year.end){
                     m = data.1$Month,
                     T = nrow(data.1))
   
+  y <- matrix(log(data.1$Nests), ncol = 12, byrow = TRUE)
+  jags.data2 <- list(y = y,
+                     m = matrix(data.1$Month, ncol = 12, byrow = TRUE),
+                     n.years = nrow(y))
+  
   out <- list(jags.data = jags.data,
+              jags.data2 = jags.data2,
               data.1 = data.1)
   return(out)
 }

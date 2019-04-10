@@ -30,6 +30,8 @@ data.size <- 1.5
 obsd.color <- "red2"
 
 obsd.size <- 1
+
+locations <- c("JM", "W")
 ```
 
 
@@ -80,7 +82,9 @@ maxit had to be increased to reach Abstol convergence. log-log convergence did n
 ```{r}
 maxit <- 10000
 if (!file.exists(paste0("RData/MARSS_fit1_", run.date, ".rds"))){
-  fit.1 <- MARSS(data.MARSS, control = list(maxit = maxit))
+  fit.1 <- MARSS(data.MARSS, 
+                 control = list(maxit = maxit),
+                 method = "BFGS")
   
   saveRDS(fit.1, file = paste0("RData/MARSS_fit1_", run.date, ".rds"))
   
@@ -90,12 +94,12 @@ if (!file.exists(paste0("RData/MARSS_fit1_", run.date, ".rds"))){
 
 ```
 
+The "BFGS" method works faster and convergence reaches. When "method" is left as its default ("kem"), a lot slower and it does not converge... 
 
 The model does not converge - not a huge surprise. 
 
 x[t] = B x[t-1] + w[t], w[t] ~ MVN(0, Q)
 y[t] = I x[t] + v[t], v[t] ~ MVN(0, R)
-
 
 Change Q to unconstratined so that it's not just diagonal qs.
 Also add independent slope to each beach.
@@ -105,7 +109,8 @@ if (!file.exists(paste0("RData/MARSS_fit2_", run.date, ".rds"))){
                  model = list(Q = "unconstrained",
                               B = "diagonal and unequal",
                               R = "diagonal and equal"),
-                 control = list(maxit = maxit))
+                 control = list(maxit = maxit),
+                 method = "BFGS")
 
   saveRDS(fit.2, file = paste0("RData/MARSS_fit2_", run.date, ".rds"))
   
@@ -117,13 +122,14 @@ if (!file.exists(paste0("RData/MARSS_fit2_", run.date, ".rds"))){
 
 Convergence issue persists... not very surprising given our seasonal changes in counts. 
 
-Change Q to equal variance and covariance. 
+Change Q to equal variance and covariance. This does not run with method = "BFGS."  The error message states that when using BFGS, var-cov matrices must be either diagonal or uncontrained at t=1.
 
 ```{r}
 if (!file.exists(paste0("RData/MARSS_fit3_", run.date, ".rds"))){
   fit.3 <- MARSS(data.MARSS, 
                  model = list(Q = "equalvarcov"),
-                 control = list(maxit = 5000))
+                 control = list(maxit = 5000),
+                 method = "kem")
   
   
   saveRDS(fit.3, file = paste0("RData/MARSS_fit3_", run.date, ".rds"))
@@ -133,14 +139,11 @@ if (!file.exists(paste0("RData/MARSS_fit3_", run.date, ".rds"))){
 }
 ```
 
-Add month as a covariate. See p. 177. 
-
 Alternatively, we can use "season" as a state covariate.  
 
 
 x[t] = B x[t-1] + C[t] c[t] + w[t], w[t] ~ MVN(0, Q)
 y[t] = Z x[t] + v[t], v[t] ~ MVN(0, R)
-
 
 Month is not working so switch to that... I get the followinbg message when using "month":
 
@@ -151,59 +154,24 @@ Stopped at iter=2 in MARSSkem at U update. denom is not invertible.
  
 
 ```{r}
-# period <- 12
-# c.in <- diag(period)
-# 
-# TT <- dim(data.MARSS)[2]
-# for (i in 2:ceiling(TT/period)){
-#   c.in <- cbind(c.in, diag(period))
-# }
-# 
-# rownames(c.in ) <- month.abb
 
 c.in <- matrix(0, nrow = 2, ncol = nrow(data.1.JM.W))
 c.in[1, data.1.JM.W$season == "summer"] <- 1
 c.in[2, data.1.JM.W$season == "winter"] <- 1
 
-# each beach has its own slope
-B <- "diagonal and unequal"
-
-# independent process errors
-Q <- "diagonal and unequal"
-
-# each beach is affected by itself
-Z <- "identity"
-
-# observation errors are equal
-R <- "diagonal and equal"
-
-# no observation covariates
-D <- "zero"
-d <- "zero"
-
-# state covariates - month
-# hoping to have one for winter Oct - Mar and another for summer Apr - Sep
-# C <- matrix(list("b1", "b1", "b1", "b2", "b2", "b2", "b2", "b2", "b2", "b1", "b1", "b1",
-#                  "b1", "b1", "b1", "b2", "b2", "b2", "b2", "b2", "b2", "b1", "b1", "b1"), 
-#             2, 12,
-#             byrow = T)
-
-C <- "diagonal and unequal"
-c <- c.in
-
 if (!file.exists(paste0("RData/MARSS_fit4_", run.date, ".rds"))){
   fit.4 <- MARSS(data.MARSS,
-                 model = list(B = B,
-                              Q = Q,
-                              Z = Z, 
-                              R = R,
-                              D = D,
-                              d = d,
-                              C = C,
-                              c = c),
+                 model = list(B = "diagonal and unequal",
+                              Q = "diagonal and unequal",
+                              Z = "identity", 
+                              R = "diagonal and equal",
+                              D = "zero",
+                              d = "zero",
+                              C = "diagonal and unequal",
+                              c = c.in),
                  control = list(maxit = 5000,
-                                trace = 1,
-                                safe = TRUE))
+                                trace = 1),
+                 method = "BFGS")
   
   saveRDS(fit.4, file = paste0("RData/MARSS_fit4_", run.date, ".rds"))
   
@@ -217,42 +185,30 @@ if (!file.exists(paste0("RData/MARSS_fit4_", run.date, ".rds"))){
 
 How can I add seasonal and location specific state covariates defined?
 Change C to "unconstrained"?  Then the "not invertible" error returns... We could have one parameter between two locations for summer and different for winter? It goes a few more steps before turning into "not invertible" error again.  
+
+Changing the optimization method to BFGS made it to work. 
 ```{r}
-# each beach has its own slope
-B <- "diagonal and unequal"
+# keep the state covariate
+c.in <- matrix(0, nrow = 2, ncol = nrow(data.1.JM.W))
+c.in[1, data.1.JM.W$season == "summer"] <- 1
+c.in[2, data.1.JM.W$season == "winter"] <- 1
+rownames(c.in ) <- c("summer", "winter")
 
-# independent process errors
-Q <- "diagonal and unequal"
-#Q <- "equalvarcov"
-
-# each beach is affected by itself
-Z <- "identity"
-
-# observation errors are equal
-R <- "diagonal and equal"
-
-# no observation covariates
-D <- "zero"
-d <- "zero"
-
-# C <- matrix(list("JM_W_s", "JM_W_s", "JM_w", "W_w"),
-#             2, 2) #"unconstrained"
-C <- "diagonal and unequal"
-c <- c.in
+# but make C to be unconstrained to have season and location specific parameters. 
 
 if (!file.exists(paste0("RData/MARSS_fit5_", run.date, ".rds"))){
   fit.5 <- MARSS(data.MARSS,
-                 model = list(B = B,
-                              Q = Q,
-                              Z = Z, 
-                              R = R,
-                              D = D,
-                              d = d,
-                              C = C,
-                              c = c),
+                 model = list(B = "diagonal and unequal",
+                              Q = "diagonal and unequal",
+                              Z = "identity", 
+                              R = "diagonal and equal",
+                              D = "zero",
+                              d = "zero",
+                              C = "unconstrained",
+                              c = c.in),
                  control = list(maxit = 5000,
-                                trace = 1,
-                                safe = TRUE))
+                                trace = 1),
+                 method = "BFGS")
   
   saveRDS(fit.5, file = paste0("RData/MARSS_fit5_", run.date, ".rds"))
   
@@ -262,11 +218,14 @@ if (!file.exists(paste0("RData/MARSS_fit5_", run.date, ".rds"))){
 
 ```
 
-What if we use month as a covariate for observations?
+What if we add month as a covariate for observations? Add month as a covariate. See p. 167 (13.6.1). 
+
 x[t] = B x[t-1] + C[t] c[t] + w[t], w[t] ~ MVN(0, Q)
 y[t] = Z x[t] + D[t] d[t] + v[t], v[t] ~ MVN(0, R)
 
 ```{r}
+
+# state covariate - month
 period <- 12
 d.in <- diag(period)
 
@@ -277,43 +236,27 @@ for (i in 2:ceiling(TT/period)){
 
 rownames(d.in ) <- month.abb
 
+# 
+D.mat <- matrix(month.abb, 2, 12, byrow = TRUE)
+
 c.in <- matrix(0, nrow = 2, ncol = nrow(data.1.JM.W))
 c.in[1, data.1.JM.W$season == "summer"] <- 1
 c.in[2, data.1.JM.W$season == "winter"] <- 1
-
-# each beach has its own slope
-B <- "diagonal and unequal"
-
-# independent process errors
-Q <- "diagonal and unequal"
-
-# each beach is affected by itself
-Z <- "identity"
-
-# observation errors are equal
-R <- "diagonal and equal"
-
-# observation covariates
-D <- "unconstrained"
-d <- d.in
-
-C <- "diagonal and unequal"
-c <- c.in
+rownames(c.in ) <- c("summer", "winter")
 
 if (!file.exists(paste0("RData/MARSS_fit6_", run.date, ".rds"))){
   fit.6 <- MARSS(data.MARSS,
-                 model = list(B = B,
-                              Q = Q,
-                              Z = Z, 
-                              R = R,
-                              D = D,
-                              d = d,
-                              C = C,
-                              c = c),
+                 model = list(B = "diagonal and unequal",
+                              Q = "diagonal and unequal",
+                              Z = "identity", 
+                              R = "diagonal and equal",
+                              D = "unconstrained",
+                              d = d.in,
+                              C = "unconstrained",
+                              c = c.in),
                  control = list(maxit = maxit,
-                                conv.test.slope.tol = 0.05,
-                                trace = 1,
-                                safe = TRUE))
+                                trace = 1),
+                 method = "BFGS")
   
   saveRDS(fit.6, file = paste0("RData/MARSS_fit6_", run.date, ".rds"))
   
@@ -324,9 +267,9 @@ if (!file.exists(paste0("RData/MARSS_fit6_", run.date, ".rds"))){
 
 ```
 
-With a smaller tolerance ( conv.test.slope.tol = 0.05), a few parameters did not converge.  It was fine when the tolerance was set at 0.1.  
+With a smaller tolerance ( conv.test.slope.tol = 0.05), a few parameters did not converge.  It was fine when the tolerance was set at 0.1.  Changing the optimization method to BFGS seemed to fix the problem.
 
-Try Fourier series for the seasonal counts - I'll try the state space first. (p. 170)
+Try Fourier series for the seasonal counts - I'll try the state space only first. (p. 170)
 
 ```{r}
 period <- 12
@@ -336,43 +279,19 @@ sin.t <- sin(2 * pi * seq(TT) /  period)
 
 c.Four <- rbind(cos.t, sin.t)
 
-# c.in <- matrix(0, nrow = 2, ncol = nrow(data.1.JM.W))
-# c.in[1, data.1.JM.W$season == "summer"] <- 1
-# c.in[2, data.1.JM.W$season == "winter"] <- 1
-
-# each beach has its own slope
-B <- "diagonal and unequal"
-
-# independent process errors
-Q <- "diagonal and unequal"
-
-# each beach is affected by itself
-Z <- "identity"
-
-# observation errors are equal
-R <- "diagonal and equal"
-
-# observation covariates
-D <- "zero"
-d <- "zero"
-
-C <- "unconstrained"
-c <- c.Four
-
 if (!file.exists(paste0("RData/MARSS_fit7_", run.date, ".rds"))){
   fit.7 <- MARSS(data.MARSS,
-                 model = list(B = B,
-                              Q = Q,
-                              Z = Z, 
-                              R = R,
-                              D = D,
-                              d = d,
-                              C = C,
-                              c = c),
+                 model = list(B = "diagonal and unequal",
+                              Q = "diagonal and unequal",
+                              Z = "identity", 
+                              R = "diagonal and equal",
+                              D = "zero",
+                              d = "zero",
+                              C = "unconstrained",
+                              c = c.Four),
                  control = list(maxit = maxit,
-                                conv.test.slope.tol = 0.1,
-                                trace = 1,
-                                safe = TRUE))
+                                trace = 1),
+                 method = "BFGS")
   
   saveRDS(fit.7, file = paste0("RData/MARSS_fit7_", run.date, ".rds"))
   
@@ -381,13 +300,16 @@ if (!file.exists(paste0("RData/MARSS_fit7_", run.date, ".rds"))){
 }
 ```
 
+Again, R.diag did not converge... so why not add seasonal effects on observation. Changing the optimization method fixed the problem. 
 
-Again, R.diag did not converge... so why not add seasonal effects on observation.
+The next model uses a discrete Fourier series to model the process and seasonal effects on observation. Note that I set 12 months as a period - this may not be good as we have two nesting seasons in Wermon.  
 
 ```{r}
 d.in <- matrix(0, nrow = 2, ncol = nrow(data.1.JM.W))
 d.in[1, data.1.JM.W$season == "summer"] <- 1
 d.in[2, data.1.JM.W$season == "winter"] <- 1
+
+rownames(d.in) <- c("summer", "winter")
 
 period <- 12
 
@@ -396,43 +318,19 @@ sin.t <- sin(2 * pi * seq(TT) /  period)
 
 c.Four <- rbind(cos.t, sin.t)
 
-# c.in <- matrix(0, nrow = 2, ncol = nrow(data.1.JM.W))
-# c.in[1, data.1.JM.W$season == "summer"] <- 1
-# c.in[2, data.1.JM.W$season == "winter"] <- 1
-
-# each beach has its own slope
-B <- "diagonal and unequal"
-
-# independent process errors
-Q <- "diagonal and unequal"
-
-# each beach is affected by itself
-Z <- "identity"
-
-# observation errors are equal
-R <- "diagonal and equal"
-
-# observation covariates
-D <- "diagonal and unequal"
-d <- d.in
-
-C <- "unconstrained"
-c <- c.Four
-
 if (!file.exists(paste0("RData/MARSS_fit8_", run.date, ".rds"))){
   fit.8 <- MARSS(data.MARSS,
-                 model = list(B = B,
-                              Q = Q,
-                              Z = Z, 
-                              R = R,
-                              D = D,
-                              d = d,
-                              C = C,
-                              c = c),
+                 model = list(B = "diagonal and unequal",
+                              Q = "diagonal and unequal",
+                              Z = "identity", 
+                              R = "diagonal and equal",
+                              D = "unconstrained",
+                              d = d.in,
+                              C = "unconstrained",
+                              c = c.Four),
                  control = list(maxit = maxit,
-                                conv.test.slope.tol = 0.1,
-                                trace = 1,
-                                safe = TRUE))
+                                trace = 1),
+                 method = "BFGS")
   
   saveRDS(fit.8, file = paste0("RData/MARSS_fit8_", run.date, ".rds"))
   
@@ -442,5 +340,81 @@ if (!file.exists(paste0("RData/MARSS_fit8_", run.date, ".rds"))){
 
 ```
 
+R.diag does not converge with this model... BFGS fixed the problem. 
+
+Because Wermon has two peaks in nesting, I try to add that into the discrete Fourier series for Wermon. I can't figure out how to have two different periods for the two locations... For this one, I just use 6 months as the common period - not quite right... 2019-04-09
+
+```{r}
+d.in <- matrix(0, nrow = 2, ncol = nrow(data.1.JM.W))
+d.in[1, data.1.JM.W$season == "summer"] <- 1
+d.in[2, data.1.JM.W$season == "winter"] <- 1
+
+rownames(d.in) <- c("summer", "winter")
+
+period <- 6
+
+cos.t <- cos(2 * pi * seq(TT) /  period)
+sin.t <- sin(2 * pi * seq(TT) /  period)
+
+c.Four <- rbind(cos.t, sin.t)
+
+if (!file.exists(paste0("RData/MARSS_fit9_", run.date, ".rds"))){
+  fit.9 <- MARSS(data.MARSS,
+                 model = list(B = "diagonal and unequal",
+                              Q = "diagonal and unequal",
+                              Z = "identity", 
+                              R = "diagonal and equal",
+                              D = "unconstrained",
+                              d = d.in,
+                              C = "unconstrained",
+                              c = c.Four),
+                 control = list(maxit = maxit,
+                                trace = 1),
+                 method = "BFGS")
+  
+  saveRDS(fit.9, file = paste0("RData/MARSS_fit9_", run.date, ".rds"))
+  
+} else {
+  fit.9 <- readRDS(file = paste0("RData/MARSS_fit9_", run.date, ".rds"))
+}
+
+```
+
+
+So, now we have results from eight models.  Compare them using AICc/AIC.
+
+```{r}
+data.frame(Model = c("M1", "M2", "M3", "M4",
+                     "M5", "M6", "M7", "M8", 
+                     "M9"),
+           AICc = round(c(fit.1$AICc, fit.2$AICc, fit.3$AICc, fit.4$AICc,
+                          fit.5$AICc, fit.6$AICc, fit.7$AICc, fit.8$AICc,
+                          fit.9$AICc), 2)) %>%
+  arrange(AICc)
+```
+
+Model 9 is by far the best according to AICc.  Take a look at predicted values.
+
+```{r}
+C.M9 <- coef(fit.9, type = "matrix")$C
+seasonal.effect <- C.M9 %*% fit.9$call$model$c[, 1:(2*period)]
+
+rownames(seasonal.effect) <- locations
+colnames(seasonal.effect) <- 1:(period*2)
+
+seasonal.effect.df <- data.frame(t(seasonal.effect)) %>% 
+  rownames_to_column(var = "month") %>%
+  reshape::melt(id = "month", 
+                variable_name = "location") %>%
+  mutate(month = as.numeric(month))
+  
+ 
+ggplot(data = seasonal.effect.df) + 
+  geom_line(aes(x = month, 
+                y = value, 
+                color = location))
+```
+
+Then look at residuals.  Start here... 
 
 
