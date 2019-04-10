@@ -1,0 +1,69 @@
+# simple state space AR1 model for turtle nesting 
+# original code from Lab 7, Introduction to Bayesian Time-Series
+# analysis using Jags. Univ Washington: 
+# https://www.scribd.com/document/373707632/Lab-7-Fitting-models-with-JAGS-pdf
+
+# Also can be found here:
+# https://nwfsc-timeseries.github.io/atsa-labs/sec-jags-uss.html
+#
+# For this model, the natural log of raw counts were used as data (y). The state model
+# is normal and the observation model is norm. The probability of nesting in a month
+# is modeled with Dirichlet - p[month] sums to 1.0 over each 12 month period. 
+#
+#
+# I used quite informative prior for X[1] ~ dnorm(5, 0.1) although variance of 10 should 
+# be wide enough in the log scale.  I used similar priors for the slopes: dnorm(0, 0.1).
+# For all standard deviations (process and observation), I used uniform between 0 and 20, 
+# which should be wide enough in the log scale. 
+#
+# I didn't see any reason to make the priors flatter because that would make convergence difficult
+# and did not gain anything in return. 
+
+model{
+
+    for (s in 2:n.years){
+        N[s] ~ dnorm(pred.N[s], tau.N)
+        pred.N[s] <- theta + N[s-1]
+
+        for (t in 1:12){
+            predX[s,t] <- log(p[m[s,t]]) + N[s]
+            X[s,t] ~ dnorm(predX[s,t], tau.pro)
+
+            # observation
+            y[s,t] ~ dnorm(X[s,t], tau.obs)
+        
+            loglik[s, t] <- logdensity.norm(y[s,t], X[s,t], tau.obs)
+        }
+    }
+	
+    p[1:12] ~ ddirich(alpha[1:12])
+    for (k in 1:12){
+        alpha[k] ~ dunif(0, 10)
+        
+    }
+
+    sigma.pro ~ dgamma(2, 0.5)
+    tau.pro <- 1/(sigma.pro * sigma.pro)
+
+    sigma.obs ~ dgamma(2, 0.5)
+    tau.obs <- 1/(sigma.obs * sigma.obs)
+
+    sigma.N ~ dgamma(2, 0.5)
+    tau.N <- 1/(sigma.N * sigma.N)
+
+    theta ~ dnorm(0, 0.1)
+
+    N[1] <- mu
+    mu ~ dnorm(5, 0.1) 
+
+    for (t in 1:12){
+        predX[1,t] <- p[m[1,t]] * N[1]
+        X[1,t] ~ dnorm(predX[1,t], tau.pro)
+
+        # observation
+        y[1,t] ~ dnorm(X[1,t], tau.obs)
+        
+        loglik[1, t] <- logdensity.norm(y[1,t], X[1,t], tau.obs)
+    }
+    
+}

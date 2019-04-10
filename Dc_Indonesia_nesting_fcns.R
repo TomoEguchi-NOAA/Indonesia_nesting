@@ -64,6 +64,8 @@ data.extract <- function(location, year.begin, year.end){
                                 format = "%Y-%m-%d"),
            Frac.Year = Year + (Month_begin-0.5)/12) %>%
     select(Year, Month_begin, begin_date, Frac.Year)
+
+  # also make "nesting season" that starts April and ends March
   
   data.0 %>% mutate(begin_date = as.Date(paste(Year_begin,
                                                Month_begin,
@@ -80,22 +82,50 @@ data.extract <- function(location, year.begin, year.end){
     transmute(Year = Year.y,
               Month = Month_begin,
               Frac.Year = Frac.Year.y,
-              Nests = Nests) %>%
+              Nests = Nests,
+              Season = ifelse(Month < 4, Year-1, Year),
+              Seq.Month = ifelse(Month < 4, Month + 9, Month - 3)) %>%
     reshape::sort_df(.,vars = "Frac.Year") %>%
-    filter(Year >= year.begin & Year <= year.end) -> data.1
+    filter(Season >= year.begin & Season <= year.end) -> data.1
+  
+  data.1 %>% filter(Month > 3 & Month < 10) -> data.summer
+  data.1 %>% filter(Month > 9 | Month < 4) %>%
+    mutate(Seq.Month = Seq.Month - 6) -> data.winter
   
   jags.data <- list(y = log(data.1$Nests),
-                    m = data.1$Month,
+                    m = data.1$Seq.Month,
                     T = nrow(data.1))
   
   y <- matrix(log(data.1$Nests), ncol = 12, byrow = TRUE)
+  
   jags.data2 <- list(y = y,
-                     m = matrix(data.1$Month, ncol = 12, byrow = TRUE),
+                     m = matrix(data.1$Seq.Month, 
+                                ncol = 12, byrow = TRUE),
                      n.years = nrow(y))
+  
+  y.summer <- matrix(log(data.summer$Nests),
+                     ncol = 6, byrow = TRUE)
+  
+  y.winter <- matrix(log(data.winter$Nests),
+                     ncol = 6, byrow = TRUE)
+  
+  jags.data2.summer <- list(y = y.summer,
+                            m = matrix(data.summer$Seq.Month, 
+                                       ncol = 6, byrow = TRUE),
+                            n.years = nrow(y.summer))
+  
+  jags.data2.winter <- list(y = y.winter,
+                            m = matrix(data.winter$Seq.Month, 
+                                       ncol = 6, byrow = TRUE),
+                            n.years = nrow(y.winter))
   
   out <- list(jags.data = jags.data,
               jags.data2 = jags.data2,
-              data.1 = data.1)
+              jags.data.summer = jags.data2.summer,
+              jags.data.winter = jags.data2.winter,
+              data.1 = data.1,
+              data.summer = data.summer,
+              data.winter = data.winter)
   return(out)
 }
 
@@ -165,6 +195,7 @@ extract.posterior.jagsUI <- function(yr, Xs.stats, samples){
   
 }
 
+# extracts loo statistics, including looic and Pareto-k statistics
 pareto.k.diag <- function(jm, MCMC.params, jags.data){
   
   n.per.chain <- (MCMC.params$n.samples - MCMC.params$n.burnin)/MCMC.params$n.thin
@@ -188,6 +219,44 @@ pareto.k.diag <- function(jm, MCMC.params, jags.data){
   return(list(loglik.obs = loglik.obs,
               Reff = Reff,
               loo.out = loo.out))
+}
+
+# same as the previous one but when data are in an array, not a vector
+# MCMC output is a 3D array, so that needs to be converted (flattened)
+pareto.k.diag.3D <- function(jm, MCMC.params, jags.data){
+  
+  n.per.chain <- (MCMC.params$n.samples - MCMC.params$n.burnin)/MCMC.params$n.thin
+  
+  # reduce the dimension by MCMC iterations by year x month
+  loglik <- t(apply(jm$sims.list$loglik, 
+                    MARGIN = 1, 
+                    FUN = function(x) as.vector(t(x))))
+  
+  # convert the data (y) into a vector also:
+  y <- as.vector(t(jags.data$y))
+  
+  loglik.obs <- loglik[, !is.na(y)]
+  
+  # get rid of NA columns - even if data existed (for example the first value) - no likelihood
+  # for the first data point
+  loglik.obs <- loglik.obs[, colSums(is.na(loglik.obs)) == 0]
+  
+  #loglik.obs <- jm$sims.list$loglik[, 2:jags.data$T]
+  # cores = 1 is needed in the relative_eff function if the number of cores was set to more than
+  # 1 with options(mc.cores = parallel::detectCores()) or something similear. See also here:
+  # https://discourse.mc-stan.org/t/error-in-loo-relative-eff-related-to-options-mc-cores/5610/2
+  
+  Reff <- relative_eff(exp(loglik.obs), 
+                       chain_id = rep(1:MCMC.params$n.chains, 
+                                      each = n.per.chain),
+                       cores = 1)
+  
+  loo.out <- loo(loglik.obs, r_eff = Reff, cores = 1)
+  
+  return(list(loglik.obs = loglik.obs,
+              Reff = Reff,
+              loo.out = loo.out,
+              y = y))
 }
 
 model.names <- function(){
