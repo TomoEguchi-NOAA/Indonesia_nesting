@@ -344,6 +344,8 @@ bayesplot::mcmc_dens(jm$samples, c("sigma.Q[1]", "sigma.Q[2]"))
 bayesplot::mcmc_dens(jm$samples, c("p.beta.cos[1]", "p.beta.sin[1]",
                                    "p.beta.cos[2]", "p.beta.sin[2]"))
 
+bayesplot::mcmc_dens(jm$samples, "sigma.N")
+
 ```
 
 
@@ -394,39 +396,39 @@ p.1a <- ggplot() +
   geom_ribbon(data = Xs.stats,
               aes(x = time, 
                   ymin = low, 
-                  ymax = high,
-                  color = location),
+                  ymax = high),
+              fill = fill.color,
               alpha = fill.alpha) + 
   geom_point(data = Xs.stats,
              aes(x = time, 
-                 y = median,
-                 color = location), 
+                 y = median),
+             color = data.color,
              alpha = 0.5) +
   geom_line(data = Xs.stats,
             aes(x = time, 
-                y = median,
-                color = location), 
+                y = median),
+            color = line.color,
             alpha = 0.5) +
   geom_point(data = ys.stats,
              aes(x = time, 
-                 y = log(obsY),
-                 color = location), 
+                 y = log(obsY)),
+             color = obsd.color,
              alpha = 0.5) + 
   geom_ribbon(data = Ns.stats,
               aes(x = time, 
                   ymin = low,
-                  ymax = high,
-                  color = location),
+                  ymax = high),
+              color = fill.color.N1,
               alpha = fill.alpha) + 
   geom_line(data = Ns.stats,
-            aes(x = time, y = median,
-                color = location),
+            aes(x = time, y = median),
+            color = line.color.N,
             alpha = 0.5,
             size = 1.5) + 
-  
   scale_x_continuous(breaks = seq(year.begin, year.end, 5),
                      limits = c(year.begin, year.end)) +
   scale_y_continuous(limits = c(0, log(maxN))) + 
+  facet_grid(rows = vars(location)) + 
   labs(x = '', y = 'log(# nests)')  +
   theme(axis.text = element_text(size = 12),
         text = element_text(size = 12))
