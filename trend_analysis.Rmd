@@ -1014,6 +1014,11 @@ if(!file.exists(paste0("Rdata/independentUs_singleQ_out_",
   jags.params <- c("U", "Q", "R", "X0", "X", "loglik")
   model.loc <- "models/model_independentUs_singleQ.txt"
   
+  #log.data <- log(thedata[, c("median_JM", "median_W")])     
+  log.data <- log(thedata[, c("All.median.JM", "All.median.W")])     
+  # Ln(TOTAL NUMBER OF FEMALES)
+  dat <- t(log.data)    # tranpose to have rows = time series and cols = years of data
+  
   # Run model
   set.seed <- 132
   jm.out <- run.independentUs_singleQ(dat, 

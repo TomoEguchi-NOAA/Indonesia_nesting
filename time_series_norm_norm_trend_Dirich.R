@@ -26,6 +26,7 @@ data.color <- "black"
 data.size <- 1.5
 obsd.color <- "red2"
 
+run.date <- "2019-04-10"
 save.data <- T
 save.fig <- T
 
@@ -63,50 +64,89 @@ jags.params <- c('N', 'theta', "p", "alpha",
                  'sigma.pro', "sigma.obs",
                  "mu", "y", "X", "deviance", "loglik")
 
-# when running with parallel=T, error returns...:
-# Error in mcmc.list(x) : Different start, end or thin values in each chain
-# Restarting the computer fixed that problem next day... strange...
-
-# it runs fine with no-parallelized - slow but works. 
-jm <- jags(data.jags$jags.data2,
-           inits = NULL,
-           parameters.to.save= jags.params,
-           model.file = 'models/model_norm_norm_trend_Dirich.txt',
-           n.chains = MCMC.params$n.chains,
-           n.burnin = MCMC.params$n.burnin,
-           n.thin = MCMC.params$n.thin,
-           n.iter = MCMC.params$n.samples,
-           DIC = T, parallel=F)
-
-# extract ys - include estimated missing data
-# these need to be arranged in vectors
-ys.stats <- data.frame(low_y = as.vector(t(jm$q2.5$y)),
-                       median_y = as.vector(t(jm$q50$y)),
-                       high_y = as.vector(t(jm$q97.5$y)))
-
-
-# extract Xs - the state model
-Xs.stats <- data.frame(low_X = as.vector(t(jm$q2.5$X)),
-                       median_X = as.vector(t(jm$q50$X)),
-                       high_X = as.vector(t(jm$q97.5$X)))
+if (file.exists(paste0('RData/SSAR1_norm_norm_trend_Dirich_', loc, "_",
+                       year.begin, "_", year.end, "_", run.date, '.rds'))){
+  
+  results.all <- readRDS(file = paste0('RData/SSAR1_norm_norm_trend_Dirich_', loc, "_",
+                          year.begin, "_", year.end, "_", run.date, '.rds'))
+  jm <- results.all$jm
+  Xs.stats <- results.all$Xs.stats
+  ys.stats <- results.all$ys.stats
+  Ns.stats <- results.all$Ns.stats
+  jags.data <- jm$model$data()
+  
+  MCMC.params <- list(n.chains = jm$mcmc.info$n.chains,
+                      n.samples = jm$mcmc.info$n.iter,
+                      n.burnin = jm$mcmc.info$n.burnin,
+                      n.thin = jm$mcmc.info$n.thin)
+} else {
+  
+  if (save.data)
+    saveRDS(results.all,
+            file = paste0('RData/SSAR1_norm_norm_trend_Dirich_', loc, "_",
+                          year.begin, "_", year.end, "_", Sys.Date(), '.rds'))
+  
+  # when running with parallel=T, error returns...:
+  # Error in mcmc.list(x) : Different start, end or thin values in each chain
+  # Restarting the computer fixed that problem next day... strange...
+  
+  # it runs fine with no-parallelized - slow but works. 
+  jm <- jags(data.jags$jags.data2,
+             inits = NULL,
+             parameters.to.save= jags.params,
+             model.file = 'models/model_norm_norm_trend_Dirich.txt',
+             n.chains = MCMC.params$n.chains,
+             n.burnin = MCMC.params$n.burnin,
+             n.thin = MCMC.params$n.thin,
+             n.iter = MCMC.params$n.samples,
+             DIC = T, parallel=F)
+  
+  # extract ys - include estimated missing data
+  # these need to be arranged in vectors
+  ys.stats <- data.frame(low_y = as.vector(t(jm$q2.5$y)),
+                         median_y = as.vector(t(jm$q50$y)),
+                         high_y = as.vector(t(jm$q97.5$y)))
+  
+  
+  # extract Xs - the state model
+  Xs.stats <- data.frame(low_X = as.vector(t(jm$q2.5$X)),
+                         median_X = as.vector(t(jm$q50$X)),
+                         high_X = as.vector(t(jm$q97.5$X)))
+  
+  Xs.stats$time <- data.jags$data.1$Frac.Year
+  Xs.stats$obsY <- data.jags$data.1$Nests
+  Xs.stats$month <- data.jags$data.1$Month
+  Xs.stats$year <- data.jags$data.1$Year
+  
+  ys.stats$time <- data.jags$data.1$Frac.Year
+  ys.stats$obsY <- data.jags$data.1$Nests
+  ys.stats$month <- data.jags$data.1$Month
+  ys.stats$year <- data.jags$data.1$Year
+  
+  Ns.stats <- data.frame(time = year.begin:year.end,
+                         low_N = as.vector(t(jm$q2.5$N)),
+                         median_N = as.vector(t(jm$q50$N)),
+                         high_N = as.vector(t(jm$q97.5$N)))
+  
+  results.all <- list(jm = jm,
+                      Xs.stats = Xs.stats,
+                      ys.stats = ys.stats,
+                      Ns.stats = Ns.stats)
+  
+  
+}
 
 loo.out <- pareto.k.diag.3D(jm, MCMC.params, data.jags$jags.data2)
 
-Xs.stats$time <- data.jags$data.1$Frac.Year
-Xs.stats$obsY <- data.jags$data.1$Nests
-Xs.stats$month <- data.jags$data.1$Month
-Xs.stats$year <- data.jags$data.1$Year
+pareto.k <- loo.out$loo.out$diagnostics$pareto_k
+data.y <- na.omit(data.jags$jags.data$y)
 
-ys.stats$time <- data.jags$data.1$Frac.Year
-ys.stats$obsY <- data.jags$data.1$Nests
-ys.stats$month <- data.jags$data.1$Month
-ys.stats$year <- data.jags$data.1$Year
-
-Ns.stats <- data.frame(time = year.begin:year.end,
-                       low_N = as.vector(t(jm$q2.5$N)),
-                       median_N = as.vector(t(jm$q50$N)),
-                       high_N = as.vector(t(jm$q97.5$N)))
-
+pareto.df <- data.frame(y = data.y,
+                        khat = pareto.k,
+                        datapoint = seq(from = 1, to = length(data.y)),
+                        k0.7 = cut(pareto.k,
+                                   breaks = c(0, 0.7, 1.5),
+                                   labels = c("<=0.7", ">0.7")))
 p.1 <- ggplot() +
   geom_ribbon(data = Xs.stats,
               aes(x = time, 
@@ -192,34 +232,15 @@ bayesplot::mcmc_trace(jm$samples, "alpha[1]")
 bayesplot::mcmc_dens(jm$samples, "theta")
 bayesplot::mcmc_dens(jm$samples, "alpha[1]")
 
-
-pareto.k <- loo.out$loo.out$diagnostics$pareto_k
-data.y <- na.omit(data.jags$jags.data$y)
-
-pareto.df <- data.frame(y = data.y,
-                        khat = pareto.k,
-                        datapoint = seq(from = 1, to = length(data.y)),
-                        k0.7 = cut(pareto.k,
-                                   breaks = c(0, 0.7, 1.5),
-                                   labels = c("<=0.7", ">0.7")))
 p.2 <- ggplot(data = pareto.df) +   
-  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
-  geom_point(aes(x = datapoint, y = exp(y), 
+  geom_path(aes(x = datapoint, y = y), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = y, 
                  size = khat,
                  color = k0.7)) +
   scale_size_continuous(limits = c(0.0, 1.3),
                         range = c(1, 4))+ 
   scale_color_manual(values = c("<=0.7" = "black", 
                                 ">0.7" = "red")) 
-
-results.all <- list(jm = jm,
-                    Xs.stats = Xs.stats,
-                    ys.stats = ys.stats,
-                    Ns.stats = Ns.stats)
-if (save.data)
-  saveRDS(results.all,
-          file = paste0('RData/SSAR1_norm_norm_trend_Dirich_', loc, "_",
-                        year.begin, "_", year.end, "_", Sys.Date(), '.rds'))
 
 if (save.fig){
   ggsave(filename = paste0('figures/SSAR1_norm_norm_trend_Dirich_', loc, "_",
