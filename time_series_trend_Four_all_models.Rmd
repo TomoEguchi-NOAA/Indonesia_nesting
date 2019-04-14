@@ -24,12 +24,31 @@ save.data <- T
 save.fig <- F
 run.date <- Sys.Date()
 
-model.number <- 1
+model.number <- 3
 model.names <- c("singleUQ", "singleU_independentQs",
                  "independentUs_singleQ", "independentUQs")
 
-model.name <- paste0("models/model_norm_norm_trend_Four_", 
-                     model.names(model.number), "independentUQs.txt")
+obs.model <- "t"  # or "norm"
+model.name <- paste0("models/model_norm_", obs.model, "_trend_Four_", 
+                     model.names[model.number], ".txt")
+
+year.begin <- 2003
+year.end <- 2018
+
+period.JM <- 12
+period.W <- 6
+maxN <- 10000
+
+filename.root <- paste0("SSAR1_norm_", obs.model, "_trend_Four_", 
+                        model.names[model.number], "_",
+                        "JM", period.JM, "_W", period.W, "_",
+                        year.begin, "_", year.end, "_", run.date)
+
+# define parameters to monitor - add "df" for t distribution
+jags.params <- c('N', 'U', "p", "p.beta.cos", "p.beta.sin",
+                 "sigma.N", 'sigma.Q', "sigma.R", "df",
+                 "mu", "y", "X", "deviance", "loglik")
+
 ```
 
 Set up the plotting colors.
@@ -69,21 +88,6 @@ MCMC.params <- list(n.chains = MCMC.n.chains,
 Bring in the data
 
 ```{r}
-# JM
-year.begin <- 2003
-year.end <- 2018
-# loc <- "JM"
-# loc.name <- "Jamursba-Medi"
-period.JM <- 12
-maxN <- 10000
-
-# W
-period.W <- 6
-
-filename.root <- paste0("SSAR1_norm_norm_trend_Four_", 
-                        model.names(model.number), 
-                        "JM", period.JM, "_W", period.W, "_",
-                        year.begin, "_", year.end, "_", run.date)
 
 data.jags.JM <- data.extract(location = "JM", 
                              year.begin = year.begin, 
@@ -145,15 +149,6 @@ jags.data$n.years <- dim(y)[1]
 # jags.data$q_beta <- 0.5
 # jags.data$r_alpha <- 2
 # jags.data$r_beta <- 0.5
-
-```
-
-Define which parameters to monitor
-
-```{r}
-jags.params <- c('N', 'U', "p", "p.beta.cos", "p.beta.sin",
-                 "sigma.N", 'sigma.Q', "sigma.R",
-                 "mu", "y", "X", "deviance", "loglik")
 
 ```
 
@@ -267,14 +262,16 @@ Look at some posteriors
 # 
 # bayesplot::mcmc_trace(jm$samples, "p.beta.cos[1]")
 
-bayesplot::mcmc_dens(jm$samples, c("U[1]", "U[2]"))
-bayesplot::mcmc_dens(jm$samples, c("sigma.Q[1]", "sigma.Q[2]"))
+# bayesplot::mcmc_dens(jm$samples, c("U"))
+# bayesplot::mcmc_dens(jm$samples, c("sigma.Q[1]", "sigma.Q[2]"))
 
 # cos and sin for the discrete Foureir series 
 bayesplot::mcmc_dens(jm$samples, c("p.beta.cos[1]", "p.beta.sin[1]",
                                    "p.beta.cos[2]", "p.beta.sin[2]"))
 
 bayesplot::mcmc_dens(jm$samples, "sigma.N")
+
+bayesplot::mcmc_dens(jm$samples, "df")
 
 ```
 
