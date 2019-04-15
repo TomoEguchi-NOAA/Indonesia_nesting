@@ -25,7 +25,7 @@
 
 model{
     # Initial states
-    for(i in 1:n.states) {
+    for(i in 1:n.timeseries) {
             
         N0[i] ~ dnorm(N0_mean[i], 1/(N0_sd[i]^2))    # prior on init state
         predN[i,1] <- N0[i] + U  
@@ -53,12 +53,11 @@ model{
     ####  End of initial states ####
     
     for (s in 2:n.years){
-        for (i in 1:n.states){
-            N[i, s] ~ dnorm(pred.N[i, s], tau.N)
-            pred.N[i, s] <- U + N[i, s-1]
-        }
             
         for (j in 1:n.timeseries){
+            N[j, s] ~ dnorm(pred.N[j, s], tau.N)
+            pred.N[j, s] <- U + N[j, s-1]
+
             for (t in 1:n.months){
                 predX[s,t,j] <- log(p[j, m[s,t]]) + N[j,s]
                 X[s,t,j] ~ dnorm(predX[s,t,j], tau.Q)
