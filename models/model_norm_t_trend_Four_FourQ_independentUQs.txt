@@ -46,9 +46,9 @@ model{
            
            #y[1,t,j] ~  dnorm(predY[1,t,j], tau.R[j])
            # observation
-           y[1,t,j] ~ dt(predY[1,t,j], tau.R[j], df)
+           y[1,t,j] ~ dt(predY[1,t,j], tau.R[j], df[j])
 
-           loglik[1,t,j] <- logdensity.t(y[1,t,j], X[1,t,j], tau.R[j], df)
+           loglik[1,t,j] <- logdensity.t(y[1,t,j], X[1,t,j], tau.R[j], df[j])
         }       
 
     }
@@ -69,9 +69,9 @@ model{
                 # observation
                 predY[s,t,j] <- inprod(Z[j, 1:n.states], X[s,t,])
                 #y[s,t,j] ~  dnorm(predY[s,t,j], tau.R[j])
-                y[s,t,j] ~ dt(predY[s,t,j], tau.R[j], df)
+                y[s,t,j] ~ dt(predY[s,t,j], tau.R[j], df[j])
                 
-                loglik[s,t,j] <- logdensity.t(y[s,t,j], X[s,t,j], tau.R[j], df)
+                loglik[s,t,j] <- logdensity.t(y[s,t,j], X[s,t,j], tau.R[j], df[j])
             }       
 
         }
@@ -97,6 +97,10 @@ model{
         # Q is the variance of the process (X)
         #sigma.Q[j] ~ dgamma(2, 0.5)
         C0_Q[j] ~ dgamma(2, 0.5)
+
+        df[j] ~ dgamma(5, 0.1)T(2,)  # this eliminates df <= 2 without affecting the entire distribution. 
+        # t distribution has no moments when df <= 1 and the variance is infinite when 1 < df <= 2
+
     }
                           
     sigma.N ~ dgamma(2, 0.5)
@@ -105,8 +109,6 @@ model{
     u_mean <- 0
     u_sd <- 1 
 
-    df ~ dgamma(5, 0.1)T(2,)  # this eliminates df <= 2 without affecting the entire distribution. 
-    # t distribution has no moments when df <= 1 and the variance is infinite when 1 < df <= 2
 
     
 }

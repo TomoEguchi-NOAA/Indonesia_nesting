@@ -25,12 +25,15 @@ save.fig <- F
 run.date <- Sys.Date()
 
 model.number <- 5
-model.names <- c("singleUQ", "singleU_independentQs",
-                 "independentUs_singleQ", "independentUQs",
-                 "FourQ_independentUQs", "monthQ_independentUQs",
+model.names <- c("singleUQ", 
+                 "singleU_independentQs",
+                 "independentUs_singleQ", 
+                 "independentUQs",
+                 "FourQ_independentUQs", 
+                 "monthQ_independentUQs",
                  "monthQ_independentUs_singleQ")
 
-obs.model <- "norm"  # "t" or "norm"
+obs.model <- "t"  # "t" or "norm"
 model.name <- paste0("models/model_norm_", obs.model, "_trend_Four_", 
                      model.names[model.number], ".txt")
 
