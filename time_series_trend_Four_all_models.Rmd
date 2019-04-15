@@ -24,11 +24,13 @@ save.data <- T
 save.fig <- F
 run.date <- Sys.Date()
 
-model.number <- 3
+model.number <- 5
 model.names <- c("singleUQ", "singleU_independentQs",
-                 "independentUs_singleQ", "independentUQs")
+                 "independentUs_singleQ", "independentUQs",
+                 "FourQ_independentUQs", "monthQ_independentUQs",
+                 "monthQ_independentUs_singleQ")
 
-obs.model <- "t"  # or "norm"
+obs.model <- "norm"  # "t" or "norm"
 model.name <- paste0("models/model_norm_", obs.model, "_trend_Four_", 
                      model.names[model.number], ".txt")
 
@@ -46,8 +48,16 @@ filename.root <- paste0("SSAR1_norm_", obs.model, "_trend_Four_",
 
 # define parameters to monitor - add "df" for t distribution
 jags.params <- c('N', 'U', "p", "p.beta.cos", "p.beta.sin",
-                 "sigma.N", 'sigma.Q', "sigma.R", "df",
+                 "sigma.N", 'sigma.Q', "sigma.R", 
                  "mu", "y", "X", "deviance", "loglik")
+
+if (obs.model == "t"){
+  jags.params <- c(jags.params, "df")
+}
+
+if (length(grep("FourQ", model.names[model.number])) != 0){
+  jags.params <- c(jags.params, "C0_Q")
+}
 
 ```
 
@@ -271,7 +281,7 @@ bayesplot::mcmc_dens(jm$samples, c("p.beta.cos[1]", "p.beta.sin[1]",
 
 bayesplot::mcmc_dens(jm$samples, "sigma.N")
 
-bayesplot::mcmc_dens(jm$samples, "df")
+#bayesplot::mcmc_dens(jm$samples, "df")
 
 ```
 

@@ -20,12 +20,12 @@ library(loo)
 
 save.data <- T
 save.fig <- F
-run.date <- "2019-04-13"
+run.date <- "2019-04-14"
 
 year.begin <- 2003
 year.end <- 2018
 
-filename.root <- paste0("SSAR1_norm_t_trend_Four_independentUs_singleQ_JM12_W6_",
+filename.root <- paste0("SSAR1_norm_norm_trend_Four_FourQ_independentUQs_JM12_W6_",
                         year.begin, "_", year.end, "_", run.date)
 ```
 
