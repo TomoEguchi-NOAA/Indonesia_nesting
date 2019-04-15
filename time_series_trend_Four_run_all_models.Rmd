@@ -109,18 +109,7 @@ jags.data <- list(y = y,
 
 n.timeseries <- dim(y)[3]
 
-# Model-specific parameters
-whichPop <- 1:n.timeseries         # multiple time series -> unique population processes
-n.states <- max(whichPop)
-
-Z <- matrix(0,n.timeseries+1,n.states+1)   # matrix with rows as n.timeseries and cols as n.states (pops)
-Z[n.timeseries+1, ] <- NA                  # add a row of NAs to keep jagsUI from converting single time series matrix into vector
-Z[ , n.states+1] <- NA                     # add a col of NAs to keep jagsUI from converting single state matrix into vector
-for(i in 1:length(whichPop)) Z[i,whichPop[i]] <- 1
-
-jags.data$Z <- Z
 jags.data$n.timeseries <- n.timeseries
-jags.data$n.states <- n.states
 jags.data$n.years <- dim(y)[1]
 
 # jags.data$q_alpha <- 2
@@ -133,10 +122,39 @@ jags.data$n.years <- dim(y)[1]
 run jags on each model
 ```{r}
 
-
+k1 <- k2 <- 1
 for (k1 in 1:(length(model.names))){
+  model.number <- k1
+  model.name <- model.names[k1]
+
+  # Model-specific parameters
+  
+  if (length(grep("independentU", model.name)) == 1){
+    # multiple U
+    whichPop <- 1:n.timeseries         # multiple time series -> unique population processes
+    n.states <- max(whichPop)
+    
+    Z <- matrix(0,n.timeseries+1,n.states+1)   # matrix with rows as n.timeseries and cols as n.states (pops)
+    Z[n.timeseries+1, ] <- NA                  # add a row of NAs to keep jagsUI from converting single time series matrix into vector
+    Z[ , n.states+1] <- NA                     # add a col of NAs to keep jagsUI from converting single state matrix into vector
+    for(i in 1:length(whichPop)) Z[i,whichPop[i]] <- 1
+    
+  } else if (length(grep("singleU", model.name)) == 1){
+    ### single U
+    whichPop <- rep(1, n.timeseries)
+    
+    Z <- matrix(0, n.timeseries+1, n.states+1)   # matrix with rows as n.timeseries and cols as n.states (pops)
+    Z[n.timeseries+1, ] <- NA                  # add a row of NAs to keep jagsUI from converting single time series matrix into vector
+    Z[ , n.states+1] <- NA                     # add a col of NAs to keep jagsUI from converting single state matrix into vector
+    for(i in 1:n.timeseries) Z[i, whichPop[i]] <- 1
+    
+  }
+  
+  jags.data$Z <- Z
+  jags.data$n.states <- n.states
+
   for (k2 in 1:length(obs.models)){
-    model.number <- k1
+    
     obs.model <- obs.models[k2]
     filename.root <- paste0("SSAR1_norm_", obs.models[k2], "_trend_Four_", 
                             model.names[model.number], "_",
