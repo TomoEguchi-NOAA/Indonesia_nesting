@@ -41,7 +41,7 @@ model{
            X[1,t,j] ~ dnorm(predX[1,t,j], tau.Q)
 
            # observation
-           predY[1,t,j] <- inprod(Z[j, 1:n.states], X[1,t,])
+           predY[1,t,j] <- inprod(Z[j, 1:n.states], X[1,t,j])
            #y[1,t,j] ~  dnorm(predY[1,t,j], tau.R[j])
            y[1,t,j] ~ dt(predY[1,t,j], tau.R[j], df)
      
@@ -63,7 +63,7 @@ model{
                 X[s,t,j] ~ dnorm(predX[s,t,j], tau.Q)
 
                 # observation
-                predY[s,t,j] <- inprod(Z[j, 1:n.states], X[s,t,])
+                predY[s,t,j] <- inprod(Z[j, 1:n.states], X[s,t,j])
                 #y[s,t,j] ~  dnorm(predY[s,t,j], tau.R[j])
                 y[s,t,j] ~ dt(predY[s,t,j], tau.R[j], df)
 
