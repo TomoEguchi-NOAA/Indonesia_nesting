@@ -30,19 +30,23 @@ sum.posterior <- function(yr, months = c(1:12), Xs.stats, zm) {
   return(list(samples = zm.yr, var.names = Xs.name))
 }
 
-data.extract <- function(location, year.begin, year.end){
+data.extract <- function(location, year.begin, year.end, season.begin, season.end){
   # In March 2019, we received new data for 2018. So, the raw data file
   # has been updated.  
+  # On 16 April 2019, the last few data points for 2019 were received
+  # so the data files have been updated. 
+  if (is.null(season.begin)) season.begin <- year.begin
+  if (is.null(season.end)) season.end <- year.end
   
   if (location == "JM"){
-    data.0 <- read.csv("data/JM_nests_March2019.csv")
+    data.0 <- read.csv("data/JM_nests_April2019.csv")
     
     data.0 %>% 
       select(Year_begin, Month_begin, JM_Nests) %>%
       mutate(Nests = JM_Nests) -> data.0
     
   } else if (location == "W"){
-    data.0 <- read.csv("data/W_nests_March2019.csv")
+    data.0 <- read.csv("data/W_nests_April2019.csv")
     data.0 %>% 
       select(Year_begin, Month_begin, W_Nests) %>%
       mutate(Nests = W_Nests) -> data.0
@@ -86,7 +90,7 @@ data.extract <- function(location, year.begin, year.end){
               Season = ifelse(Month < 4, Year-1, Year),
               Seq.Month = ifelse(Month < 4, Month + 9, Month - 3)) %>%
     reshape::sort_df(.,vars = "Frac.Year") %>%
-    filter(Season >= year.begin & Season <= year.end) -> data.1
+    filter(Season >= season.begin & Season <= season.end) -> data.1
   
   data.1 %>% filter(Month > 3 & Month < 10) -> data.summer
   data.1 %>% filter(Month > 9 | Month < 4) %>%
@@ -280,7 +284,12 @@ model.names <- function(){
                      "model_SSAR1_logY_norm_t_thetaM.txt",
                      "model_SSAR1_logY_norm_t_varM.txt")
   
-  all.models <- c(norm.norm.models, norm.t.models)
+  Fourier.models <- c("models/model_SSAR1_logY_norm_norm_theta_Four.txt",
+                      "models/model_SSAR1_logY_norm_norm_theta_Four_constCV.txt",
+                      "models/model_SSAR1_logY_norm_t_theta_Four.txt",
+                      "models/model_SSAR1_logY_norm_t_theta_Four_constCV.txt")
+  
+  all.models <- c(norm.norm.models, norm.t.models, Fourier.models)
   
   models <- data.frame(number = paste0("M", 1:length(all.models)),
                        names = all.models)

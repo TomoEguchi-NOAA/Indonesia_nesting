@@ -16,11 +16,15 @@ MCMC.params <- list(n.chains = 5,
 
 year.begin <- 2006
 #year.end <- 2014
-year.end <- 2013
+year.end <- 2019
+season.begin <- 2006
+season.end <- 2018
 loc <- "W"
 data.jags <- data.extract(location = loc, 
                           year.begin = year.begin, 
-                          year.end = year.end)
+                          year.end = year.end,
+                          season.begin = season.begin,
+                          season.end = season.end)
 
 norm.norm.models <- c("models/model_SSAR1_logY_norm_norm.txt",
                       "models/model_SSAR1_W_logY_norm_norm_theta.txt",

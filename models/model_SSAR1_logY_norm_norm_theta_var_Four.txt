@@ -1,0 +1,61 @@
+# simple state space AR1 model for turtle nesting 
+# original code from Lab 7, Introduction to Bayesian Time-Series
+# analysis using Jags. Univ Washington: 
+# https://www.scribd.com/document/373707632/Lab-7-Fitting-models-with-JAGS-pdf
+
+# Also can be found here:
+# https://nwfsc-timeseries.github.io/atsa-labs/sec-jags-uss.html
+#
+# For this model, the natural log of raw counts were used as data (y). The state model
+# is normal and the observation model is also normal.
+#
+# For this model, I use discrete Fourier series to model the slope and process variance.
+# 
+# I used quite informative prior for X[1] ~ dnorm(5, 0.1) although variance of 10 should 
+# be wide enough in the log scale.  I used similar priors for the slopes: dnorm(0, 0.1).
+# For all standard deviations (process and observation), I used uniform between 0 and 20, 
+# which should be wide enough in the log scale. 
+#
+# I didn't see any reason to make the priors flatter because that would make convergence difficult
+# and did not gain anything in return. 
+
+model{
+	for (t in 2:T){
+        
+        predX[t] <- theta[m[t]] + X[t-1]
+
+        # one variance 
+        X[t] ~ dnorm(predX[t], tau.pro1[m[t]])
+
+		# observation
+		y[t] ~ dnorm(X[t], tau.obs)
+        
+        loglik[t] <- logdensity.norm(y[t], X[t], tau.obs)
+        
+    }
+
+    # slope (theta) is modeled with a discrete Fourier function     
+    for (k in 1:12){
+        theta.const[k] <-  2 * pi * k / period
+        theta[k] <- theta.beta.cos * cos(theta.const[k]) + theta.beta.sin * sin(theta.const[k])
+
+        # process SD computed from the mean and CV, which is assumed constant. 
+        sigma.pro1[k] <- abs(theta[k]) * cv.pro1
+        tau.pro1[k] <- 1/(sigma.pro1[k] * sigma.pro1[k])
+    }
+
+    X[1] <- mu
+    y[1] ~ dnorm(X[1], tau.obs)
+    loglik[1] <- logdensity.norm(y[1], X[1], tau.obs)
+        
+    mu ~ dnorm(5, 0.1)
+    
+    sigma.obs ~ dgamma(2, 0.5)
+    tau.obs <- 1/(sigma.obs * sigma.obs)
+
+    theta.beta.cos ~ dnorm(0, 1)
+    theta.beta.sin ~ dnorm(0, 1)
+
+    # this is a bit arbitrary - may need to tweak a little... 
+    cv.pro1 ~ dunif(0, 1.5)
+}
