@@ -8,21 +8,36 @@ library(coda)
 # library(ggplot2)
 library(loo)
 
-run.date <- Sys.Date()
+run.date <- Sys.Date() #"2019-04-29" #
 
 MCMC.params <- list(n.chains = 5,
                     n.samples = 500000,
                     n.burnin = 350000,
                     n.thin = 50)
 
-#year.begin <- 2003
-year.begin <- 1999
-year.end <- 2019
-season.begin <- 1999
-season.end <- 2018
+loc <- "W"
+if (loc == "JM"){
+  year.begin <- 1999
+  season.begin <- 1999
+  period <- 12   # should be 12 for Jamusrba-Medi
+  
+} else if (loc == "W"){
+  year.begin <- 2003  
+  season.begin <- 2003
+  
+  # for model comparison purpose
+  #year.begin <- 2006  # for model comparison purpose
+  #season.begin <- 2006
+  period <- 6   # should be 6 for Wermon 
+  
+  year.end <- 2019
+  season.end <- 2018
+}
 
-loc <- "JM"
-period <- 12   # should be 6 for Wermon and 12 for Jamusrba-Medi
+# year.end <- 2019
+# season.end <- 2018
+
+
 
 data.jags <- data.extract(location = loc, 
                           year.begin = year.begin, 
@@ -168,10 +183,12 @@ for (k in 1:length(all.models)){
     
     toc <- Sys.time()
     results <- list(data.1 = data.jags$data.1,
+                    jags.data = jags.data,
                     jags.out = jm,
                     Xs.stats = Xs.stats,
                     ys.stats = ys.stats,
                     MCMC.params = MCMC.params,
+                    loo.out = loo.out,
                     time = toc - tic)
     
     ggsave(plot = p.1,

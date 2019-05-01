@@ -7,7 +7,8 @@ output: html_document
 rm(list=ls())
 knitr::opts_chunk$set(echo = TRUE)
 source("Dc_Indonesia_nesting_fcns.R")
-run.date <- "2019-03-14"
+run.date <- "2019-04-30"
+run.date2 <- "2019-04-29"
 
 fill.color <-  "darkseagreen"
 fill.color.summer <- "darksalmon"
@@ -28,15 +29,30 @@ This document describes how leatherback turtle nest count data were imputed for 
 The raw data look like this.
 ```{r}
 year.begin <- 2006
+year.begin2 <- 2003
+
 year.end <- 2019
+year.end2 <- 2019
+
 season.begin <- 2006
+season.begin <- 2006
+
 season.end <- 2018
+season.end2 <- 2018
+
 loc <- "W"
 data.jags <- data.extract(location = loc, 
                           year.begin = year.begin, 
                           year.end = year.end,
                           season.begin = season.begin,
                           season.end = season.end)
+
+data.jags2 <- data.extract(location = loc, 
+                          year.begin = year.begin2, 
+                          year.end = year.end2,
+                          season.begin = season.begin,
+                          season.end = season.end2)
+
 p.0 <- ggplot() +
   geom_point(data = data.jags$data.1,
              aes(x = Frac.Year, y = Nests)) + 
@@ -1124,11 +1140,11 @@ In this model, taking advantage of the periodicity of the nesting, i.e., two pea
 ```{r model19, cache=TRUE, include=TRUE}
 str.root <- strsplit(strsplit(as.character(models.df[19, 'names']), "model_")[[1]][2], ".txt")[[1]]
 M <- readRDS(paste0("RData/jagsout_", str.root, "_W_", year.begin, "_", year.end, "_",
-                    run.date, ".rds"))
+                    run.date2, ".rds"))
 # M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_varM_thetaM_W_2006_2014_", 
 #                     run.date, ".rds"))
-M19.loo.out <- M$jags.out$loo.out$loo.out
-M19.jm <- M$jags.out$jm
+M19.loo.out <- M$loo.out$loo.out
+M19.jm <- M$jags.out
 
 ```
 
@@ -1140,7 +1156,135 @@ plot(M19.loo.out)
 
 ```{r}
 pareto.k <- M19.loo.out$diagnostics$pareto_k
-data.y <- na.omit(M$jags.out$jags.data$y)
+data.y <- na.omit(M$jags.data$y)
+
+pareto.df <- data.frame(y = data.y,
+                        khat = pareto.k,
+                        datapoint = seq(from = 1, to = length(data.y)),
+                        k0.7 = cut(pareto.k,
+                                   breaks = c(0, 0.7, 1.5),
+                                   labels = c("<=0.7", ">0.7")))
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(y), 
+                 size = khat,
+                 color = k0.7)) +
+  scale_size_continuous(limits = c(0.0, 1.3),
+                        range = c(1, 4))+ 
+  scale_color_manual(values = c("<=0.7" = "black", 
+                                ">0.7" = "red")) 
+
+```
+
+##Model 20
+Similar to Model 19 but a constant CV was assumed. 
+
+```{r model20, cache=TRUE, include=TRUE}
+str.root <- strsplit(strsplit(as.character(models.df[20, 'names']), "model_")[[1]][2], ".txt")[[1]]
+M <- readRDS(paste0("RData/jagsout_", str.root, "_W_", year.begin, "_", year.end, "_",
+                    run.date2, ".rds"))
+# M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_varM_thetaM_W_2006_2014_", 
+#                     run.date, ".rds"))
+M20.loo.out <- M$loo.out$loo.out
+M20.jm <- M$jags.out
+
+```
+
+There were many large estimated Pareto k parameter values, where ```r sum(M20.loo.out$diagnostics$pareto_k > 0.7)``` out of ```r length(M20.loo.out$diagnostics$pareto_k)``` were larger than 0.7. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M$jags.out$jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M$jags.out$jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M$jags.out$jm$Rhat, FUN = max, na.rm = T))), 3)```). 
+
+```{r PSIS_M20}
+plot(M20.loo.out)
+```
+
+```{r}
+pareto.k <- M20.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.data$y)
+
+pareto.df <- data.frame(y = data.y,
+                        khat = pareto.k,
+                        datapoint = seq(from = 1, to = length(data.y)),
+                        k0.7 = cut(pareto.k,
+                                   breaks = c(0, 0.7, 1.5),
+                                   labels = c("<=0.7", ">0.7")))
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(y), 
+                 size = khat,
+                 color = k0.7)) +
+  scale_size_continuous(limits = c(0.0, 1.3),
+                        range = c(1, 4))+ 
+  scale_color_manual(values = c("<=0.7" = "black", 
+                                ">0.7" = "red")) 
+
+```
+
+
+##Model 21
+Similar to Model 19 but Student's t distribution was used for observation. 
+
+```{r model21, cache=TRUE, include=TRUE}
+str.root <- strsplit(strsplit(as.character(models.df[21, 'names']), "model_")[[1]][2], ".txt")[[1]]
+M <- readRDS(paste0("RData/jagsout_", str.root, "_W_", year.begin, "_", year.end, "_",
+                    run.date2, ".rds"))
+# M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_varM_thetaM_W_2006_2014_", 
+#                     run.date, ".rds"))
+M21.loo.out <- M$loo.out$loo.out
+M21.jm <- M$jags.out
+
+```
+
+There were many large estimated Pareto k parameter values, where ```r sum(M21.loo.out$diagnostics$pareto_k > 0.7)``` out of ```r length(M21.loo.out$diagnostics$pareto_k)``` were larger than 0.7. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M$jags.out$jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M$jags.out$jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M$jags.out$jm$Rhat, FUN = max, na.rm = T))), 3)```). 
+
+```{r PSIS_M21}
+plot(M21.loo.out)
+```
+
+```{r}
+pareto.k <- M21.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.data$y)
+
+pareto.df <- data.frame(y = data.y,
+                        khat = pareto.k,
+                        datapoint = seq(from = 1, to = length(data.y)),
+                        k0.7 = cut(pareto.k,
+                                   breaks = c(0, 0.7, 1.5),
+                                   labels = c("<=0.7", ">0.7")))
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(y), 
+                 size = khat,
+                 color = k0.7)) +
+  scale_size_continuous(limits = c(0.0, 1.3),
+                        range = c(1, 4))+ 
+  scale_color_manual(values = c("<=0.7" = "black", 
+                                ">0.7" = "red")) 
+
+```
+
+
+##Model 22
+Similar to Model 21 with a constant CV.
+
+```{r model22, cache=TRUE, include=TRUE}
+str.root <- strsplit(strsplit(as.character(models.df[22, 'names']), "model_")[[1]][2], ".txt")[[1]]
+M <- readRDS(paste0("RData/jagsout_", str.root, "_W_", year.begin, "_", year.end, "_",
+                    run.date2, ".rds"))
+# M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_t_varM_thetaM_W_2006_2014_", 
+#                     run.date, ".rds"))
+M22.loo.out <- M$loo.out$loo.out
+M22.jm <- M$jags.out
+
+```
+
+There were many large estimated Pareto k parameter values, where ```r sum(M22.loo.out$diagnostics$pareto_k > 0.7)``` out of ```r length(M22.loo.out$diagnostics$pareto_k)``` were larger than 0.7. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M$jags.out$jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M$jags.out$jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M$jags.out$jm$Rhat, FUN = max, na.rm = T))), 3)```). 
+
+```{r PSIS_M22}
+plot(M22.loo.out)
+```
+
+```{r}
+pareto.k <- M22.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.data$y)
 
 pareto.df <- data.frame(y = data.y,
                         khat = pareto.k,
@@ -1161,18 +1305,20 @@ ggplot(data = pareto.df) +
 ```
 
 #Model comparison
-Estimated Pareto k statistics indicated that models 2, 7, 8, 11, 16, and 17 had better predictive performance than the rest. But when looking at the looic values, those are ranked low:
+Estimated Pareto k statistics indicated that models 16, 17, 19, 20, 21 and 22 had better predictive performance than the rest. But when looking at the looic values, those are ranked low:
 
 ```{r ModelComparison, include=TRUE}
-# M.compare <- compare(M1.loo.out, M2.loo.out, M3.loo.out, 
-#                      M4.loo.out, M5.loo.out, M6.loo.out, 
-#                      M7.loo.out, M8.loo.out, M9.loo.out, 
-#                      M10.loo.out, M11.loo.out, M12.loo.out, 
-#                      M13.loo.out, M14.loo.out, M15.loo.out,
-#                      M16.loo.out, M17.loo.out, M18.loo.out)
+M.compare <- compare(M16.loo.out, M17.loo.out, M19.loo.out,
+                     M20.loo.out, M21.loo.out, M22.loo.out)
+                     # M7.loo.out, M8.loo.out, M9.loo.out,
+                     # M10.loo.out, M11.loo.out, M12.loo.out,
+                     # M13.loo.out, M14.loo.out, M15.loo.out,
+                     # M16.loo.out, M17.loo.out, M18.loo.out,
+                     # M19.loo.out, M20.loo.out, M21.loo.out,
+                     # M22.loo.out)
 
-M.compare <- compare(M2.loo.out, M7.loo.out, M8.loo.out, 
-                     M11.loo.out, M16.loo.out, M17.loo.out)
+# M.compare <- compare(M2.loo.out, M7.loo.out, M8.loo.out, 
+#                      M11.loo.out, M16.loo.out, M17.loo.out)
 
 print(M.compare)
 ```
@@ -1184,35 +1330,33 @@ knitr::kable(tmp, format = "html", digits = 2,
       caption = "A comparison of five models based on their predictaive performance. ")
 ```
 
-Among the "good" k pareto statistics models, M7 and M16 are the best from looic values. So, let's take a look at the posteriors. 
+Among the "good" k pareto statistics models, M19 and M17 are the best from looic values. So, let's take a look at the posteriors. 
 
-Model 7, 
+Model 19 contains a discrete Fourier series to model two peaks in nesting within each season, where normal distribution is used for observation and process.  There is one process standard deviation (sigma.pro1) and one observation standard deviation (sigma.obs).  Slope (theta) is month-specific, which is modeled with a discrete Fourier series.    
 
-The posterior distributions of the model are shown below. First, the slope parameter: one for each month.  Negative for Feb - Apr and Jul - Oct and positive for May - June and Nov-Jan. 
 
-```{r posterior_M7, fig.cap="Figure. Posterior distribuitons of slope parameters for M7"}
-m <- 7
-best.model <- M7.jm
-bayesplot::mcmc_dens(best.model$samples, c("theta.1[1]", "theta.1[2]", "theta.1[3]", "theta.1[4]",
-                                      "theta.1[5]", "theta.1[6]", "theta.1[7]", "theta.1[8]",
-                                      "theta.1[9]", "theta.1[10]", "theta.1[11]", "theta.1[12]"))
+```{r posterior_M19, fig.cap="Figure. Posterior distribuitons of slope parameters for M19"}
+m <-19
+best.model <- M19.jm
+bayesplot::mcmc_dens(best.model$samples, c("theta[1]", "theta[2]", "theta[3]", "theta[4]",
+                                           "theta[5]", "theta[6]", "theta[7]", "theta[8]",
+                                           "theta[9]", "theta[10]", "theta[11]", "theta[12]"))
 ```
 
-Standard deviation of the process (sigma.pro1 and sigma.pro2) and observation (sigma.ops).  Two process SDs are for the "nesting" season and "non-nesting" season.  
+Standard deviation of the process (sigma.pro1) and observation (sigma.obs).  
 
-```{r posterior_M7_2, fig.cap="Figure. Posterior distributions for the standard deviation of the process (sigma.pro1), standard deviation of observations (sigma.obs), and degrees of freedom (df) parameter."}
-bayesplot::mcmc_dens(best.model$samples, c("sigma.pro1", "sigma.pro2", "sigma.obs"))
+```{r posterior_M19_2, fig.cap="Figure. Posterior distributions for the standard deviation of the process (sigma.pro1), standard deviation of observations (sigma.obs), and degrees of freedom (df) parameter."}
+bayesplot::mcmc_dens(best.model$samples, c("sigma.pro1", "sigma.obs"))
 ```
 
-We use this model to impute missing data points. First, just look at the 2006-2014 dataset. 
+We use this model to impute missing data points. First, just look at the 2006-2019 dataset. 
 
 ```{r}
-m <- 7
-str.root <- strsplit(strsplit(as.character(models.df[m, 'names']), 
-                              "model_")[[1]][2], ".txt")[[1]]
+m <- 19
+
+str.root <- strsplit(strsplit(as.character(models.df[m, 'names']), "model_")[[1]][2], ".txt")[[1]]
 M <- readRDS(paste0("RData/jagsout_", str.root, "_W_", year.begin, "_", year.end, "_",
-                    run.date, ".rds"))
-#M7.jm <- M7$jags.out$jm
+                    run.date2, ".rds"))
 
 Xs.stats <- M$Xs.stats
 ys.stats <- M$ys.stats
@@ -1307,12 +1451,17 @@ print(p.W.estimated.counts)
 
 Next run the same model for the entire dataset:
 ```{r}
-year.begin <- 2006
-year.end <- 2018
+year.begin <- 2003
+year.end <- 2019
+season.begin <- 2003
+season.end <- 2018
+
 loc <- "W"
 data.jags <- data.extract(location = loc, 
                           year.begin = year.begin, 
-                          year.end = year.end)
+                          year.end = year.end,
+                          season.begin = season.begin,
+                          season.end = season.end)
 
 filename.root <- strsplit(strsplit(as.character(models.df[m, "names"]), 
                                    'model_')[[1]][2], '.txt')[[1]][1]
@@ -1329,51 +1478,6 @@ if (length(strsplit(filename.root, paste0("SSAR1_", loc, "_"))[[1]]) == 1){
                          year.begin, "_", year.end, "_", run.date)
 }
 
-if (!file.exists(paste0('RData/', "jagsout_", 
-                        filename.out, '.rds'))){
-  params.all <- c("theta.1", 'sigma.pro1', "sigma.obs",
-                  "mu", "y", "X", "deviance", "loglik")
-  if (m == 1 | m == 5 | m == 8 | m == 9){ 
-    jags.params <- params.all 
-  } else if (m == 2 | m == 6){
-    jags.params <- c(params.all, "theta.2")
-  } else if (m == 3 | m == 7) {
-    jags.params <- c(params.all, "sigma.pro2")
-  } else if (m == 4){
-    jags.params <- c(params.all, "theta.2", "sigma.pro2") 
-  } 
-  
-  tic <- Sys.time()
-  jags.out <- run.jagsUI(data.jags$jags.data, 
-                         jags.params, 
-                         model.file = paste0("models/", as.character(models.df[m, "names"])))
-  
-  Xs.stats <- jags.out$Xs.stats
-  
-  Xs.stats$time <- data.jags$data.1$Frac.Year
-  Xs.stats$obsY <- data.jags$data.1$Nests
-  Xs.stats$month <- data.jags$data.1$Month
-  Xs.stats$year <- data.jags$data.1$Year
-  
-  ys.stats <- jags.out$ys.stats
-  ys.stats$time <- data.jags$data.1$Frac.Year
-  ys.stats$obsY <- data.jags$data.1$Nests
-  ys.stats$month <- data.jags$data.1$Month
-  ys.stats$year <- data.jags$data.1$Year
-  
-  
-  toc <- Sys.time()
-  results <- list(data.1 = data.jags$data.1,
-                  jags.out = jags.out,
-                  Xs.stats = Xs.stats,
-                  ys.stats = ys.stats,
-                  MCMC.params = jags.out$MCMC.params,
-                  time = toc - tic)
-  
-  saveRDS(results,
-          file = paste0('RData/', "jagsout_", 
-                        filename.out, '.rds'))
-} 
 
 
 ```
@@ -1426,7 +1530,7 @@ p.1 <- ggplot() +
 print(p.1)
 
 ggsave(p.1,
-       filename = "figures/W_imputed_2006_2018_M7.png",
+       filename = paste0("figures/W_imputed_", year.begin, "_", year.end, "_M", m, ".png"),
        device = "png", dpi = 600,
        height = 4, width = 6, units = "in")
 
@@ -1446,7 +1550,7 @@ X.posterior.seasons <- lapply(apply(seasons,
                                     MARGIN = 1,
                                     FUN = extract.posterior.jagsUI, 
                                     Xs.stats = Xs.stats, 
-                                    samples = M$jags.out$jm$samples),
+                                    samples = M$jags.out$samples),
                               FUN = function(x){
                                 n.summer <- exp(x$samples[, x$summer == 1]) %>% rowSums() 
                                 n.winter <- exp(x$samples[, x$summer == 0]) %>% rowSums()
@@ -1475,7 +1579,7 @@ ys.stats %>% group_by(season, summer) %>%
   summarize(obs = sum(obsY)) -> tmp.y.season
 
 ys.season <- data.frame(season = seasons,
-                        summer = unlist(c(NA, as.vector(filter(tmp.y.season, summer == 1)[, "obs"]))),
+                        summer = unlist(c(filter(tmp.y.season, summer == 1)[, "obs"])),
                         winter = unlist(filter(tmp.y.season, summer == 0)[, "obs"]))
 
 Xs.season %>% left_join(ys.season, by = "season") -> Xy.season
@@ -1518,8 +1622,8 @@ p.W.estimated.counts <- ggplot() +
              color = data.color,
              fill = data.color,
              shape = 17) + 
-  scale_x_continuous(breaks = seq(2006, 2019, 5),
-                     limits = c(2006, 2019)) +
+  scale_x_continuous(breaks = seq(year.begin, year.end, 5),
+                     limits = c(year.begin, year.end)) +
   labs(x = '', y = '# nests', title = "Wermon")  +
   theme(axis.text = element_text(size = 12),
         text = element_text(size = 12))
