@@ -1,0 +1,121 @@
+---
+title: "JM population growth computation"
+output: html_notebook
+---
+
+```{r}
+rm(list=ls())
+knitr::opts_chunk$set(echo = TRUE)
+source("Dc_Indonesia_nesting_fcns.R")
+library(ggridges)
+library(reshape2)
+```
+
+This document uses the best model from NestCountsImputatoin_JM_May2019.Rmd to compute the annual change in nest counts over the time period (Nt/Nt-1). The best model was determined as Model 7.
+
+```{r}
+run.date <- "2019-05-01"
+m <- 1   # best model number - comes from NestCountImputation_JM_May2019.Rmd.
+year.begin <- 1999
+year.end <- 2019
+
+models.df <- model.names()
+str.root <- strsplit(strsplit(as.character(models.df[m, 'names']), 
+                              "model_")[[1]][2], ".txt")[[1]]
+M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", 
+                    year.begin, "_", year.end, "_", run.date, ".rds"))
+
+M$Xs.stats %>% mutate(season = ifelse(month < 4, year - 1, year)) %>% 
+  mutate(summer = ifelse(month > 3 & month < 10, 1, 0)) -> Xs.stats
+
+M$ys.stats %>% mutate(season = ifelse(month < 4, year - 1, year)) %>% 
+  mutate(summer = ifelse(month > 3 & month < 10, 1, 0)) -> ys.stats
+
+seasons <- as.matrix(unique(Xs.stats$season))
+
+X.posterior.seasons <- lapply(apply(seasons, 
+                                    MARGIN = 1,
+                                    FUN = extract.posterior.jagsUI, 
+                                    Xs.stats = Xs.stats, 
+                                    samples = M$jags.out$jm$samples),
+                              FUN = function(x){
+                                n.summer <- exp(x$samples[, x$summer == 1]) %>% rowSums() 
+                                n.winter <- exp(x$samples[, x$summer == 0]) %>% rowSums() 
+                                return(data.frame(summer = n.summer, winter = n.winter))
+                              } )
+
+
+```
+
+```{r}
+summer.samples <- matrix(unlist(lapply(X.posterior.seasons,
+                                       FUN = function(x) x$summer)),
+                         ncol = length(X.posterior.seasons))
+
+winter.samples <- matrix(unlist(lapply(X.posterior.seasons,
+                                       FUN = function(x) x$winter)),
+                         ncol = length(X.posterior.seasons))
+
+# not enough data for 2005
+summer.samples <- summer.samples[, 2:ncol(summer.samples)]
+winter.samples <- winter.samples[, 2:ncol(winter.samples)]
+
+# compute the rate of annual change
+summer.lambda <- t(apply(summer.samples,
+                         FUN = function(x) x[2:length(x)]/x[1:(length(x) - 1)],
+                         MARGIN = 1))
+
+winter.lambda <- t(apply(winter.samples,
+                         FUN = function(x) x[2:length(x)]/x[1:(length(x) - 1)],
+                         MARGIN = 1))
+summer.lambda.df <- as.data.frame(summer.lambda) 
+colnames(summer.lambda.df) <- (year.begin+1):(year.begin + ncol(summer.lambda.df))
+
+winter.lambda.df <- as.data.frame(winter.lambda)
+colnames(winter.lambda.df) <- (year.begin+1):(year.begin + ncol(summer.lambda.df))
+
+summer.lambda.df %>% melt(value.name = "lambda", 
+                          variable.name = "Year") -> summer.df
+winter.lambda.df %>% melt(value.name = "lambda", 
+                          variable.name = "Year") -> winter.df
+
+```
+Unrealistic values are eliminated.
+
+```{r}
+# need to restrain the crazy "increase" observed for the 2016...
+summer.df$lambda[summer.df$lambda > 3] <- NA
+winter.df$lambda[winter.df$lambda > 3] <- NA
+p.lambda.summer <- ggplot(data = summer.df) + 
+  geom_density_ridges2(aes(y = Year, x = lambda),
+                       fill = "red") + 
+  geom_vline(xintercept = 1.0) +  
+  labs(title = "Summer", x = "Change in counts (x[t]/x[t-1])")
+
+p.lambda.winter <- ggplot(data = winter.df) + 
+  geom_density_ridges2(aes(y = Year, x = lambda),
+                       fill = "red")+ 
+  geom_vline(xintercept = 1.0) +  
+  labs(title = "Winter", x = "Change in counts (x[t]/x[t-1])")
+
+
+ggsave(plot = p.lambda.summer,
+       filename = paste0("figures/W_summer_lambda_", m, ".png"),
+       device = "png",
+       dpi = 600)
+
+ggsave(plot = p.lambda.winter,
+       filename = paste0("figures/W_winter_lambda_", m, ".png"),
+       device = "png",
+       dpi = 600)
+
+```
+
+
+```{r}
+print(p.lambda.summer)
+```
+
+```{r}
+print(p.lambda.winter)
+```
