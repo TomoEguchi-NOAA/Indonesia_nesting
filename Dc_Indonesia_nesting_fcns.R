@@ -264,35 +264,37 @@ pareto.k.diag.3D <- function(jm, MCMC.params, jags.data){
 }
 
 model.names <- function(){
-  norm.norm.models <- c("model_SSAR1_logY_norm_norm.txt",
-                        "model_SSAR1_logY_norm_norm_theta.txt",
-                        "model_SSAR1_logY_norm_norm_var.txt",
-                        "model_SSAR1_logY_norm_norm_var_theta.txt",
-                        "model_SSAR1_logY_norm_norm_varM_thetaM.txt",
-                        "model_SSAR1_logY_norm_norm_varM_theta.txt",
-                        "model_SSAR1_logY_norm_norm_var_thetaM.txt",
-                        "model_SSAR1_logY_norm_norm_thetaM.txt",
-                        "model_SSAR1_logY_norm_norm_varM.txt")
-  
-  norm.t.models <- c("model_SSAR1_logY_norm_t.txt",
-                     "model_SSAR1_logY_norm_t_theta.txt",
-                     "model_SSAR1_logY_norm_t_var.txt",
-                     "model_SSAR1_logY_norm_t_var_theta.txt",
-                     "model_SSAR1_logY_norm_t_varM_thetaM.txt",
-                     "model_SSAR1_logY_norm_t_varM_theta.txt",
-                     "model_SSAR1_logY_norm_t_var_thetaM.txt",
-                     "model_SSAR1_logY_norm_t_thetaM.txt",
-                     "model_SSAR1_logY_norm_t_varM.txt")
+  # norm.norm.models <- c("model_SSAR1_logY_norm_norm.txt",
+  #                       "model_SSAR1_logY_norm_norm_theta.txt",
+  #                       "model_SSAR1_logY_norm_norm_var.txt",
+  #                       "model_SSAR1_logY_norm_norm_var_theta.txt",
+  #                       "model_SSAR1_logY_norm_norm_varM_thetaM.txt",
+  #                       "model_SSAR1_logY_norm_norm_varM_theta.txt",
+  #                       "model_SSAR1_logY_norm_norm_var_thetaM.txt",
+  #                       "model_SSAR1_logY_norm_norm_thetaM.txt",
+  #                       "model_SSAR1_logY_norm_norm_varM.txt")
+  # 
+  # norm.t.models <- c("model_SSAR1_logY_norm_t.txt",
+  #                    "model_SSAR1_logY_norm_t_theta.txt",
+  #                    "model_SSAR1_logY_norm_t_var.txt",
+  #                    "model_SSAR1_logY_norm_t_var_theta.txt",
+  #                    "model_SSAR1_logY_norm_t_varM_thetaM.txt",
+  #                    "model_SSAR1_logY_norm_t_varM_theta.txt",
+  #                    "model_SSAR1_logY_norm_t_var_thetaM.txt",
+  #                    "model_SSAR1_logY_norm_t_thetaM.txt",
+  #                    "model_SSAR1_logY_norm_t_varM.txt")
   
   Fourier.models <- c("models/model_SSAR1_logY_norm_norm_theta_Four.txt",
                       "models/model_SSAR1_logY_norm_norm_theta_Four_constCV.txt",
+                      "models/model_SSAR1_logY_norm_norm_theta_Four_varM.txt",
                       "models/model_SSAR1_logY_norm_t_theta_Four.txt",
-                      "models/model_SSAR1_logY_norm_t_theta_Four_constCV.txt")
+                      "models/model_SSAR1_logY_norm_t_theta_Four_constCV.txt",
+                      "models/model_SSAR1_logY_norm_t_theta_Four_varM.txt")
   
-  all.models <- c(norm.norm.models, norm.t.models, Fourier.models)
+  #all.models <- c(norm.norm.models, norm.t.models, Fourier.models)
   
-  models <- data.frame(number = paste0("M", 1:length(all.models)),
-                       names = all.models)
+  models <- data.frame(number = paste0("M", 1:length(Fourier.models)),
+                       names = Fourier.models)
   
   return(models)
   

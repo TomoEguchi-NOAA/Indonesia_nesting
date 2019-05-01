@@ -8,7 +8,7 @@ library(coda)
 # library(ggplot2)
 library(loo)
 
-run.date <- Sys.Date() #"2019-04-29" #
+run.date <- "2019-04-30" #Sys.Date() #"2019-04-29" #
 
 MCMC.params <- list(n.chains = 5,
                     n.samples = 500000,
@@ -20,6 +20,8 @@ if (loc == "JM"){
   year.begin <- 1999
   season.begin <- 1999
   period <- 12   # should be 12 for Jamusrba-Medi
+  year.end <- 2019
+  season.end <- 2018
   
 } else if (loc == "W"){
   year.begin <- 2003  
@@ -37,8 +39,6 @@ if (loc == "JM"){
 # year.end <- 2019
 # season.end <- 2018
 
-
-
 data.jags <- data.extract(location = loc, 
                           year.begin = year.begin, 
                           year.end = year.end,
@@ -47,8 +47,8 @@ data.jags <- data.extract(location = loc,
 
 
 norm.norm.models <- c("models/model_SSAR1_logY_norm_norm_theta_Four.txt",
-                       "models/model_SSAR1_logY_norm_norm_theta_Four_constCV.txt")
-#                       "models/model_SSAR1_W_logY_norm_norm_var_theta.txt",
+                      "models/model_SSAR1_logY_norm_norm_theta_Four_constCV.txt",
+                      "models/model_SSAR1_logY_norm_norm_theta_Four_varM.txt")
 #                       "models/model_SSAR1_logY_norm_norm_varM_thetaM.txt",
 #                       "models/model_SSAR1_W_logY_norm_norm_varM_theta.txt",
 #                       "models/model_SSAR1_W_logY_norm_norm_var_thetaM.txt",
@@ -56,7 +56,8 @@ norm.norm.models <- c("models/model_SSAR1_logY_norm_norm_theta_Four.txt",
 #                       "models/model_SSAR1_logY_norm_norm_varM.txt")
 # 
 norm.t.models <- c("models/model_SSAR1_logY_norm_t_theta_Four.txt",
-                   "models/model_SSAR1_logY_norm_t_theta_Four_constCV.txt")
+                   "models/model_SSAR1_logY_norm_t_theta_Four_constCV.txt",
+                   "models/model_SSAR1_logY_norm_t_theta_Four_varM.txt")
 #                    "models/model_SSAR1_W_logY_norm_t_var.txt",
 #                    "models/model_SSAR1_W_logY_norm_t_var_theta.txt",
 #                    "models/model_SSAR1_logY_norm_t_varM_thetaM.txt",

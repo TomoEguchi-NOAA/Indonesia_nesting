@@ -23,31 +23,20 @@ library(tidyverse)
 source("Dc_Indonesia_nesting_fcns.R")
 
 # the date jags was run (run_JM_SSAR1_logY.R and run_W_SSAR1_logY.R)
-run.date <- "2019-03-14"
-
-# MCMC setup - comments are from Summer Martin. Thinning isn't really necessary... but
-# good to reduce the output file size. 
-n.samples <- 250000   
-mcmc.chains <- 5     # 2 is min; AY uses 3
-mcmc.thin <- 50      # 50-100 is more than safe; 500 seems excessive per AY
-mcmc.burn <- 5000    # 1000; also bumped up to 5000 (same as n.samples) per CB after geweke.diag for deviance in chain 1 still looked high at 2.2
-#samples2Save <- (mcmc.burn + n.samples) * mcmc.thin
-
-MCMC.params <- list(n.chains = mcmc.chains,
-                    n.samples = n.samples,
-                    n.burnin = mcmc.burn,
-                    n.thin = mcmc.thin)
+run.date.W <- "2019-04-30"
+run.date.JM <- "2019-05-01"
 
 # analysis constants
 # years to be analyzed for Jamursba-Medi and Wermon
-begin.year <- 2001
-end.year <- 2018
+begin.year.JM <- 1999
+begin.year.W <- 2003
+end.year <- 2019
 
-JM.yrs <- 2001:2018
-W.yrs <- 2006:2018
+JM.yrs <- begin.year.JM:end.year
+W.yrs <- begin.year.W:end.year
 
-JM.bestM <- 8
-W.bestM <- 7
+JM.bestM <- 1
+W.bestM <- 4
 
 fill.color <-  "darkseagreen"
 fill.alpha <-  0.65
@@ -64,12 +53,12 @@ tableCount <- c(`_` = 0)
 ```
 
 ```{r data_setup, include=FALSE}
-JM <- read.csv(paste0("data/estimatedX_JM_M", JM.bestM, "_", run.date, ".csv"), 
+JM <- read.csv(paste0("data/estimatedX_JM_M", JM.bestM, "_", run.date.JM, ".csv"), 
                 header=T)
 JMdat <- JM[which(JM$season %in% JM.yrs), ]
 
 
-W <- read.csv(paste0("data/estimatedX_W_M", W.bestM, "_", run.date, ".csv"), 
+W <- read.csv(paste0("data/estimatedX_W_M", W.bestM, "_", run.date.W, ".csv"), 
               header=T)  # Jamursba Medi (1 peak nesting in summer)
 
 Wdat <- W[which(W$season %in% W.yrs), ]   # only keep specific data years 
