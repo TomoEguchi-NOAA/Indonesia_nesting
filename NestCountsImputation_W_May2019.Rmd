@@ -114,6 +114,7 @@ ggplot(data = pareto.df.M1) +
 
 ```
 
+
 ```{r}
 p.pareto.M1 <- ggplot(data = pareto.df.M1) +  
   geom_point(aes(x = datapoint, 
@@ -130,7 +131,7 @@ p.pareto.M1 <- ggplot(data = pareto.df.M1) +
              size = 1.0) +
   theme(legend.position = "none") + 
   labs(x = "Data point", y = "Pareto shape k",
-       title = "PSIS diagnostic plot")
+       title = "PSIS diagnostic plot (Model 1)")
 
 if (save.fig)
   ggsave(p.pareto.M1, filename = "figures/W_PSIS_M1.png",
@@ -232,7 +233,7 @@ p.pareto.M2 <- ggplot(data = pareto.df.M2) +
              size = 1.0) +
   theme(legend.position = "none") + 
   labs(x = "Data point", y = "Pareto shape k",
-       title = "PSIS diagnostic plot")
+       title = "PSIS diagnostic plot (Model 2)")
 
 if (save.fig)
   ggsave(p.pareto.M2, filename = "figures/W_PSIS_M2.png",
@@ -333,7 +334,7 @@ p.pareto.M3 <- ggplot(data = pareto.df.M3) +
              size = 1.0) +
   theme(legend.position = "none") + 
   labs(x = "Data point", y = "Pareto shape k",
-       title = "PSIS diagnostic plot")
+       title = "PSIS diagnostic plot (Model 3)")
 
 if (save.fig)
   ggsave(p.pareto.M3, filename = "figures/W_PSIS_M3.png",
@@ -434,7 +435,7 @@ p.pareto.M4 <- ggplot(data = pareto.df.M4) +
              size = 1.0) +
   theme(legend.position = "none") + 
   labs(x = "Data point", y = "Pareto shape k",
-       title = "PSIS diagnostic plot")
+       title = "PSIS diagnostic plot (Model 4)")
 
 if (save.fig)
   ggsave(p.pareto.M4, filename = "figures/W_PSIS_M4.png",
@@ -535,7 +536,7 @@ p.pareto.M5 <- ggplot(data = pareto.df.M5) +
              size = 1.0) +
   theme(legend.position = "none") + 
   labs(x = "Data point", y = "Pareto shape k",
-       title = "PSIS diagnostic plot")
+       title = "PSIS diagnostic plot (Model 5)")
 
 if (save.fig)
   ggsave(p.pareto.M5, filename = "figures/W_PSIS_M5.png",
@@ -636,7 +637,7 @@ p.pareto.M6 <- ggplot(data = pareto.df.M6) +
              size = 1.0) +
   theme(legend.position = "none") + 
   labs(x = "Data point", y = "Pareto shape k",
-       title = "PSIS diagnostic plot")
+       title = "PSIS diagnostic plot (Model 6)")
 
 if (save.fig)
   ggsave(p.pareto.M6, filename = "figures/W_PSIS_M6.png",

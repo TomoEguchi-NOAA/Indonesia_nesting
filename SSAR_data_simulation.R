@@ -25,7 +25,6 @@ for (k in 1:n.states){
   N[k, 1] <- predN[k, 1]
 }
 
-
 C0_Q <- C0 <- c(0.46, 2.91)
 
 p.beta.cos <- c(-1.27, -4.08)
