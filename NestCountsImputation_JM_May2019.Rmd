@@ -1,5 +1,5 @@
 ---
-title: "Nest count imputation using a discrete Fourier series - Wermon"
+title: "Nest count imputation using a discrete Fourier series - Jamursba Medi"
 output: html_document
 ---
 
@@ -7,11 +7,11 @@ output: html_document
 rm(list=ls())
 knitr::opts_chunk$set(echo = TRUE)
 source("Dc_Indonesia_nesting_fcns.R")
-run.date <- "2019-04-30"
+run.date <- "2019-05-01"
 save.fig <- F
 
 models.df <- model.names()
-year.begin <- 2003
+year.begin <- 1999
 year.end <- 2019
 
 fill.color <-  "darkseagreen"
@@ -20,7 +20,7 @@ fill.color.winter <- "gray65"
 fill.alpha <-  0.65
 line.color <-  "darkblue"
 line.color.summer <- "red3"
-line.color.winter <-"red3"  #"greenyellow"
+line.color.winter <- "red3" # "greenyellow"
 data.color <- "black"
 data.size <- 1.5
 obsd.color <- "red2"
@@ -34,11 +34,11 @@ We use the Bayesian state-space approach, where the mean of the state process is
 
 M[t] = S[t] * X[t-1]
 
-where s[t] is the “slope” parameter between two consecutive counts (transformed into the natural log scale). When s[t] > 1, the counts increase whereas s[t] < 1, they decline. This slope parameter is modeled with a discrete Fourier series with 6 months as a period. 
+where s[t] is the “slope” parameter between two consecutive counts (transformed into the natural log scale). When s[t] > 1, the counts increase whereas s[t] < 1, they decline. This slope parameter is modeled with a discrete Fourier series with 12 months as a period. 
 
-s[k] = s1 \* cos(2 \*  pi \* k/6) + s2 \* sin(2 \* pi \* k/6), where k = 1, ..., 12 corresponding to months within each nesting season (starts April and ends March).
+s[k] = s1 \* cos(2 \*  pi \* k/12) + s2 \* sin(2 \* pi \* k/12), where k = 1, ..., 12 corresponding to months within each nesting season (starts April and ends March).
 
-The state-space is modeled with a normal distribution.
+The state is modeled with a normal distribution.
 
 X[t] ~ N(M[t], v[t]),
 
@@ -74,7 +74,7 @@ y[t] ~ N(x[t], v.obs)
 ```{r model1, cache=TRUE, include=TRUE}
 model.name <- "model_SSAR1_logY_norm_norm_theta_Four.txt"
 str.root <- strsplit(strsplit(model.name, "model_")[[1]][2], ".txt")[[1]]
-M <- readRDS(paste0("RData/jagsout_", str.root, "_W_", 
+M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", 
                     year.begin, "_", year.end, "_",
                     run.date, ".rds"))
 
@@ -84,7 +84,7 @@ M1.Xs.stats <- M$Xs.stats
 M1.ys.stats <- M$ys.stats
 ```
 
-Diagnostics of the expected log predictive density indicated that the model was not appropriate, where many (```r signif(sum(M1.loo.out$diagnostics$pareto_k > 0.7)/length(M1.loo.out$diagnostics$pareto_k) * 100, 3)``` %) of estimated Pareto k statistics (a measure of model fit - TRUE?) were greater than 0.7. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M1.jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M1.jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M1.jm$Rhat, FUN = max, na.rm = T))), 3)```). 
+Diagnostics of the expected log predictive density indicated that the model was appropriate, where majority of estimated Pareto k statistics (a measure of model fit - TRUE?) were less than 0.7 (```r signif(sum(M1.loo.out$diagnostics$pareto_k > 0.7)/length(M1.loo.out$diagnostics$pareto_k) * 100, 3)``` %). Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M1.jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M1.jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M1.jm$Rhat, FUN = max, na.rm = T))), 3)```). 
 
 ```{r PSIS_M1, fig.cap = "Figure. PSIS diagnostic plot for M1"}
 plot(M1.loo.out)
@@ -113,6 +113,7 @@ ggplot(data = pareto.df) +
 
 ```
 
+Look at the raw data in the log scale with color (or size) indicating the k statistic values.
 
 ```{r}
 
@@ -138,6 +139,8 @@ ggplot(data = ys.stats) +
 
 ```
 
+
+
 ##Model 2
 In the second model, the state variance parameter was modeled as a function of the mean and constant CV.
 
@@ -150,7 +153,7 @@ y[t] ~ N(x[t], v.obs)
 ```{r model2, cache=TRUE, include=TRUE}
 model.name <- "model_SSAR1_logY_norm_norm_theta_Four_constCV.txt"
 str.root <- strsplit(strsplit(model.name, "model_")[[1]][2], ".txt")[[1]]
-M <- readRDS(paste0("RData/jagsout_", str.root, "_W_", year.begin, "_", year.end, "_",
+M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
                     run.date, ".rds"))
 
 M2.loo.out <- M$loo.out$loo.out
@@ -160,7 +163,7 @@ M2.ys.stats <- M$ys.stats
 
 ```
 
-Although better than the first model, some estimated Pareto k statistics were greater than 0.7 (```r signif(sum(M2.loo.out$diagnostics$pareto_k > 0.7)/length(M1.loo.out$diagnostics$pareto_k) * 100, 3)``` %). Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M2.jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M2.jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M2.jm$Rhat, FUN = max, na.rm = T))), 3)```). 
+Better than the first model, all but one estimated Pareto k statistics were less than 0.7. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M2.jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M2.jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M2.jm$Rhat, FUN = max, na.rm = T))), 3)```). We do not consider this model further.
 
 ```{r PSIS_M2, fig.cap="Figure. PSIS diagnostic plot for M2"}
 plot(M2.loo.out)
@@ -205,7 +208,7 @@ ggplot(data = ys.stats) +
   geom_point(aes(x = time, y = obsY, 
                  color = pareto_k),
              size = 3) +
-  scale_color_viridis_c(limits = c(0.0, 1.3))
+  scale_color_viridis_c(limits = c(0.0, 1.3)) 
 
   # scale_size_continuous(limits = c(0.0, 1.3),
   #                       range = c(1, 4))
@@ -213,7 +216,6 @@ ggplot(data = ys.stats) +
 
 
 ```
-
 
 ##Model 3
 The third model has  month-specific variances.
@@ -227,7 +229,7 @@ y[t] ~ N(x[t], v.obs)
 ```{r model3, cache=TRUE, include=TRUE}
 model.name <- "model_SSAR1_logY_norm_norm_theta_Four_varM.txt"
 str.root <- strsplit(strsplit(model.name, "model_")[[1]][2], ".txt")[[1]]
-M3 <- readRDS(paste0("RData/jagsout_", str.root, "_W_", year.begin, "_", year.end, "_",
+M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
                     run.date, ".rds"))
 
 M3.loo.out <- M$loo.out$loo.out
@@ -237,7 +239,7 @@ M3.ys.stats <- M$ys.stats
 
 ```
 
-Some estimated Pareto k statistics were greater than 0.7 (```r signif(sum(M1.loo.out$diagnostics$pareto_k > 0.7)/length(M3.loo.out$diagnostics$pareto_k) * 100, 3)``` %). Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M3.jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M3.jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M3.jm$Rhat, FUN = max, na.rm = T))), 3)```). 
+Majority of estimated Pareto k statistics were greater than 0.7 (```r signif(sum(M3.loo.out$diagnostics$pareto_k > 0.7)/length(M3.loo.out$diagnostics$pareto_k) * 100, 3)``` %). Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M3.jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M3.jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M3.jm$Rhat, FUN = max, na.rm = T))), 3)```). We do not consider this model further.
 
 ```{r PSIS_M3, fig.cap="Figure. PSIS diagnostic plot for M3"}
 plot(M3.loo.out)
@@ -266,7 +268,6 @@ ggplot(data = pareto.df) +
 ```
 
 
-
 ```{r}
 
 M$ys.stats %>% rowid_to_column() %>% 
@@ -293,7 +294,7 @@ ggplot(data = ys.stats) +
 
 ##Model 4
 
-Model 4 is similar to the first model but uses a different distribution for the state model; the observation is  modeled with t distribution. No seasonal change in variance or slope is considered. 
+Model 10 is similar to the first model but uses a different distribution for the state model; the observation is  modeled with t distribution. No seasonal change in variance or slope is considered. 
 
 m[t] = s + x[t-1]
 
@@ -304,7 +305,7 @@ y[t] ~ t(x[t], v.obs, df)
 ```{r model10, cache=TRUE, include=TRUE}
 model.name <- "model_SSAR1_logY_norm_t_theta_Four.txt"
 str.root <- strsplit(strsplit(model.name, "model_")[[1]][2], ".txt")[[1]]
-M <- readRDS(paste0("RData/jagsout_", str.root, "_W_", year.begin, "_", year.end, "_",
+M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
                     run.date, ".rds"))
 
 M4.loo.out <- M$loo.out$loo.out
@@ -314,7 +315,7 @@ M4.ys.stats <- M$ys.stats
 
 ```
 
-There were some large estimated Pareto k parameter values, where ```r sum(M4.loo.out$diagnostics$pareto_k > 0.7)/length(M4.loo.out$diagnostics$pareto_k) * 100```% were larger than 0.7. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M4.jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M4.jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M4.jm$Rhat, FUN = max, na.rm = T))), 3)```). 
+All but one estimated Pareto k parameter values were < 0.7, indicating a good fit. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M4.jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M4.jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M4.jm$Rhat, FUN = max, na.rm = T))), 3)```). 
 
 ```{r PSIS_M4, fig.cap="Figure. PSIS diagnostic plot for M4"}
 plot(M4.loo.out)
@@ -381,7 +382,7 @@ y[t] ~ t(x[t], v.obs, df)
 ```{r model5, cache=TRUE, include=TRUE}
 model.name <- "model_SSAR1_logY_norm_t_theta_Four_constCV.txt"
 str.root <- strsplit(strsplit(model.name, "model_")[[1]][2], ".txt")[[1]]
-M <- readRDS(paste0("RData/jagsout_", str.root, "_W_", year.begin, "_", year.end, "_",
+M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
                     run.date, ".rds"))
 
 M5.loo.out <- M$loo.out$loo.out
@@ -391,9 +392,9 @@ M5.ys.stats <- M$ys.stats
 
 ```
 
-Model 5 showed better results with repsect to estimated Pareto k statistics, where (```r signif(sum(M5.loo.out$diagnostics$pareto_k > 0.7)/length(M5.loo.out$diagnostics$pareto_k) * 100, 3)``` % were greater than 0.7). Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M5.jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M5.jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M5.jm$Rhat, FUN = max, na.rm = T))), 3)```). 
+All but one estimated Pareto k statistics were less than 0.5, indicating a good fit. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M5.jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M5.jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M5.jm$Rhat, FUN = max, na.rm = T))), 3)```). 
 
-```{r PSIS_M5, fig.cap="Figure. PSIS diagnostic plot for M5"} 
+```{r PSIS_M5, fig.cap="Figure. PSIS diagnostic plot for M11."} 
 plot(M5.loo.out)
 ```
 
@@ -444,9 +445,10 @@ ggplot(data = ys.stats) +
 
 ```
 
+
 ##Model 6
 
-Model 12 has a constant slope and month-specific variances. The model is as follows:
+Model 6 has a constant slope and month-specific variances. The model is as follows:
 
 m[t] = s + x[t-1] 
 
@@ -458,7 +460,7 @@ y[t] ~ t(x[t], v.obs, df)
 ```{r model6, cache=T, include=TRUE}
 model.name <- "model_SSAR1_logY_norm_t_theta_Four_varM.txt"
 str.root <- strsplit(strsplit(model.name, "model_")[[1]][2], ".txt")[[1]]
-M <- readRDS(paste0("RData/jagsout_", str.root, "_W_", year.begin, "_", year.end, "_",
+M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
                     run.date, ".rds"))
 
 M6.loo.out <- M$loo.out$loo.out
@@ -468,7 +470,7 @@ M6.ys.stats <- M$ys.stats
 
 ```
 
-The vast majority of estimated Pareto k parameter was greater than 0.7 (```r sum(M6.loo.out$diagnostics$pareto_k > 0.7)``` out of ```r length(M6.loo.out$diagnostics$pareto_k)```. Convergence was reached for all monitored parameters (minimum = ```r signif(min(unlist(lapply(M6.jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M6.jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M6.jm$Rhat, FUN = max, na.rm = T))), 3)```).  
+All estimated Pareto k parameter was greater than 0.7. Convergence was reached for all monitored parameters (minimum = ```r signif(min(unlist(lapply(M6.jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M6.jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M6.jm$Rhat, FUN = max, na.rm = T))), 3)```).  
 
 ```{r PSIS_M6, fig.cap="Figure. PSIS diagnostic plot for M6"}
 plot(M6.loo.out)
@@ -522,20 +524,19 @@ ggplot(data = ys.stats) +
 ```
 
 #Model Comparison
-First, we compared all models using using ELPD values although Pareto k statistics indicated that models 5, 4, 2, and 3 had acceptable predictive performance. 
+First, we compared all models using using ELPD values although Pareto k statistics indicated that models 1, 2, 4, and 5 had acceptable predictive performance. 
 
 ```{r ModelComparison, include=TRUE}
 
-M.compare <- compare(M1.loo.out, M2.loo.out, M3.loo.out, 
+M.compare <- compare(M1.loo.out, M2.loo.out, M3.loo.out,  
                      M4.loo.out, M5.loo.out, M6.loo.out) 
 
 print(M.compare)
 ```
 
-It is interesting that two worst models according to Pareto k statistics are the two best ones according to looic values... M5 seems best based on Pareto k statistics but worst according to looic.  
+It is interesting that two worst models according to Pareto k statistics are the two best ones according to looic values... 
 
 ```{r}
-m <- 4
 tmp <- data.frame(M.compare) %>%
   select(elpd_diff, looic, se_looic)
 knitr::kable(tmp, format = "html", digits = 2,
@@ -543,25 +544,26 @@ knitr::kable(tmp, format = "html", digits = 2,
 ```
 
 
-Here, I use M4 for the predictions. 
+Here, I use M1 for the predictions. 
 
-```{r posterior_M4_theta, fig.cap="Figure. Posterior distributions of slope parameters for M8"}
 
-bayesplot::mcmc_dens(M4.jm$samples, c("theta[1]", "theta[2]", "theta[3]", "theta[4]",
+```{r posterior_M1_theta, fig.cap="Figure. Posterior distributions of slope parameters for M1"}
+m <- 1
+bayesplot::mcmc_dens(M1.jm$samples, c("theta[1]", "theta[2]", "theta[3]", "theta[4]",
                                       "theta[5]", "theta[6]", "theta[7]", "theta[8]",
                                       "theta[9]", "theta[10]", "theta[11]", "theta[12]"))
 ```
 
-```{r posterior_M4_sigmas, fig.cap="Figure. Posterior distributions of process and sampling standard deviations"}
+```{r posterior_M1_sigmas, fig.cap="Figure. Posterior distributions of process and sampling standard deviations"}
 
-bayesplot::mcmc_dens(M4.jm$samples, c("sigma.pro1", "sigma.obs"))
+bayesplot::mcmc_dens(M1.jm$samples, c("sigma.pro1", "sigma.obs"))
 ```
 
 
 
 ```{r}
-Xs.stats <- M4.Xs.stats
-ys.stats <- M4.ys.stats
+Xs.stats <- M1.Xs.stats
+ys.stats <- M1.ys.stats
 p.1 <- ggplot() +
   geom_ribbon(data = Xs.stats,
               aes(x = time, 
@@ -591,20 +593,20 @@ p.1 <- ggplot() +
              alpha = 0.5) + 
   scale_x_continuous(breaks = seq(year.begin, year.end, 5),
                      limits = c(year.begin, year.end)) +
-  labs(x = '', y = '# nests', title = "Wermon")  +
+  labs(x = '', y = '# nests', title = "Jamursba-Medi")  +
   theme(axis.text = element_text(size = 12),
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.1, filename = paste0("figures/W_imputed_M", m, ".png"),
+  ggsave(p.1, filename = paste0("figures/JM_imputed_M", m, ".png"),
          device = "png", height = 4, width = 6, units = "in",
          dpi = 600)
 
 p.1.log <- ggplot() +
   geom_ribbon(data = Xs.stats,
               aes(x = time, 
-                  ymin = (low_X), 
-                  ymax = (high_X)),
+                  ymin = low_X, 
+                  ymax = high_X),
               fill = fill.color,
               alpha = fill.alpha) +
   #geom_point(data = ys.stats,
@@ -616,28 +618,27 @@ p.1.log <- ggplot() +
   #           color = "purple",
   #           linetype = 2) +
   geom_point(data = Xs.stats,
-             aes(x = time, y = (median_X)), 
+             aes(x = time, y = median_X), 
              color = line.color,
              size = 1) +
   geom_line(data = Xs.stats,
-            aes(x = time, y = (median_X)), 
+            aes(x = time, y = median_X), 
             color = line.color,
             alpha = 0.5) +
   geom_point(data = ys.stats,
-             aes(x = time, y = log(obsY)), 
+             aes(x = time, y = log(obsY)),
              color = obsd.color,
              alpha = 0.5) + 
   scale_x_continuous(breaks = seq(year.begin, year.end, 5),
                      limits = c(year.begin, year.end)) +
-  labs(x = '', y = 'log(# nests)', title = "Wermon")  +
+  labs(x = '', y = 'log(# nests)', title = "Jamursba-Medi")  +
   theme(axis.text = element_text(size = 12),
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.1.log, filename = paste0("figures/W_log_imputed_M", m, ".png"),
+  ggsave(p.1.log, filename = paste0("figures/JM_log_imputed_M", m, ".png"),
          device = "png", height = 4, width = 6, units = "in",
          dpi = 600)
-
 print(p.1.log)
 ```
 
@@ -645,10 +646,10 @@ Combine all counts per year.
 
 ```{r }
 
-Xs.stats %>% mutate(season = ifelse(month < 4, year - 1, year)) %>% 
+M1.Xs.stats %>% mutate(season = ifelse(month < 4, year - 1, year)) %>% 
   mutate(summer = ifelse(month > 3 & month < 10, 1, 0)) -> Xs.stats
 
-ys.stats %>% mutate(season = ifelse(month < 4, year - 1, year)) %>% 
+M1.ys.stats %>% mutate(season = ifelse(month < 4, year - 1, year)) %>% 
   mutate(summer = ifelse(month > 3 & month < 10, 1, 0)) -> ys.stats
 
 seasons <- as.matrix(unique(Xs.stats$season))
@@ -692,13 +693,13 @@ ys.season <- data.frame(season = seasons,
 
 Xs.season %>% left_join(ys.season, by = "season") -> Xy.season
 
-if (!file.exists(paste0("data/estimatedX_W_M", m, "_", run.date, ".csv")))
+if (!file.exists(paste0("data/estimatedX_JM_M", m, "_", run.date, ".csv")))
   write.csv(Xy.season, 
-            file = paste0("data/estimatedX_W_M", m, "_", run.date, ".csv"),
+            file = paste0("data/estimatedX_JM_M", m, "_", run.date, ".csv"),
             quote = F, row.names = F)
 
 
-p.W.estimated.counts <- ggplot() + 
+p.JM.estimated.counts <- ggplot() + 
   geom_ribbon(data = Xs.season,
               aes(x = season, 
                   ymin = Summer.low, 
@@ -737,16 +738,221 @@ p.W.estimated.counts <- ggplot() +
              size = 2) + 
   scale_x_continuous(breaks = seq(year.begin, year.end, 5),
                      limits = c(year.begin, year.end)) +
-  labs(x = '', y = '# nests', title = "Wermon")  +
+  labs(x = '', y = '# nests', title = "Jamursba-Medi")  +
   theme(axis.text = element_text(size = 12),
         text = element_text(size = 12))
   
   #labs(title = 'Jamursba-Medi', x = 'Season', y = "Nest counts")
 
 if (save.fig)
-  ggsave(filename = "figures/CountsPerSeason_best_W.png",
+  ggsave(filename = "figures/CountsPerSeason_best_JM.png",
          device = "png", dpi = 600,height = 4, width = 6, units = "in",
-         plot = p.W.estimated.counts)
-print(p.W.estimated.counts)
+         plot = p.JM.estimated.counts)
+print(p.JM.estimated.counts)
 ```
 
+What if I use M5?  Will the results change a lot?
+
+```{r posterior_M5_theta, fig.cap="Figure. Posterior distributions of slope parameters for M5"}
+m <- 5
+bayesplot::mcmc_dens(M5.jm$samples, c("theta[1]", "theta[2]", "theta[3]", "theta[4]",
+                                      "theta[5]", "theta[6]", "theta[7]", "theta[8]",
+                                      "theta[9]", "theta[10]", "theta[11]", "theta[12]"))
+```
+
+```{r posterior_M5_sigmas, fig.cap="Figure. Posterior distributions of process and sampling standard deviations"}
+
+bayesplot::mcmc_dens(M5.jm$samples, c("cv.pro1", "sigma.obs"))
+```
+
+
+
+```{r}
+Xs.stats <- M5.Xs.stats
+ys.stats <- M5.ys.stats
+p.1 <- ggplot() +
+  geom_ribbon(data = Xs.stats,
+              aes(x = time, 
+                  ymin = exp(low_X), 
+                  ymax = exp(high_X)),
+              fill = fill.color,
+              alpha = fill.alpha) +
+  #geom_point(data = ys.stats,
+  #           aes(x = time, y = mode_y), color = "blue") +
+  #geom_line(data = Xs.stats,
+  #          aes(x = time, y = mode_X), color = 'blue') +
+  # geom_line(data = Xs.stats,
+  #           aes(x = time, y = exp(high_X)), 
+  #           color = "purple",
+  #           linetype = 2) +
+  geom_point(data = Xs.stats,
+             aes(x = time, y = exp(median_X)), 
+             color = line.color,
+             size = 1) +
+  geom_line(data = Xs.stats,
+            aes(x = time, y = exp(median_X)), 
+            color = line.color,
+            alpha = 0.5) +
+  geom_point(data = ys.stats,
+             aes(x = time, y = obsY), 
+             color = obsd.color,
+             alpha = 0.5) + 
+  scale_x_continuous(breaks = seq(year.begin, year.end, 5),
+                     limits = c(year.begin, year.end)) +
+  labs(x = '', y = '# nests', title = "Jamursba-Medi")  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+
+if (save.fig)
+  ggsave(p.1, filename = paste0("figures/JM_imputed_M", m, ".png"),
+         device = "png", height = 4, width = 6, units = "in",
+         dpi = 600)
+
+p.1.log <- ggplot() +
+  geom_ribbon(data = Xs.stats,
+              aes(x = time, 
+                  ymin = low_X, 
+                  ymax = high_X),
+              fill = fill.color,
+              alpha = fill.alpha) +
+  #geom_point(data = ys.stats,
+  #           aes(x = time, y = mode_y), color = "blue") +
+  #geom_line(data = Xs.stats,
+  #          aes(x = time, y = mode_X), color = 'blue') +
+  # geom_line(data = Xs.stats,
+  #           aes(x = time, y = exp(high_X)), 
+  #           color = "purple",
+  #           linetype = 2) +
+  geom_point(data = Xs.stats,
+             aes(x = time, y = median_X), 
+             color = line.color,
+             size = 1) +
+  geom_line(data = Xs.stats,
+            aes(x = time, y = median_X), 
+            color = line.color,
+            alpha = 0.5) +
+  geom_point(data = ys.stats,
+             aes(x = time, y = log(obsY)),
+             color = obsd.color,
+             alpha = 0.5) + 
+  scale_x_continuous(breaks = seq(year.begin, year.end, 5),
+                     limits = c(year.begin, year.end)) +
+  labs(x = '', y = 'log(# nests)', title = "Jamursba-Medi")  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+
+if (save.fig)
+  ggsave(p.1.log, filename = paste0("figures/JM_log_imputed_M", m, ".png"),
+         device = "png", height = 4, width = 6, units = "in",
+         dpi = 600)
+print(p.1.log)
+```
+
+Combine all counts per year.
+
+```{r }
+
+M5.Xs.stats %>% mutate(season = ifelse(month < 4, year - 1, year)) %>% 
+  mutate(summer = ifelse(month > 3 & month < 10, 1, 0)) -> Xs.stats
+
+M5.ys.stats %>% mutate(season = ifelse(month < 4, year - 1, year)) %>% 
+  mutate(summer = ifelse(month > 3 & month < 10, 1, 0)) -> ys.stats
+
+seasons <- as.matrix(unique(Xs.stats$season))
+
+#######################
+X.posterior.seasons <- lapply(apply(seasons, 
+                                    MARGIN = 1,
+                                    FUN = extract.posterior.jagsUI, 
+                                    Xs.stats = Xs.stats, 
+                                    samples = M1.jm$samples),
+                              FUN = function(x){
+                                n.summer <- exp(x$samples[, x$summer == 1]) %>% rowSums() 
+                                n.winter <- exp(x$samples[, x$summer == 0]) %>% rowSums() 
+                                n.season <- exp(x$samples) %>% rowSums()
+                                return(data.frame(summer = n.summer, 
+                                                  winter = n.winter,
+                                                  all = n.season))
+                              } )
+
+
+Xs.season <- as.data.frame(matrix(unlist(lapply(X.posterior.seasons, 
+                                                FUN = function(x){
+                                                  qtiles <- apply(x, 
+                                                                  MARGIN = 2,
+                                                                  FUN = quantile, 
+                                                                  probs = c(0.025, 0.5, 0.975))})),
+                                  ncol = 9, byrow = T))
+
+colnames(Xs.season) <- c("Summer.low", "Summer.median", "Summer.high",
+                         "Winter.low", "Winter.median", "Winter.high",
+                         "all.low", "all.median", "all.high")
+Xs.season <- mutate(Xs.season, 
+                    season = as.vector(seasons))
+
+ys.stats %>% group_by(season, summer) %>%
+  summarize(obs = sum(obsY)) -> tmp.y.season
+
+ys.season <- data.frame(season = seasons,
+                        summer = unlist(c(as.vector(filter(tmp.y.season, summer == 1)[, "obs"]))),
+                        winter = unlist(filter(tmp.y.season, summer == 0)[, "obs"]))
+
+Xs.season %>% left_join(ys.season, by = "season") -> Xy.season
+
+if (!file.exists(paste0("data/estimatedX_JM_M", m, "_", run.date, ".csv")))
+  write.csv(Xy.season, 
+            file = paste0("data/estimatedX_JM_M", m, "_", run.date, ".csv"),
+            quote = F, row.names = F)
+
+
+p.JM.estimated.counts <- ggplot() + 
+  geom_ribbon(data = Xs.season,
+              aes(x = season, 
+                  ymin = Summer.low, 
+                  ymax = Summer.high),
+              fill = fill.color.summer,
+              alpha = fill.alpha) +
+  geom_point(data = Xs.season,
+             aes(x = season, 
+                 y = Summer.median), 
+             color = line.color.summer,
+             size = 2) +
+  geom_point(data = ys.season,
+             aes(x = season, 
+                 y = summer),
+             color = data.color,
+             size = 2) +
+  
+  geom_ribbon(data = Xs.season,
+                aes(x = season, 
+                    ymin = Winter.low, 
+                    ymax = Winter.high), 
+                fill = fill.color.winter,
+              alpha = fill.alpha) + 
+  geom_point(data = Xs.season,
+             aes(x = season, 
+                 y = Winter.median), 
+             color = line.color.winter,
+             shape = 17,
+             size = 2)+
+  
+  geom_point(data = ys.season,
+             aes(x = season, 
+                 y = winter),
+             color = data.color,
+             shape = 17,
+             size = 2) + 
+  scale_x_continuous(breaks = seq(year.begin, year.end, 5),
+                     limits = c(year.begin, year.end)) +
+  labs(x = '', y = '# nests', title = "Jamursba-Medi")  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+  
+  #labs(title = 'Jamursba-Medi', x = 'Season', y = "Nest counts")
+
+if (save.fig)
+  ggsave(filename = paste0("figures/CountsPerSeason_M", m, "_JM.png"),
+         device = "png", dpi = 600,height = 4, width = 6, units = "in",
+         plot = p.JM.estimated.counts)
+print(p.JM.estimated.counts)
+```

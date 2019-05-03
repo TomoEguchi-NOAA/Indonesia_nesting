@@ -110,7 +110,8 @@ There are a couple ways to tackle this question. One is to analyze two datasets 
 
 ```{r JM_find_results, echo=FALSE}
 JM_only.out <- readRDS(file = paste0("Rdata/singleUQ_JM_only_", 
-                                begin.year, "_", end.year,  "_", run.date, ".rds"))
+                                begin.year.JM, "_", end.year,  
+                                "_", run.date.JM, ".rds"))
 JM.U.f <- signif(JM_only.out$out$summary["U", "f"], 3) * 100
 ```
 
@@ -126,8 +127,8 @@ knitr::include_graphics("figures/posterior_U_JM_only.png")
 Because there were no data prior to 2006, the analysis was conducted only from 2006. 
 
 ```{r W_find_results, echo=FALSE}
-W_only.out <- readRDS(file = paste0("Rdata/singleUQ_W_only_2006_", 
-                                end.year,  "_", run.date, ".rds"))
+W_only.out <- readRDS(file = paste0("Rdata/singleUQ_W_only_", begin.year.W, "_", 
+                                end.year,  "_", run.date.W, ".rds"))
 W.U.f <- signif(W_only.out$out$summary["U", "f"], 3) * 100
 ```
 
@@ -141,7 +142,9 @@ knitr::include_graphics("figures/posterior_U_W_only.png")
 (1b) Using two datasets together
 
 ```{r get_indU_singleQ_results, echo=FALSE}
-jags.model <- readRDS(file = "RData/independentUs_singleQ_out_2001_2018_2019-03-14.rds")
+jags.model <- readRDS(file = paste0("RData/independentUs_singleQ_out_",
+                                    begin.year.JM, "_", end.year, "_", 
+                                    run.date.W, ".rds"))
 ```
 
 For the two beaches, ```r signif(jags.model$out$summary["U[1]", "f"], 3) * 100``` and ```r signif(jags.model$out$summary["U[2]", "f"], 3) * 100``` % of the posteriors were < 0, indicating strong evidence of population decline. Medians and 95% CIs were JM = ```r signif(jags.model$out$summary["U[1]", "50%"], 2)``` (```r signif(jags.model$out$summary["U[1]", "2.5%"], 2)```, ```r signif(jags.model$out$summary["U[1]", "97.5%"], 2) ```) and W = ```r signif(jags.model$out$summary["U[2]", "50%"], 2)``` (```r signif(jags.model$out$summary["U[2]", "2.5%"], 2)```, ```r signif(jags.model$out$summary["U[2]", "97.5%"], 2)```)
@@ -157,8 +160,8 @@ Analyzing these datasets with a single slope provides the best statistical treat
 
 ```{r get_singleUQ_out, echo=FALSE}
 singleUQ_out <- readRDS(paste0("RData/singleUQ_out_", 
-                               begin.year, "_", end.year, 
-                               "_", run.date, ".rds"))
+                               begin.year.JM, "_", end.year, 
+                               "_", run.date.W, ".rds"))
 
 ```
 
@@ -183,7 +186,8 @@ As it was done for the total annual counts, this can be done with independent da
 
 ```{r get_JM_only_summer, echo=FALSE}
 JM_singleUQ_summer <- readRDS(file = paste0("Rdata/singleUQ_JM_only_summer_", 
-                                            begin.year, "_", end.year,  "_", run.date, ".rds"))
+                                            begin.year.JM, "_", end.year,  
+                                            "_", run.date.JM, ".rds"))
 ```
 
 ```{r JM_only_trend_summer_plot, echo=FALSE, fig.cap = "Estimated (black is imputed median, blue line and green band are from exponential population growth model) and observed (red) nest counts during summer months at Jamursba-Medi nesting beach when only JM data were used.", out.width="50%"}
@@ -199,8 +203,8 @@ knitr::include_graphics("figures/posterior_U_JM_only_summer.png")
 
 (3a - Wermon)
 ```{r get_W_only_summer, echo=FALSE}
-W_singleUQ_summer <- readRDS(file = paste0("Rdata/singleUQ_W_only_summer_2006_", 
-                                            end.year,  "_", run.date, ".rds"))
+W_singleUQ_summer <- readRDS(file = paste0("Rdata/singleUQ_W_only_summer_", begin.year.W, "_", 
+                                            end.year,  "_", run.date.W, ".rds"))
 ```
 
 ```{r W_only_trend_summer_plot, echo=FALSE, fig.cap = "Estimated (black is imputed median, blue and green band are from exponential population growth model) and observed (red) nest counts during summer months at Wermon nesting beach when only W data were used.", out.width="50%"}
@@ -216,7 +220,9 @@ knitr::include_graphics("figures/posterior_U_W_only_summer.png")
 
 (3b) Using two datasets simultaneously with two independent slopes
 ```{r get_indUs_summer, echo=FALSE}
-indUs_summer <- readRDS("RData/independentUs_singleQ_summer_out_2001_2018_2019-03-14.rds")
+indUs_summer <- readRDS(paste0("RData/independentUs_singleQ_summer_out_",
+                               begin.year.JM, "_", end.year, "_", 
+                               run.date.W, ".rds"))
 ```
 
 For the two beaches, ```r signif(indUs_summer$out$summary["U[1]", "f"], 3) * 100``` and ```r signif(indUs_summer$out$summary["U[2]", "f"], 3) * 100``` % of the posteriors were < 0, indicating evidence of population decline. Medians and 95% CIs were JM = ```r signif(indUs_summer$out$summary["U[1]", "50%"], 2) ``` (```r signif(indUs_summer$out$summary["U[1]", "2.5%"], 2) ```,  ```r signif(indUs_summer$out$summary["U[1]", "97.5%"], 2) ```) and W = ```r signif(indUs_summer$out$summary["U[2]", "50%"], 2) ``` (```r signif(indUs_summer$out$summary["U[2]", "2.5%"], 2) ```, ```r signif(indUs_summer$out$summary["U[2]", "97.5%"], 2) ```)
@@ -245,7 +251,9 @@ knitr::include_graphics("figures/posterior_Us_summer.png")
 This analysis is for using one slope and one variance parameters for the two beaches in summer months. 
 
 ```{r get_singleUQ_summer, echo=FALSE}
-singleUQ_summer <- readRDS("RData/singleUQ_summer_out_2001_2018_2019-03-14.rds")
+singleUQ_summer <- readRDS(paste0("RData/singleUQ_summer_out_",
+                                  begin.year.JM, "_", end.year, "_", 
+                                  run.date.W, ".rds"))
 
 ```
 
@@ -261,8 +269,9 @@ knitr::include_graphics("figures/posterior_U_summer.png")
 Trend analysis for summer months in Wermon has been completed in the (3) above. Here I look at the winter months using data from Wermon only. 
 
 ```{r get_W_only_winter, echo=FALSE}
-W_singleUQ_winter <- readRDS(file = paste0("Rdata/singleUQ_W_only_winter_2006_", 
-                                            end.year,  "_", run.date, ".rds"))
+W_singleUQ_winter <- readRDS(file = paste0("Rdata/singleUQ_W_only_winter_",
+                                           begin.year.W, "_",
+                                            end.year,  "_", run.date.W, ".rds"))
 ```
 
 ```{r W_only_trend_winter_plot, echo=FALSE, fig.cap = "Estimated (black is imputed median, blue line and green band are from exponential population growth model) and observed (red) nest counts during winter months at Wermon nesting beach when only W data were used.", out.width="50%"}
