@@ -592,3 +592,197 @@ PSIS.plots <- function(pareto.k, data.y, m){
   return(list(p1 = p.1, p2 = p.2))
   
 }
+
+plot.combined.counts <- function(M.jm, Xs.stats, ys.stats, run.date, loc, m,
+                                 fill.color =  "darkseagreen",
+                                 fill.color.summer = "darksalmon",
+                                 fill.color.winter = "gray65",
+                                 fill.alpha =  0.65,
+                                 line.color =  "darkblue",
+                                 line.color.summer = "red3",
+                                 line.color.winter ="red3",  #"greenyellow"
+                                 data.color = "black",
+                                 data.size = 1.5,
+                                 obsd.color = "red2"){
+  
+  Xs.stats %>% mutate(season = ifelse(month < 4, year - 1, year)) %>% 
+    mutate(summer = ifelse(month > 3 & month < 10, 1, 0)) -> Xs.stats
+  
+  ys.stats %>% mutate(season = ifelse(month < 4, year - 1, year)) %>% 
+    mutate(summer = ifelse(month > 3 & month < 10, 1, 0)) -> ys.stats
+  
+  seasons <- as.matrix(unique(Xs.stats$season))
+  
+  #######################
+  X.posterior.seasons <- lapply(apply(seasons, 
+                                      MARGIN = 1,
+                                      FUN = extract.posterior.jagsUI, 
+                                      Xs.stats = Xs.stats, 
+                                      samples = M.jm$samples),
+                                FUN = function(x){
+                                  n.summer <- exp(x$samples[, x$summer == 1]) %>% rowSums() 
+                                  n.winter <- exp(x$samples[, x$summer == 0]) %>% rowSums() 
+                                  n.season <- exp(x$samples) %>% rowSums()
+                                  return(data.frame(summer = n.summer, 
+                                                    winter = n.winter,
+                                                    all = n.season))
+                                } )
+  
+  
+  Xs.season <- as.data.frame(matrix(unlist(lapply(X.posterior.seasons, 
+                                                  FUN = function(x){
+                                                    qtiles <- apply(x, 
+                                                                    MARGIN = 2,
+                                                                    FUN = quantile, 
+                                                                    probs = c(0.025, 0.5, 0.975))})),
+                                    ncol = 9, byrow = T))
+  
+  colnames(Xs.season) <- c("Summer.low", "Summer.median", "Summer.high",
+                           "Winter.low", "Winter.median", "Winter.high",
+                           "all.low", "all.median", "all.high")
+  Xs.season <- mutate(Xs.season, 
+                      season = as.vector(seasons))
+  
+  ys.stats %>% group_by(season, summer) %>%
+    summarize(obs = sum(obsY)) -> tmp.y.season
+  
+  ys.season <- data.frame(season = seasons,
+                          summer = unlist(c(as.vector(filter(tmp.y.season, summer == 1)[, "obs"]))),
+                          winter = unlist(filter(tmp.y.season, summer == 0)[, "obs"]))
+  
+  Xs.season %>% left_join(ys.season, by = "season") -> Xy.season
+  
+  if (!file.exists(paste0("data/estimatedX_", loc, "_M", 
+                          m, "_", run.date, ".csv")))
+    write.csv(Xy.season, 
+              file = paste0("data/estimatedX_", loc, "_M", 
+                            m, "_", run.date, ".csv"),
+              quote = F, row.names = F)
+  
+  p.estimated.counts <- ggplot() + 
+    geom_ribbon(data = Xs.season,
+                aes(x = season, 
+                    ymin = Summer.low, 
+                    ymax = Summer.high),
+                fill = fill.color.summer,
+                alpha = fill.alpha) +
+    geom_point(data = Xs.season,
+               aes(x = season, 
+                   y = Summer.median), 
+               color = line.color.summer,
+               size = 2) +
+    geom_point(data = ys.season,
+               aes(x = season, 
+                   y = summer),
+               color = data.color,
+               size = 2) +
+    
+    geom_ribbon(data = Xs.season,
+                aes(x = season, 
+                    ymin = Winter.low, 
+                    ymax = Winter.high), 
+                fill = fill.color.winter,
+                alpha = fill.alpha) + 
+    geom_point(data = Xs.season,
+               aes(x = season, 
+                   y = Winter.median), 
+               color = line.color.winter,
+               shape = 17,
+               size = 2)+
+    
+    geom_point(data = ys.season,
+               aes(x = season, 
+                   y = winter),
+               color = data.color,
+               shape = 17,
+               size = 2) + 
+    scale_x_continuous(breaks = seq(year.begin, year.end, 5),
+                       limits = c(year.begin, year.end)) +
+    labs(x = '', y = '# nests', 
+         title = ifelse(loc == "JM", "Jamursba-Medi", "Wermon"))  +
+    theme(axis.text = element_text(size = 12),
+          text = element_text(size = 12))
+  
+  return(p.estimated.counts)
+}
+
+plot.imputed <- fucntion(Xs.stats, ys.stats, loc, year.begin, year.end, 
+                         fill.color =  "darkseagreen",
+                         fill.alpha =  0.65,
+                         line.color =  "darkblue",
+                         data.color = "black",
+                         data.size = 1.5,
+                         obsd.color = "red2"){
+  
+  p.1 <- ggplot() +
+    geom_ribbon(data = Xs.stats,
+                aes(x = time, 
+                    ymin = exp(low_X), 
+                    ymax = exp(high_X)),
+                fill = fill.color,
+                alpha = fill.alpha) +
+    #geom_point(data = ys.stats,
+    #           aes(x = time, y = mode_y), color = "blue") +
+    #geom_line(data = Xs.stats,
+    #          aes(x = time, y = mode_X), color = 'blue') +
+    # geom_line(data = Xs.stats,
+    #           aes(x = time, y = exp(high_X)), 
+    #           color = "purple",
+    #           linetype = 2) +
+    geom_point(data = Xs.stats,
+               aes(x = time, y = exp(median_X)), 
+               color = line.color,
+               size = 1) +
+    geom_line(data = Xs.stats,
+              aes(x = time, y = exp(median_X)), 
+              color = line.color,
+              alpha = 0.5) +
+    geom_point(data = ys.stats,
+               aes(x = time, y = obsY), 
+               color = obsd.color,
+               alpha = 0.5) + 
+    scale_x_continuous(breaks = seq(year.begin, year.end, 5),
+                       limits = c(year.begin, year.end)) +
+    labs(x = '', y = '# nests', 
+         title = ifelse(loc == "JM", "Jamursba-Medi", "Wermon"))  +
+    theme(axis.text = element_text(size = 12),
+          text = element_text(size = 12))
+  
+  p.1.log <- ggplot() +
+    geom_ribbon(data = Xs.stats,
+                aes(x = time, 
+                    ymin = (low_X), 
+                    ymax = (high_X)),
+                fill = fill.color,
+                alpha = fill.alpha) +
+    #geom_point(data = ys.stats,
+    #           aes(x = time, y = mode_y), color = "blue") +
+    #geom_line(data = Xs.stats,
+    #          aes(x = time, y = mode_X), color = 'blue') +
+    # geom_line(data = Xs.stats,
+    #           aes(x = time, y = exp(high_X)), 
+    #           color = "purple",
+    #           linetype = 2) +
+    geom_point(data = Xs.stats,
+               aes(x = time, y = (median_X)), 
+               color = line.color,
+               size = 1) +
+    geom_line(data = Xs.stats,
+              aes(x = time, y = (median_X)), 
+              color = line.color,
+              alpha = 0.5) +
+    geom_point(data = ys.stats,
+               aes(x = time, y = log(obsY)), 
+               color = obsd.color,
+               alpha = 0.5) + 
+    scale_x_continuous(breaks = seq(year.begin, year.end, 5),
+                       limits = c(year.begin, year.end)) +
+    labs(x = '', y = 'log(# nests)', 
+         title = ifelse(loc == "JM", "Jamursba-Medi", "Wermon"))  +
+    theme(axis.text = element_text(size = 12),
+          text = element_text(size = 12))
+  
+  ps <- list(p.1 = p.1,
+             p.1.log = p.1.log)
+  
+}

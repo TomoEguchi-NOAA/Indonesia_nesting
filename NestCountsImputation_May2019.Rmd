@@ -13,8 +13,10 @@ run.date <- "2019-04-30"
 save.fig <- F
 
 models.df <- model.names()
-year.begin <- 2003
-year.end <- 2019
+year.begin.W <- 2003
+year.end.W <- 2019
+year.begin.JM <- 1999
+year.end.JM <- 2019
 
 fill.color <-  "darkseagreen"
 fill.color.summer <- "darksalmon"
@@ -317,81 +319,17 @@ bayesplot::mcmc_dens(M1.jm$samples, c("sigma.pro1", "sigma.obs"))
 
 
 ```{r}
-Xs.stats <- M1.Xs.stats
-ys.stats <- M1.ys.stats
-p.1 <- ggplot() +
-  geom_ribbon(data = Xs.stats,
-              aes(x = time, 
-                  ymin = exp(low_X), 
-                  ymax = exp(high_X)),
-              fill = fill.color,
-              alpha = fill.alpha) +
-  #geom_point(data = ys.stats,
-  #           aes(x = time, y = mode_y), color = "blue") +
-  #geom_line(data = Xs.stats,
-  #          aes(x = time, y = mode_X), color = 'blue') +
-  # geom_line(data = Xs.stats,
-  #           aes(x = time, y = exp(high_X)), 
-  #           color = "purple",
-  #           linetype = 2) +
-  geom_point(data = Xs.stats,
-             aes(x = time, y = exp(median_X)), 
-             color = line.color,
-             size = 1) +
-  geom_line(data = Xs.stats,
-            aes(x = time, y = exp(median_X)), 
-            color = line.color,
-            alpha = 0.5) +
-  geom_point(data = ys.stats,
-             aes(x = time, y = obsY), 
-             color = obsd.color,
-             alpha = 0.5) + 
-  scale_x_continuous(breaks = seq(year.begin, year.end, 5),
-                     limits = c(year.begin, year.end)) +
-  labs(x = '', y = '# nests', title = "Jamursba-Medi")  +
-  theme(axis.text = element_text(size = 12),
-        text = element_text(size = 12))
-
+p.JM.imputed <- plot.imputed(M1.Xs.stats, M1.ys.stats, "JM", 
+                             year.begin.JM, year.end.JM)
 if (save.fig)
-  ggsave(p.1, filename = paste0("figures/JM_imputed_M", m, ".png"),
+  ggsave(p.JM.imputed$p.1, 
+         filename = paste0("figures/JM_imputed_M", m, ".png"),
          device = "png", height = 4, width = 6, units = "in",
          dpi = 600)
 
-p.1.log <- ggplot() +
-  geom_ribbon(data = Xs.stats,
-              aes(x = time, 
-                  ymin = low_X, 
-                  ymax = high_X),
-              fill = fill.color,
-              alpha = fill.alpha) +
-  #geom_point(data = ys.stats,
-  #           aes(x = time, y = mode_y), color = "blue") +
-  #geom_line(data = Xs.stats,
-  #          aes(x = time, y = mode_X), color = 'blue') +
-  # geom_line(data = Xs.stats,
-  #           aes(x = time, y = exp(high_X)), 
-  #           color = "purple",
-  #           linetype = 2) +
-  geom_point(data = Xs.stats,
-             aes(x = time, y = median_X), 
-             color = line.color,
-             size = 1) +
-  geom_line(data = Xs.stats,
-            aes(x = time, y = median_X), 
-            color = line.color,
-            alpha = 0.5) +
-  geom_point(data = ys.stats,
-             aes(x = time, y = log(obsY)),
-             color = obsd.color,
-             alpha = 0.5) + 
-  scale_x_continuous(breaks = seq(year.begin, year.end, 5),
-                     limits = c(year.begin, year.end)) +
-  labs(x = '', y = 'log(# nests)', title = "Jamursba-Medi")  +
-  theme(axis.text = element_text(size = 12),
-        text = element_text(size = 12))
-
 if (save.fig)
-  ggsave(p.1.log, filename = paste0("figures/JM_log_imputed_M", m, ".png"),
+  ggsave(p.JM.imputed$p.1.log, 
+         filename = paste0("figures/JM_log_imputed_M", m, ".png"),
          device = "png", height = 4, width = 6, units = "in",
          dpi = 600)
 print(p.1.log)
@@ -400,104 +338,12 @@ print(p.1.log)
 Combine all counts per year.
 
 ```{r }
-
-M1.Xs.stats %>% mutate(season = ifelse(month < 4, year - 1, year)) %>% 
-  mutate(summer = ifelse(month > 3 & month < 10, 1, 0)) -> Xs.stats
-
-M1.ys.stats %>% mutate(season = ifelse(month < 4, year - 1, year)) %>% 
-  mutate(summer = ifelse(month > 3 & month < 10, 1, 0)) -> ys.stats
-
-seasons <- as.matrix(unique(Xs.stats$season))
-
-#######################
-X.posterior.seasons <- lapply(apply(seasons, 
-                                    MARGIN = 1,
-                                    FUN = extract.posterior.jagsUI, 
-                                    Xs.stats = Xs.stats, 
-                                    samples = M1.jm$samples),
-                              FUN = function(x){
-                                n.summer <- exp(x$samples[, x$summer == 1]) %>% rowSums() 
-                                n.winter <- exp(x$samples[, x$summer == 0]) %>% rowSums() 
-                                n.season <- exp(x$samples) %>% rowSums()
-                                return(data.frame(summer = n.summer, 
-                                                  winter = n.winter,
-                                                  all = n.season))
-                              } )
-
-
-Xs.season <- as.data.frame(matrix(unlist(lapply(X.posterior.seasons, 
-                                                FUN = function(x){
-                                                  qtiles <- apply(x, 
-                                                                  MARGIN = 2,
-                                                                  FUN = quantile, 
-                                                                  probs = c(0.025, 0.5, 0.975))})),
-                                  ncol = 9, byrow = T))
-
-colnames(Xs.season) <- c("Summer.low", "Summer.median", "Summer.high",
-                         "Winter.low", "Winter.median", "Winter.high",
-                         "all.low", "all.median", "all.high")
-Xs.season <- mutate(Xs.season, 
-                    season = as.vector(seasons))
-
-ys.stats %>% group_by(season, summer) %>%
-  summarize(obs = sum(obsY)) -> tmp.y.season
-
-ys.season <- data.frame(season = seasons,
-                        summer = unlist(c(as.vector(filter(tmp.y.season, summer == 1)[, "obs"]))),
-                        winter = unlist(filter(tmp.y.season, summer == 0)[, "obs"]))
-
-Xs.season %>% left_join(ys.season, by = "season") -> Xy.season
-
-if (!file.exists(paste0("data/estimatedX_JM_M", m, "_", run.date, ".csv")))
-  write.csv(Xy.season, 
-            file = paste0("data/estimatedX_JM_M", m, "_", run.date, ".csv"),
-            quote = F, row.names = F)
-
-
-p.JM.estimated.counts <- ggplot() + 
-  geom_ribbon(data = Xs.season,
-              aes(x = season, 
-                  ymin = Summer.low, 
-                  ymax = Summer.high),
-              fill = fill.color.summer,
-              alpha = fill.alpha) +
-  geom_point(data = Xs.season,
-             aes(x = season, 
-                 y = Summer.median), 
-             color = line.color.summer,
-             size = 2) +
-  geom_point(data = ys.season,
-             aes(x = season, 
-                 y = summer),
-             color = data.color,
-             size = 2) +
-  
-  geom_ribbon(data = Xs.season,
-                aes(x = season, 
-                    ymin = Winter.low, 
-                    ymax = Winter.high), 
-                fill = fill.color.winter,
-              alpha = fill.alpha) + 
-  geom_point(data = Xs.season,
-             aes(x = season, 
-                 y = Winter.median), 
-             color = line.color.winter,
-             shape = 17,
-             size = 2)+
-  
-  geom_point(data = ys.season,
-             aes(x = season, 
-                 y = winter),
-             color = data.color,
-             shape = 17,
-             size = 2) + 
-  scale_x_continuous(breaks = seq(year.begin, year.end, 5),
-                     limits = c(year.begin, year.end)) +
-  labs(x = '', y = '# nests', title = "Jamursba-Medi")  +
-  theme(axis.text = element_text(size = 12),
-        text = element_text(size = 12))
-  
-  #labs(title = 'Jamursba-Medi', x = 'Season', y = "Nest counts")
+p.JM.estimated.counts <- plot.combined.counts(M1.jm, 
+                                              M1.Xs.stats, 
+                                              M1.ys.stats, 
+                                              run.date, 
+                                              "JM", 
+                                              m=1)
 
 if (save.fig)
   ggsave(filename = "figures/CountsPerSeason_best_JM.png",
@@ -712,81 +558,18 @@ bayesplot::mcmc_dens(M4.jm$samples, c("sigma.pro1", "sigma.obs"))
 
 
 ```{r}
-Xs.stats <- M4.Xs.stats
-ys.stats <- M4.ys.stats
-p.1 <- ggplot() +
-  geom_ribbon(data = Xs.stats,
-              aes(x = time, 
-                  ymin = exp(low_X), 
-                  ymax = exp(high_X)),
-              fill = fill.color,
-              alpha = fill.alpha) +
-  #geom_point(data = ys.stats,
-  #           aes(x = time, y = mode_y), color = "blue") +
-  #geom_line(data = Xs.stats,
-  #          aes(x = time, y = mode_X), color = 'blue') +
-  # geom_line(data = Xs.stats,
-  #           aes(x = time, y = exp(high_X)), 
-  #           color = "purple",
-  #           linetype = 2) +
-  geom_point(data = Xs.stats,
-             aes(x = time, y = exp(median_X)), 
-             color = line.color,
-             size = 1) +
-  geom_line(data = Xs.stats,
-            aes(x = time, y = exp(median_X)), 
-            color = line.color,
-            alpha = 0.5) +
-  geom_point(data = ys.stats,
-             aes(x = time, y = obsY), 
-             color = obsd.color,
-             alpha = 0.5) + 
-  scale_x_continuous(breaks = seq(year.begin, year.end, 5),
-                     limits = c(year.begin, year.end)) +
-  labs(x = '', y = '# nests', title = "Wermon")  +
-  theme(axis.text = element_text(size = 12),
-        text = element_text(size = 12))
+p.W.imputed <- plot.imputed(M4.Xs.stats, M4.ys.stats, "W", year.begin.W, year.end.W)
 
 if (save.fig)
-  ggsave(p.1, filename = paste0("figures/W_imputed_M", m, ".png"),
+  ggsave(p.w.imputed$p.1, 
+         filename = paste0("figures/W_imputed_M", m, ".png"),
          device = "png", height = 4, width = 6, units = "in",
          dpi = 600)
 
-p.1.log <- ggplot() +
-  geom_ribbon(data = Xs.stats,
-              aes(x = time, 
-                  ymin = (low_X), 
-                  ymax = (high_X)),
-              fill = fill.color,
-              alpha = fill.alpha) +
-  #geom_point(data = ys.stats,
-  #           aes(x = time, y = mode_y), color = "blue") +
-  #geom_line(data = Xs.stats,
-  #          aes(x = time, y = mode_X), color = 'blue') +
-  # geom_line(data = Xs.stats,
-  #           aes(x = time, y = exp(high_X)), 
-  #           color = "purple",
-  #           linetype = 2) +
-  geom_point(data = Xs.stats,
-             aes(x = time, y = (median_X)), 
-             color = line.color,
-             size = 1) +
-  geom_line(data = Xs.stats,
-            aes(x = time, y = (median_X)), 
-            color = line.color,
-            alpha = 0.5) +
-  geom_point(data = ys.stats,
-             aes(x = time, y = log(obsY)), 
-             color = obsd.color,
-             alpha = 0.5) + 
-  scale_x_continuous(breaks = seq(year.begin, year.end, 5),
-                     limits = c(year.begin, year.end)) +
-  labs(x = '', y = 'log(# nests)', title = "Wermon")  +
-  theme(axis.text = element_text(size = 12),
-        text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.1.log, filename = paste0("figures/W_log_imputed_M", m, ".png"),
+  ggsave(p.w.imputed$p.1.log, 
+         filename = paste0("figures/W_log_imputed_M", m, ".png"),
          device = "png", height = 4, width = 6, units = "in",
          dpi = 600)
 
@@ -796,104 +579,10 @@ print(p.1.log)
 Combine all counts per year.
 
 ```{r }
-
-Xs.stats %>% mutate(season = ifelse(month < 4, year - 1, year)) %>% 
-  mutate(summer = ifelse(month > 3 & month < 10, 1, 0)) -> Xs.stats
-
-ys.stats %>% mutate(season = ifelse(month < 4, year - 1, year)) %>% 
-  mutate(summer = ifelse(month > 3 & month < 10, 1, 0)) -> ys.stats
-
-seasons <- as.matrix(unique(Xs.stats$season))
-
-#######################
-X.posterior.seasons <- lapply(apply(seasons, 
-                                    MARGIN = 1,
-                                    FUN = extract.posterior.jagsUI, 
-                                    Xs.stats = Xs.stats, 
-                                    samples = M1.jm$samples),
-                              FUN = function(x){
-                                n.summer <- exp(x$samples[, x$summer == 1]) %>% rowSums() 
-                                n.winter <- exp(x$samples[, x$summer == 0]) %>% rowSums() 
-                                n.season <- exp(x$samples) %>% rowSums()
-                                return(data.frame(summer = n.summer, 
-                                                  winter = n.winter,
-                                                  all = n.season))
-                              } )
-
-
-Xs.season <- as.data.frame(matrix(unlist(lapply(X.posterior.seasons, 
-                                                FUN = function(x){
-                                                  qtiles <- apply(x, 
-                                                                  MARGIN = 2,
-                                                                  FUN = quantile, 
-                                                                  probs = c(0.025, 0.5, 0.975))})),
-                                  ncol = 9, byrow = T))
-
-colnames(Xs.season) <- c("Summer.low", "Summer.median", "Summer.high",
-                         "Winter.low", "Winter.median", "Winter.high",
-                         "all.low", "all.median", "all.high")
-Xs.season <- mutate(Xs.season, 
-                    season = as.vector(seasons))
-
-ys.stats %>% group_by(season, summer) %>%
-  summarize(obs = sum(obsY)) -> tmp.y.season
-
-ys.season <- data.frame(season = seasons,
-                        summer = unlist(c(as.vector(filter(tmp.y.season, summer == 1)[, "obs"]))),
-                        winter = unlist(filter(tmp.y.season, summer == 0)[, "obs"]))
-
-Xs.season %>% left_join(ys.season, by = "season") -> Xy.season
-
-if (!file.exists(paste0("data/estimatedX_W_M", m, "_", run.date, ".csv")))
-  write.csv(Xy.season, 
-            file = paste0("data/estimatedX_W_M", m, "_", run.date, ".csv"),
-            quote = F, row.names = F)
-
-
-p.W.estimated.counts <- ggplot() + 
-  geom_ribbon(data = Xs.season,
-              aes(x = season, 
-                  ymin = Summer.low, 
-                  ymax = Summer.high),
-              fill = fill.color.summer,
-              alpha = fill.alpha) +
-  geom_point(data = Xs.season,
-             aes(x = season, 
-                 y = Summer.median), 
-             color = line.color.summer,
-             size = 2) +
-  geom_point(data = ys.season,
-             aes(x = season, 
-                 y = summer),
-             color = data.color,
-             size = 2) +
-  
-  geom_ribbon(data = Xs.season,
-                aes(x = season, 
-                    ymin = Winter.low, 
-                    ymax = Winter.high), 
-                fill = fill.color.winter,
-              alpha = fill.alpha) + 
-  geom_point(data = Xs.season,
-             aes(x = season, 
-                 y = Winter.median), 
-             color = line.color.winter,
-             shape = 17,
-             size = 2)+
-  
-  geom_point(data = ys.season,
-             aes(x = season, 
-                 y = winter),
-             color = data.color,
-             shape = 17,
-             size = 2) + 
-  scale_x_continuous(breaks = seq(year.begin, year.end, 5),
-                     limits = c(year.begin, year.end)) +
-  labs(x = '', y = '# nests', title = "Wermon")  +
-  theme(axis.text = element_text(size = 12),
-        text = element_text(size = 12))
-  
-  #labs(title = 'Jamursba-Medi', x = 'Season', y = "Nest counts")
+p.W.estimated.counts <- plot.combined.counts(M4.jm, 
+                                             M4.Xs.stats, 
+                                             M4.ys.stats, 
+                                             run.date, "W", 4)
 
 if (save.fig)
   ggsave(filename = "figures/CountsPerSeason_best_W.png",

@@ -1022,7 +1022,7 @@ X.posterior.seasons <- lapply(apply(seasons,
                                     MARGIN = 1,
                                     FUN = extract.posterior.jagsUI, 
                                     Xs.stats = Xs.stats, 
-                                    samples = M1.jm$samples),
+                                    samples = M5.jm$samples),
                               FUN = function(x){
                                 n.summer <- exp(x$samples[, x$summer == 1]) %>% rowSums() 
                                 n.winter <- exp(x$samples[, x$summer == 0]) %>% rowSums() 
