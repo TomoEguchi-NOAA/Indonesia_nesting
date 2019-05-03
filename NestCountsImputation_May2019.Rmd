@@ -95,12 +95,10 @@ data.y <-JM_out[[1]]$data.y
 Diagnostics of the expected log predictive density indicated that the model was not appropriate, where many (```r signif(sum(M1.loo.out$diagnostics$pareto_k > 0.7)/length(M1.loo.out$diagnostics$pareto_k) * 100, 3)``` %) of estimated Pareto k statistics (a measure of model fit - TRUE?) were greater than 0.7. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M1.jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M1.jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M1.jm$Rhat, FUN = max, na.rm = T))), 3)```). 
 
 ```{r}
-pareto.k <- M1.loo.out$diagnostics$pareto_k
 
-plots <- PSIS.plots(pareto.k, data.y, "1")
-if (save.fig)
-  ggsave(plots$p2, filename = "figures/JM_PSIS_M1.png",
-         device = "png", dpi = 600)
+plots <- PSIS.plots(pareto.k = M1.loo.out$diagnostics$pareto_k, 
+                    data.y = data.y, 
+                    m = "1", loc = "JM", save.fig = save.fig)
 
 print(plots$p2)
 ```
@@ -128,9 +126,9 @@ Although better than the first model, some estimated Pareto k statistics were gr
 
 
 ```{r}
-pareto.k <- M2.loo.out$diagnostics$pareto_k
-
-plots <- PSIS.plots(pareto.k, data.y, "2")
+plots <- PSIS.plots(pareto.k = M2.loo.out$diagnostics$pareto_k, 
+                    data.y = data.y, 
+                    m = "2", loc = "JM", save.fig = save.fig)
 if (save.fig)
   ggsave(plots$p2, filename = "figures/JM_PSIS_M2.png",
          device = "png", dpi = 600)
@@ -163,12 +161,10 @@ Some estimated Pareto k statistics were greater than 0.7 (```r signif(sum(M1.loo
 
 
 ```{r}
-pareto.k <- M3.loo.out$diagnostics$pareto_k
 
-plots <- PSIS.plots(pareto.k, data.y, "3")
-if (save.fig)
-  ggsave(plots$p2, filename = "figures/JM_PSIS_M3.png",
-         device = "png", dpi = 600)
+plots <- PSIS.plots(pareto.k = M3.loo.out$diagnostics$pareto_k, 
+                    data.y = data.y, 
+                    m = "3", loc = "JM", save.fig = save.fig)
 
 print(plots$p2)
 
@@ -198,12 +194,10 @@ There were some large estimated Pareto k parameter values, where ```r sum(M4.loo
 
 
 ```{r}
-pareto.k <- M4.loo.out$diagnostics$pareto_k
 
-plots <- PSIS.plots(pareto.k, data.y, "4")
-if (save.fig)
-  ggsave(plots$p2, filename = "figures/JM_PSIS_M4.png",
-         device = "png", dpi = 600)
+plots <- PSIS.plots(pareto.k = M4.loo.out$diagnostics$pareto_k, 
+                    data.y = data.y, 
+                    m = "4", loc = "JM", save.fig = save.fig)
 
 print(plots$p2)
 
@@ -233,12 +227,10 @@ Model 5 showed better results with repsect to estimated Pareto k statistics, whe
 
 
 ```{r}
-pareto.k <- M5.loo.out$diagnostics$pareto_k
 
-plots <- PSIS.plots(pareto.k, data.y, "5")
-if (save.fig)
-  ggsave(plots$p2, filename = "figures/JM_PSIS_M5.png",
-         device = "png", dpi = 600)
+plots <- PSIS.plots(pareto.k = M5.loo.out$diagnostics$pareto_k, 
+                    data.y = data.y, 
+                    m = "5", loc = "JM", save.fig = save.fig)
 
 print(plots$p2)
 
@@ -269,12 +261,9 @@ The vast majority of estimated Pareto k parameter was greater than 0.7 (```r sum
 
 
 ```{r}
-pareto.k <- M6.loo.out$diagnostics$pareto_k
-
-plots <- PSIS.plots(pareto.k, data.y, "6")
-if (save.fig)
-  ggsave(plots$p2, filename = "figures/JM_PSIS_M6.png",
-         device = "png", dpi = 600)
+plots <- PSIS.plots(pareto.k = M6.loo.out$diagnostics$pareto_k, 
+                    data.y = data.y, 
+                    m = "6", loc = "JM", save.fig = save.fig)
 
 print(plots$p2)
 
@@ -368,13 +357,11 @@ data.y <-W_out[[m]]$data.y
 
 Diagnostics of the expected log predictive density indicated that the model was not appropriate, where many (```r signif(sum(M1.loo.out$diagnostics$pareto_k > 0.7)/length(M1.loo.out$diagnostics$pareto_k) * 100, 3)``` %) of estimated Pareto k statistics (a measure of model fit - TRUE?) were greater than 0.7. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M1.jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M1.jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M1.jm$Rhat, FUN = max, na.rm = T))), 3)```). 
 
-```{r PSIS_M1, fig.cap = "Figure. PSIS diagnostic plot for M1"}
-pareto.k <- M1.loo.out$diagnostics$pareto_k
+```{r W_PSIS_M1, fig.cap = "Figure. PSIS diagnostic plot for M1"}
 
-plots <- PSIS.plots(pareto.k, data.y, "1")
-if (save.fig)
-  ggsave(plots$p2, filename = "figures/W_PSIS_M1.png",
-         device = "png", dpi = 600)
+plots <- PSIS.plots(pareto.k = M1.loo.out$diagnostics$pareto_k, 
+                    data.y = data.y, 
+                    m = "1", loc = "W", save.fig = save.fig)
 
 print(plots$p2)
 
@@ -393,13 +380,11 @@ data.y <-W_out[[m]]$data.y
 
 Although better than the first model, some estimated Pareto k statistics were greater than 0.7 (```r signif(sum(M2.loo.out$diagnostics$pareto_k > 0.7)/length(M1.loo.out$diagnostics$pareto_k) * 100, 3)``` %). Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M2.jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M2.jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M2.jm$Rhat, FUN = max, na.rm = T))), 3)```). 
 
-```{r PSIS_M2, fig.cap="Figure. PSIS diagnostic plot for M2"}
-pareto.k <- M2.loo.out$diagnostics$pareto_k
+```{r W_PSIS_M2, fig.cap="Figure. PSIS diagnostic plot for M2"}
 
-plots <- PSIS.plots(pareto.k, data.y, "2")
-if (save.fig)
-  ggsave(plots$p2, filename = "figures/W_PSIS_M2.png",
-         device = "png", dpi = 600)
+plots <- PSIS.plots(pareto.k = M2.loo.out$diagnostics$pareto_k, 
+                    data.y = data.y, 
+                    m = "2", loc = "W", save.fig = save.fig)
 
 print(plots$p2)
 
@@ -420,13 +405,11 @@ data.y <-W_out[[m]]$data.y
 
 Some estimated Pareto k statistics were greater than 0.7 (```r signif(sum(M1.loo.out$diagnostics$pareto_k > 0.7)/length(M3.loo.out$diagnostics$pareto_k) * 100, 3)``` %). Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M3.jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M3.jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M3.jm$Rhat, FUN = max, na.rm = T))), 3)```). 
 
-```{r PSIS_M3, fig.cap="Figure. PSIS diagnostic plot for M3"}
-pareto.k <- M3.loo.out$diagnostics$pareto_k
+```{r W_PSIS_M3, fig.cap="Figure. PSIS diagnostic plot for M3"}
 
-plots <- PSIS.plots(pareto.k, data.y, "3")
-if (save.fig)
-  ggsave(plots$p2, filename = "figures/W_PSIS_M3.png",
-         device = "png", dpi = 600)
+plots <- PSIS.plots(pareto.k = M3.loo.out$diagnostics$pareto_k, 
+                    data.y = data.y, 
+                    m = "3", loc = "W", save.fig = save.fig)
 
 print(plots$p2)
 
@@ -448,21 +431,16 @@ data.y <-W_out[[m]]$data.y
 There were some large estimated Pareto k parameter values, where ```r sum(M4.loo.out$diagnostics$pareto_k > 0.7)/length(M4.loo.out$diagnostics$pareto_k) * 100```% were larger than 0.7. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M4.jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M4.jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M4.jm$Rhat, FUN = max, na.rm = T))), 3)```). 
 
 ```{r PSIS_M4, fig.cap="Figure. PSIS diagnostic plot for M4"}
-pareto.k <- M4.loo.out$diagnostics$pareto_k
 
-plots <- PSIS.plots(pareto.k, data.y, "4")
-if (save.fig)
-  ggsave(plots$p2, filename = "figures/W_PSIS_M4.png",
-         device = "png", dpi = 600)
+plots <- PSIS.plots(pareto.k = M4.loo.out$diagnostics$pareto_k, 
+                    data.y = data.y, 
+                    m = "1", loc = "W", save.fig = save.fig)
 
 print(plots$p2)
-
-
 
 ```
 
 ###Model 5
-
 
 ```{r model5, cache=TRUE, include=TRUE}
 m <- 5
@@ -476,13 +454,11 @@ data.y <-W_out[[m]]$data.y
 
 Model 5 showed better results with repsect to estimated Pareto k statistics, where (```r signif(sum(M5.loo.out$diagnostics$pareto_k > 0.7)/length(M5.loo.out$diagnostics$pareto_k) * 100, 3)``` % were greater than 0.7). Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M5.jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M5.jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M5.jm$Rhat, FUN = max, na.rm = T))), 3)```). 
 
-```{r PSIS_M5, fig.cap="Figure. PSIS diagnostic plot for M5"} 
-pareto.k <- M5.loo.out$diagnostics$pareto_k
+```{r W_PSIS_M5, fig.cap="Figure. PSIS diagnostic plot for M5"}
 
-plots <- PSIS.plots(pareto.k, data.y, "5")
-if (save.fig)
-  ggsave(plots$p2, filename = "figures/W_PSIS_M5.png",
-         device = "png", dpi = 600)
+plots <- PSIS.plots(pareto.k = M5.loo.out$diagnostics$pareto_k, 
+                    data.y = data.y, 
+                    m = "5", loc = "W", save.fig = save.fig)
 
 print(plots$p2)
 
@@ -504,13 +480,11 @@ data.y <-W_out[[m]]$data.y
 
 The vast majority of estimated Pareto k parameter was greater than 0.7 (```r sum(M6.loo.out$diagnostics$pareto_k > 0.7)``` out of ```r length(M6.loo.out$diagnostics$pareto_k)```. Convergence was reached for all monitored parameters (minimum = ```r signif(min(unlist(lapply(M6.jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M6.jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M6.jm$Rhat, FUN = max, na.rm = T))), 3)```).  
 
-```{r PSIS_M6, fig.cap="Figure. PSIS diagnostic plot for M6"} 
-pareto.k <- M6.loo.out$diagnostics$pareto_k
+```{r W_PSIS_M6, fig.cap="Figure. PSIS diagnostic plot for M6"} 
 
-plots <- PSIS.plots(pareto.k, data.y, "6")
-if (save.fig)
-  ggsave(plots$p2, filename = "figures/W_PSIS_M6.png",
-         device = "png", dpi = 600)
+plots <- PSIS.plots(pareto.k =  M6.loo.out$diagnostics$pareto_k, 
+                    data.y = data.y, 
+                    m = "6", loc = "W", save.fig = save.fig)
 
 print(plots$p2)
 
@@ -545,9 +519,10 @@ Here, I use M4 for the predictions.
 
 ```{r posterior_M4_theta, fig.cap="Figure. Posterior distributions of slope parameters for M8"}
 
-bayesplot::mcmc_dens(M4.jm$samples, c("theta[1]", "theta[2]", "theta[3]", "theta[4]",
-                                      "theta[5]", "theta[6]", "theta[7]", "theta[8]",
-                                      "theta[9]", "theta[10]", "theta[11]", "theta[12]"))
+bayesplot::mcmc_dens(M4.jm$samples, 
+                     c("theta[1]", "theta[2]", "theta[3]", "theta[4]",
+                       "theta[5]", "theta[6]", "theta[7]", "theta[8]",
+                       "theta[9]", "theta[10]", "theta[11]", "theta[12]"))
 ```
 
 ```{r posterior_M4_sigmas, fig.cap="Figure. Posterior distributions of process and sampling standard deviations"}
@@ -558,7 +533,8 @@ bayesplot::mcmc_dens(M4.jm$samples, c("sigma.pro1", "sigma.obs"))
 
 
 ```{r}
-p.W.imputed <- plot.imputed(M4.Xs.stats, M4.ys.stats, "W", year.begin.W, year.end.W)
+p.W.imputed <- plot.imputed(M4.Xs.stats, M4.ys.stats, 
+                            "W", year.begin.W, year.end.W)
 
 if (save.fig)
   ggsave(p.w.imputed$p.1, 

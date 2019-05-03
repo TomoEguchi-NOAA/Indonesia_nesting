@@ -553,7 +553,7 @@ model.Comparison.Fourier <- function(loc){
   return(out)
 }
 
-PSIS.plots <- function(pareto.k, data.y, m){
+PSIS.plots <- function(pareto.k, data.y, m, loc, save.fig = TRUE){
   pareto.df <- data.frame(y = data.y,
                           khat = pareto.k,
                           datapoint = seq(from = 1, to = length(data.y)),
@@ -588,6 +588,11 @@ PSIS.plots <- function(pareto.k, data.y, m){
     labs(x = "Data point", 
          y = "Pareto shape k",
          title = paste0("PSIS diagnostic plot (Model ", m, ")"))
+  
+  if (save.fig)
+    ggsave(p2, 
+           filename = paste0("figures/", loc, "_PSIS_M", m, ".png"),
+           device = "png", dpi = 600)
   
   return(list(p1 = p.1, p2 = p.2))
   
