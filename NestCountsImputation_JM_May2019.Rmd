@@ -179,7 +179,8 @@ y[t] ~ N(x[t], v.obs)
 ```{r model2, cache=TRUE, include=TRUE}
 model.name <- "model_SSAR1_logY_norm_norm_theta_Four_constCV.txt"
 str.root <- strsplit(strsplit(model.name, "model_")[[1]][2], ".txt")[[1]]
-M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
+M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", 
+                    year.begin, "_", year.end, "_",
                     run.date, ".rds"))
 
 M2.loo.out <- M$loo.out$loo.out
@@ -280,7 +281,8 @@ y[t] ~ N(x[t], v.obs)
 ```{r model3, cache=TRUE, include=TRUE}
 model.name <- "model_SSAR1_logY_norm_norm_theta_Four_varM.txt"
 str.root <- strsplit(strsplit(model.name, "model_")[[1]][2], ".txt")[[1]]
-M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
+M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", 
+                    year.begin, "_", year.end, "_",
                     run.date, ".rds"))
 
 M3.loo.out <- M$loo.out$loo.out
@@ -382,7 +384,8 @@ y[t] ~ t(x[t], v.obs, df)
 ```{r model10, cache=TRUE, include=TRUE}
 model.name <- "model_SSAR1_logY_norm_t_theta_Four.txt"
 str.root <- strsplit(strsplit(model.name, "model_")[[1]][2], ".txt")[[1]]
-M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
+M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", 
+                    year.begin, "_", year.end, "_",
                     run.date, ".rds"))
 
 M4.loo.out <- M$loo.out$loo.out
@@ -484,7 +487,8 @@ y[t] ~ t(x[t], v.obs, df)
 ```{r model5, cache=TRUE, include=TRUE}
 model.name <- "model_SSAR1_logY_norm_t_theta_Four_constCV.txt"
 str.root <- strsplit(strsplit(model.name, "model_")[[1]][2], ".txt")[[1]]
-M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", year.begin, "_", year.end, "_",
+M <- readRDS(paste0("RData/jagsout_", str.root, "_JM_", 
+                    year.begin, "_", year.end, "_",
                     run.date, ".rds"))
 
 M5.loo.out <- M$loo.out$loo.out
@@ -1047,8 +1051,10 @@ ys.stats %>% group_by(season, summer) %>%
   summarize(obs = sum(obsY)) -> tmp.y.season
 
 ys.season <- data.frame(season = seasons,
-                        summer = unlist(c(as.vector(filter(tmp.y.season, summer == 1)[, "obs"]))),
-                        winter = unlist(filter(tmp.y.season, summer == 0)[, "obs"]))
+                        summer = unlist(c(as.vector(filter(tmp.y.season, 
+                                                           summer == 1)[, "obs"]))),
+                        winter = unlist(filter(tmp.y.season, 
+                                               summer == 0)[, "obs"]))
 
 Xs.season %>% left_join(ys.season, by = "season") -> Xy.season
 

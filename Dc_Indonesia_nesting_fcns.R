@@ -521,3 +521,74 @@ run.independentUs_singleQ <- function(dat,
   
   return(jm.out)
 }
+
+
+model.Comparison.Fourier <- function(loc){
+  models <- model.names()
+        
+  M.ys.stats <- M.Xs.stats <- M.jm <- M.loo.out <- M.data.y <- vector(mode = "list", 
+                                                          length = length(models))
+  
+  for (k in 1:length(models)){
+    str.root <- strsplit(strsplit(models, "model_")[[1]][2], ".txt")[[1]]
+    M <- readRDS(paste0("RData/jagsout_", str.root, "_", loc, "_", 
+                        year.begin, "_", year.end, "_",
+                        run.date, ".rds"))
+    
+    M.loo.out[[k]] <- M$loo.out$loo.out
+    M.jm[[k]] <- M$jags.out
+    M.Xs.stats[[k]] <- M$Xs.stats
+    M.ys.stats[[k]] <- M$ys.stats
+    M.data.y[[k]] <- na.omit(M$jags.data$y)
+    
+  }           
+  
+  out <- list(loo.out = M.loo.out,
+              jm = M.jm,
+              Xs.stats = M.Xs.stats,
+              ys.stats = M.ys.stats,
+              data.y = M.data.y,
+              models = models)
+  
+  return(out)
+}
+
+PSIS.plots <- function(pareto.k, data.y, m){
+  pareto.df <- data.frame(y = data.y,
+                          khat = pareto.k,
+                          datapoint = seq(from = 1, to = length(data.y)),
+                          k0.7 = cut(pareto.k,
+                                     breaks = c(0, 0.7, 1.5),
+                                     labels = c("<=0.7", ">0.7")))
+  
+  p.1 <- ggplot(data = pareto.df) +   
+    geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+    geom_point(aes(x = datapoint, y = exp(y), 
+                   size = khat,
+                   color = k0.7)) +
+    scale_size_continuous(limits = c(0.0, 1.3),
+                          range = c(1, 4))+ 
+    scale_color_manual(values = c("<=0.7" = "black", 
+                                  ">0.7" = "red"))
+  
+  p.2 <- ggplot(data = pareto.df) +  
+    geom_point(aes(x = datapoint, 
+                   y = khat,
+                   color = -khat)) + 
+    geom_hline(yintercept = 0.5,
+               color = "red",
+               size = 0.5) +
+    geom_hline(yintercept = 0.7,
+               color = "red",
+               size = 0.7) +
+    geom_hline(yintercept = 1.0,
+               color = "red",
+               size = 1.0) +
+    theme(legend.position = "none") + 
+    labs(x = "Data point", 
+         y = "Pareto shape k",
+         title = paste0("PSIS diagnostic plot (Model ", m, ")"))
+  
+  return(list(p1 = p.1, p2 = p.2))
+  
+}
