@@ -87,6 +87,7 @@ M1.ys.stats <- M$ys.stats
 Diagnostics of the expected log predictive density indicated that the model was not appropriate, where many (```r signif(sum(M1.loo.out$diagnostics$pareto_k > 0.7)/length(M1.loo.out$diagnostics$pareto_k) * 100, 3)``` %) of estimated Pareto k statistics (a measure of model fit - TRUE?) were greater than 0.7. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M1.jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M1.jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M1.jm$Rhat, FUN = max, na.rm = T))), 3)```). 
 
 ```{r PSIS_M1, fig.cap = "Figure. PSIS diagnostic plot for M1"}
+
 plot(M1.loo.out)
 ```
 
@@ -94,13 +95,13 @@ plot(M1.loo.out)
 pareto.k <- M1.loo.out$diagnostics$pareto_k
 data.y <- na.omit(M$jags.data$y)
 
-pareto.df <- data.frame(y = data.y,
+pareto.df.M1 <- data.frame(y = data.y,
                         khat = pareto.k,
                         datapoint = seq(from = 1, to = length(data.y)),
                         k0.7 = cut(pareto.k,
                                    breaks = c(0, 0.7, 1.5),
                                    labels = c("<=0.7", ">0.7")))
-ggplot(data = pareto.df) +   
+ggplot(data = pareto.df.M1) +   
   geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
   geom_point(aes(x = datapoint, y = exp(y), 
                  size = khat,
@@ -112,6 +113,32 @@ ggplot(data = pareto.df) +
 
 
 ```
+
+```{r}
+p.pareto.M1 <- ggplot(data = pareto.df.M1) +  
+  geom_point(aes(x = datapoint, 
+                 y = khat,
+                 color = -khat)) + 
+  geom_hline(yintercept = 0.5,
+             color = "red",
+             size = 0.5) +
+  geom_hline(yintercept = 0.7,
+             color = "red",
+             size = 0.7) +
+  geom_hline(yintercept = 1.0,
+             color = "red",
+             size = 1.0) +
+  theme(legend.position = "none") + 
+  labs(x = "Data point", y = "Pareto shape k",
+       title = "PSIS diagnostic plot")
+
+if (save.fig)
+  ggsave(p.pareto.M1, filename = "figures/W_PSIS_M1.png",
+         device = "png", dpi = 600)
+
+print(p.pareto.M1)
+```
+
 
 
 ```{r}
@@ -171,13 +198,13 @@ plot(M2.loo.out)
 pareto.k <- M2.loo.out$diagnostics$pareto_k
 data.y <- na.omit(M$jags.data$y)
 
-pareto.df <- data.frame(y = data.y,
+pareto.df.M2 <- data.frame(y = data.y,
                         khat = pareto.k,
                         datapoint = seq(from = 1, to = length(data.y)),
                         k0.7 = cut(pareto.k,
                                    breaks = c(0, 0.7, 1.5),
                                    labels = c("<=0.7", ">0.7")))
-ggplot(data = pareto.df) +   
+ggplot(data = pareto.df.M2) +   
   geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
   geom_point(aes(x = datapoint, y = exp(y), 
                  size = khat,
@@ -189,6 +216,30 @@ ggplot(data = pareto.df) +
 
 ```
 
+```{r}
+p.pareto.M2 <- ggplot(data = pareto.df.M2) +  
+  geom_point(aes(x = datapoint, 
+                 y = khat,
+                 color = -khat)) + 
+  geom_hline(yintercept = 0.5,
+             color = "red",
+             size = 0.5) +
+  geom_hline(yintercept = 0.7,
+             color = "red",
+             size = 0.7) +
+  geom_hline(yintercept = 1.0,
+             color = "red",
+             size = 1.0) +
+  theme(legend.position = "none") + 
+  labs(x = "Data point", y = "Pareto shape k",
+       title = "PSIS diagnostic plot")
+
+if (save.fig)
+  ggsave(p.pareto.M2, filename = "figures/W_PSIS_M2.png",
+         device = "png", dpi = 600)
+
+print(p.pareto.M2)
+```
 
 ```{r}
 
@@ -247,13 +298,13 @@ plot(M3.loo.out)
 pareto.k <- M3.loo.out$diagnostics$pareto_k
 data.y <- na.omit(M$jags.data$y)
 
-pareto.df <- data.frame(y = data.y,
+pareto.df.M3 <- data.frame(y = data.y,
                         khat = pareto.k,
                         datapoint = seq(from = 1, to = length(data.y)),
                         k0.7 = cut(pareto.k,
                                    breaks = c(0, 0.7, 1.5),
                                    labels = c("<=0.7", ">0.7")))
-ggplot(data = pareto.df) +   
+ggplot(data = pareto.df.M3) +   
   geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
   geom_point(aes(x = datapoint, y = exp(y), 
                  size = khat,
@@ -266,6 +317,30 @@ ggplot(data = pareto.df) +
 ```
 
 
+```{r}
+p.pareto.M3 <- ggplot(data = pareto.df.M3) +  
+  geom_point(aes(x = datapoint, 
+                 y = khat,
+                 color = -khat)) + 
+  geom_hline(yintercept = 0.5,
+             color = "red",
+             size = 0.5) +
+  geom_hline(yintercept = 0.7,
+             color = "red",
+             size = 0.7) +
+  geom_hline(yintercept = 1.0,
+             color = "red",
+             size = 1.0) +
+  theme(legend.position = "none") + 
+  labs(x = "Data point", y = "Pareto shape k",
+       title = "PSIS diagnostic plot")
+
+if (save.fig)
+  ggsave(p.pareto.M3, filename = "figures/W_PSIS_M3.png",
+         device = "png", dpi = 600)
+
+print(p.pareto.M3)
+```
 
 ```{r}
 
@@ -324,13 +399,13 @@ plot(M4.loo.out)
 pareto.k <- M4.loo.out$diagnostics$pareto_k
 data.y <- na.omit(M$jags.data$y)
 
-pareto.df <- data.frame(y = data.y,
+pareto.df.M4 <- data.frame(y = data.y,
                         khat = pareto.k,
                         datapoint = seq(from = 1, to = length(data.y)),
                         k0.7 = cut(pareto.k,
                                    breaks = c(0, 0.7, 1.5),
                                    labels = c("<=0.7", ">0.7")))
-ggplot(data = pareto.df) +   
+ggplot(data = pareto.df.M4) +   
   geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
   geom_point(aes(x = datapoint, y = exp(y), 
                  size = khat,
@@ -343,6 +418,30 @@ ggplot(data = pareto.df) +
 ```
 
 
+```{r}
+p.pareto.M4 <- ggplot(data = pareto.df.M4) +  
+  geom_point(aes(x = datapoint, 
+                 y = khat,
+                 color = -khat)) + 
+  geom_hline(yintercept = 0.5,
+             color = "red",
+             size = 0.5) +
+  geom_hline(yintercept = 0.7,
+             color = "red",
+             size = 0.7) +
+  geom_hline(yintercept = 1.0,
+             color = "red",
+             size = 1.0) +
+  theme(legend.position = "none") + 
+  labs(x = "Data point", y = "Pareto shape k",
+       title = "PSIS diagnostic plot")
+
+if (save.fig)
+  ggsave(p.pareto.M4, filename = "figures/W_PSIS_M4.png",
+         device = "png", dpi = 600)
+
+print(p.pareto.M4)
+```
 
 ```{r}
 
@@ -401,13 +500,13 @@ plot(M5.loo.out)
 pareto.k <- M5.loo.out$diagnostics$pareto_k
 data.y <- na.omit(M$jags.data$y)
 
-pareto.df <- data.frame(y = data.y,
+pareto.df.M5 <- data.frame(y = data.y,
                         khat = pareto.k,
                         datapoint = seq(from = 1, to = length(data.y)),
                         k0.7 = cut(pareto.k,
                                    breaks = c(0, 0.7, 1.5),
                                    labels = c("<=0.7", ">0.7")))
-ggplot(data = pareto.df) +   
+ggplot(data = pareto.df.M5) +   
   geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
   geom_point(aes(x = datapoint, y = exp(y), 
                  size = khat,
@@ -420,6 +519,30 @@ ggplot(data = pareto.df) +
 ```
 
 
+```{r}
+p.pareto.M5 <- ggplot(data = pareto.df.M5) +  
+  geom_point(aes(x = datapoint, 
+                 y = khat,
+                 color = -khat)) + 
+  geom_hline(yintercept = 0.5,
+             color = "red",
+             size = 0.5) +
+  geom_hline(yintercept = 0.7,
+             color = "red",
+             size = 0.7) +
+  geom_hline(yintercept = 1.0,
+             color = "red",
+             size = 1.0) +
+  theme(legend.position = "none") + 
+  labs(x = "Data point", y = "Pareto shape k",
+       title = "PSIS diagnostic plot")
+
+if (save.fig)
+  ggsave(p.pareto.M5, filename = "figures/W_PSIS_M5.png",
+         device = "png", dpi = 600)
+
+print(p.pareto.M5)
+```
 ```{r}
 
 M$ys.stats %>% rowid_to_column() %>% 
@@ -478,13 +601,13 @@ plot(M6.loo.out)
 pareto.k <- M6.loo.out$diagnostics$pareto_k
 data.y <- na.omit(M$jags.data$y)
 
-pareto.df <- data.frame(y = data.y,
+pareto.df.M6 <- data.frame(y = data.y,
                         khat = pareto.k,
                         datapoint = seq(from = 1, to = length(data.y)),
                         k0.7 = cut(pareto.k,
                                    breaks = c(0, 0.7, 1.5),
                                    labels = c("<=0.7", ">0.7")))
-ggplot(data = pareto.df) +   
+ggplot(data = pareto.df.M6) +   
   geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
   geom_point(aes(x = datapoint, y = exp(y), 
                  size = khat,
@@ -496,6 +619,31 @@ ggplot(data = pareto.df) +
 
 ```
 
+
+```{r}
+p.pareto.M6 <- ggplot(data = pareto.df.M6) +  
+  geom_point(aes(x = datapoint, 
+                 y = khat,
+                 color = -khat)) + 
+  geom_hline(yintercept = 0.5,
+             color = "red",
+             size = 0.5) +
+  geom_hline(yintercept = 0.7,
+             color = "red",
+             size = 0.7) +
+  geom_hline(yintercept = 1.0,
+             color = "red",
+             size = 1.0) +
+  theme(legend.position = "none") + 
+  labs(x = "Data point", y = "Pareto shape k",
+       title = "PSIS diagnostic plot")
+
+if (save.fig)
+  ggsave(p.pareto.M6, filename = "figures/W_PSIS_M6.png",
+         device = "png", dpi = 600)
+
+print(p.pareto.M6)
+```
 
 ```{r}
 
