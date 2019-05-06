@@ -10,7 +10,7 @@ library(coda)
 library(tidyverse)
 source("Dc_Indonesia_nesting_fcns.R")
 
-save.fig <- F
+save.fig <- T
 
 # the date jags was run (run_JM_SSAR1_logY.R and run_W_SSAR1_logY.R)
 run.date.JM <- "2019-05-01"
@@ -40,7 +40,7 @@ JM.yrs <- begin.year.JM:end.year
 W.yrs <- begin.year.W:end.year
 
 JM.bestM <- 1
-W.bestM <- 4
+W.bestM <- 5
 
 bayesplot::color_scheme_set("teal")
 
@@ -102,7 +102,7 @@ log.data.JM <- log(thedata[, "All.median.JM"])
 # Ln(TOTAL NUMBER OF FEMALES)
 dat <- t(log.data.JM)    # tranpose to have rows = time series and cols = years of data
 
-if(!file.exists(paste0("RData/singleUQ_JM_only_", 
+if(!file.exists(paste0("RData/singleUQ_JM_only_M", JM.bestM, "_", 
                        begin.year.JM, "_", end.year, "_", run.date.JM, ".rds"))){
   jags.params <- c("A", "U", "Q", "R", "X0", "X", "loglik")
   model.loc <- "models/model_singleUQ.txt"
@@ -117,12 +117,12 @@ if(!file.exists(paste0("RData/singleUQ_JM_only_",
                          seed)
   
   jm.out$data <- thedata
-  saveRDS(jm.out, file = paste0("RData/singleUQ_JM_only_", 
+  saveRDS(jm.out, file = paste0("RData/singleUQ_JM_only_M", JM.bestM, "_", 
                                 begin.year.JM, "_", end.year,  "_", run.date.JM, ".rds"))
   print(jm.out$out)
 
 } else {
-  jm.out <- readRDS(file = paste0("RData/singleUQ_JM_only_", 
+  jm.out <- readRDS(file = paste0("RData/singleUQ_JM_only_M", JM.bestM, "_",
                                 begin.year.JM, "_", end.year,  "_", run.date.JM, ".rds"))
 }
 
@@ -151,7 +151,7 @@ print(p.1)
 if (save.fig)
   
   ggsave(p.1,
-         filename = "figures/posterior_U_JM_only.png",
+         filename = paste0("figures/posterior_U_JM_only_M", JM.bestM, ".png"),
          device = "png",
          dpi = 600,
          height = 4, width = 6, units = "in")
@@ -194,7 +194,8 @@ p.1.log <- ggplot(data = JM.log.df) +
   labs(x = "", y = "ln(nests)", title = "Jamursba-Medi (one dataset)")
 
 if (save.fig)
-  ggsave(p.1.log, filename = "figures/JM_only_trend_annual_log.png",
+  ggsave(p.1.log, 
+         filename = paste0("figures/JM_only_trend_annual_log_M", JM.bestM, ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -216,7 +217,8 @@ p.1 <- ggplot(data = JM.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.1, filename = "figures/JM_only_trend_annual.png",
+  ggsave(p.1, 
+         filename = paste0("figures/JM_only_trend_annual_M", JM.bestM, ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -233,7 +235,7 @@ dat <- t(log.data.JM)    # tranpose to have rows = time series and cols = years 
 # the prior matters for Wermon - setting mean to first JM data point skews Wermon to JM trend due to poor W data
 # making it specific to each time series for independentUQ
 
-if(!file.exists(paste0("RData/singleUQ_JM_only_summer_", 
+if(!file.exists(paste0("RData/singleUQ_JM_only_summer_M", JM.bestM, "_", 
                        begin.year.JM, "_", end.year, "_", run.date.JM, ".rds"))){
   jags.params <- c("A", "U", "Q", "R", "X0", "X", "loglik")
   model.loc <- "models/model_singleUQ.txt"
@@ -248,12 +250,12 @@ if(!file.exists(paste0("RData/singleUQ_JM_only_summer_",
                          seed)
   
   jm.out$data <- thedata
-  saveRDS(jm.out, file = paste0("RData/singleUQ_JM_only_summer_", 
+  saveRDS(jm.out, file = paste0("RData/singleUQ_JM_only_summer_M", JM.bestM, "_", 
                                 begin.year.JM, "_", end.year,  "_", run.date.JM, ".rds"))
   print(jm.out$out)
 
 } else {
-  jm.out <- readRDS(file = paste0("RData/singleUQ_JM_only_summer_", 
+  jm.out <- readRDS(file = paste0("RData/singleUQ_JM_only_summer_M", JM.bestM, "_", 
                                 begin.year.JM, "_", end.year,  "_", run.date.JM, ".rds"))
 }
 
@@ -281,7 +283,7 @@ p.1 <- p.1 + labs(y = "Density", x = "",
 
 if (save.fig)
   ggsave(p.1,
-         filename = "figures/posterior_U_JM_only_summer.png",
+         filename = paste0("figures/posterior_U_JM_only_summer_M", JM.bestM, ".png"),
          device = "png",
          dpi = 600,
          height = 4, width = 6, units = "in")
@@ -325,7 +327,8 @@ p.1.log <- ggplot(data = JM.log.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.1.log, filename = "figures/JM_only_trend_summer_log.png",
+  ggsave(p.1.log, 
+         filename = paste0("figures/JM_only_trend_summer_log_M", JM.bestM, ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -347,7 +350,8 @@ p.1 <- ggplot(data = JM.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.1, filename = "figures/JM_only_trend_summer.png",
+  ggsave(p.1, 
+         filename = paste0("figures/JM_only_trend_summer_M", JM.bestM, ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -360,7 +364,7 @@ log.data.JM <- log(thedata[, "Winter.median.JM"])
 # Ln(TOTAL NUMBER OF FEMALES)
 dat <- t(log.data.JM)    # tranpose to have rows = time series and cols = years of data
 
-if(!file.exists(paste0("RData/singleUQ_JM_only_winter_", 
+if(!file.exists(paste0("RData/singleUQ_JM_only_winter_M", JM.bestM, "_",
                        begin.year.JM, "_", end.year, "_", run.date.JM, ".rds"))){
   jags.params <- c("A", "U", "Q", "R", "X0", "X", "loglik")
   model.loc <- "models/model_singleUQ.txt"
@@ -375,12 +379,12 @@ if(!file.exists(paste0("RData/singleUQ_JM_only_winter_",
                          seed)
   
   jm.out$data <- thedata
-  saveRDS(jm.out, file = paste0("RData/singleUQ_JM_only_winter_", 
+  saveRDS(jm.out, file = paste0("RData/singleUQ_JM_only_winter_M", JM.bestM, "_",
                                 begin.year.JM, "_", end.year,  "_", run.date.JM, ".rds"))
   print(jm.out$out)
 
 } else {
-  jm.out <- readRDS(file = paste0("RData/singleUQ_JM_only_winter_", 
+  jm.out <- readRDS(file = paste0("RData/singleUQ_JM_only_winter_M", JM.bestM, "_",
                                 begin.year.JM, "_", end.year,  "_", run.date.JM, ".rds"))
 }
 
@@ -397,7 +401,8 @@ U.stats <- paste0(signif(jm.out$out$summary["U", "50%"], 2),
                   signif(jm.out$out$summary["U", "97.5%"], 2), "]")
 
 p.1 <- bayesplot::mcmc_dens(jm.out$out$samples, "U")
-p.1 <- p.1 + labs(y = "Density", x = "", title = "Jamursba-Medi (Winter, one dataset)") +
+p.1 <- p.1 + labs(y = "Density", x = "", 
+                  title = "Jamursba-Medi (Winter, one dataset)") +
   xlim(c(-1.1, 1.1)) +
   ylim(c(0, posterior.lim.y)) + 
   geom_text(aes(x = 0.5, y = text.y), 
@@ -407,7 +412,7 @@ p.1 <- p.1 + labs(y = "Density", x = "", title = "Jamursba-Medi (Winter, one dat
 
 if (save.fig)
   ggsave(p.1,
-         filename = "figures/posterior_U_JM_only_winter.png",
+         filename = paste0("figures/posterior_U_JM_only_winter_M", JM.bestM, ".png"),
          device = "png",
          dpi = 600,
          height = 4, width = 6, units = "in")
@@ -451,7 +456,8 @@ p.1.log <- ggplot(data = JM.log.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.1.log, filename = "figures/JM_only_trend_winter_log.png",
+  ggsave(p.1.log, 
+         filename = paste0("figures/JM_only_trend_winter_log_M", JM.bestM, ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -473,7 +479,8 @@ p.1 <- ggplot(data = JM.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.1, filename = "figures/JM_only_trend_winter.png",
+  ggsave(p.1, 
+         filename = paste0("figures/JM_only_trend_winter_M", JM.bestM, ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -488,7 +495,8 @@ log.data.W <- log(thedata[, "All.median.W"])
 # Ln(TOTAL NUMBER OF FEMALES)
 dat <- t(na.omit(log.data.W))    # tranpose to have rows = time series and cols = years of data
 
-if(!file.exists(paste0("RData/singleUQ_W_only_", begin.year.W, "_", 
+if(!file.exists(paste0("RData/singleUQ_W_only_M", W.bestM, "_", 
+                       begin.year.W, "_", 
                        end.year, "_", run.date.W, ".rds"))){
   jags.params <- c("A", "U", "Q", "R", "X0", "X", "loglik")
   model.loc <- "models/model_singleUQ.txt"
@@ -503,13 +511,15 @@ if(!file.exists(paste0("RData/singleUQ_W_only_", begin.year.W, "_",
                          seed)
   
   jm.out$data <- thedata
-  saveRDS(jm.out, file = paste0("RData/singleUQ_W_only_", begin.year.W, "_",
+  saveRDS(jm.out, file = paste0("RData/singleUQ_W_only_M", W.bestM, "_",
+                                begin.year.W, "_",
                                 end.year,  "_", run.date.W, ".rds"))
   print(jm.out$out)
 
 } else {
-  jm.out <- readRDS(file = paste0("RData/singleUQ_W_only_", begin.year.W, "_",
-                                end.year,  "_", run.date.W, ".rds"))
+  jm.out <- readRDS(file = paste0("RData/singleUQ_W_only_M", W.bestM, "_",
+                                  begin.year.W, "_",
+                                  end.year,  "_", run.date.W, ".rds"))
 }
 
 ```
@@ -536,7 +546,7 @@ p.1 <- p.1 + labs(y = "Density", x= "", title = "Wermon (one dataset)") +
 
 if (save.fig)
   ggsave(p.1,
-         filename = "figures/posterior_U_W_only.png",
+         filename = paste0("figures/posterior_U_W_only_M", W.bestM, ".png"),
          device = "png",
          dpi = 600,
          height = 4, width = 6, units = "in")
@@ -581,7 +591,8 @@ p.1.log <- ggplot(data = W.log.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.1.log, filename = "figures/W_only_trend_annual_log.png",
+  ggsave(p.1.log, 
+         filename = paste0("figures/W_only_trend_annual_log_M", W.bestM, ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -603,7 +614,8 @@ p.1 <- ggplot(data = W.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.1, filename = "figures/W_only_trend_annual.png",
+  ggsave(p.1, 
+         filename = paste0("figures/W_only_trend_annual_M", W.bestM, ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -617,7 +629,8 @@ log.data.W <- log(thedata[, "Summer.median.W"])
 # Ln(TOTAL NUMBER OF FEMALES)
 dat <- t(na.omit(log.data.W))    # tranpose to have rows = time series and cols = years of data
 
-if(!file.exists(paste0("RData/singleUQ_W_only_summer_", begin.year.W, "_",
+if(!file.exists(paste0("RData/singleUQ_W_only_summer_M", W.bestM, "_",
+                       begin.year.W, "_",
                        end.year, "_", run.date.W, ".rds"))){
   jags.params <- c("A", "U", "Q", "R", "X0", "X", "loglik")
   model.loc <- "models/model_singleUQ.txt"
@@ -632,13 +645,15 @@ if(!file.exists(paste0("RData/singleUQ_W_only_summer_", begin.year.W, "_",
                          seed)
   
   jm.out$data <- thedata
-  saveRDS(jm.out, file = paste0("RData/singleUQ_W_only_summer_", begin.year.W, "_",
+  saveRDS(jm.out, file = paste0("RData/singleUQ_W_only_summer_M",  W.bestM, "_",
+                                begin.year.W, "_",
                                 end.year,  "_", run.date.W, ".rds"))
   print(jm.out$out)
 
 } else {
-  jm.out <- readRDS(file = paste0("RData/singleUQ_W_only_summer_", begin.year.W, "_",
-                                end.year,  "_", run.date.W, ".rds"))
+  jm.out <- readRDS(file = paste0("RData/singleUQ_W_only_summer_M",  W.bestM, "_",
+                                  begin.year.W, "_",
+                                  end.year,  "_", run.date.W, ".rds"))
 }
 
 ```
@@ -665,7 +680,7 @@ p.1 <- p.1 + labs(y = "Density", x = "", title = "Wermon (Summer, one dataset)")
 
 if (save.fig)
   ggsave(p.1,
-         filename = "figures/posterior_U_W_only_summer.png",
+         filename = paste0("figures/posterior_U_W_only_summer_M", W.bestM, ".png"),
          device = "png",
          dpi = 600,
          height = 4, width = 6, units = "in")
@@ -712,7 +727,8 @@ p.1.log <- ggplot(data = W.log.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.1.log, filename = "figures/W_only_trend_summer_log.png",
+  ggsave(p.1.log, 
+         filename = paste0("figures/W_only_trend_summer_log_M", W.bestM, ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -734,7 +750,8 @@ p.1 <- ggplot(data = W.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.1, filename = "figures/W_only_trend_summer.png",
+  ggsave(p.1, 
+         filename = paste0("figures/W_only_trend_summer_M", W.bestM, ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -748,7 +765,8 @@ log.data.W <- log(thedata[, "Winter.median.W"])
 # Ln(TOTAL NUMBER OF FEMALES)
 dat <- t(na.omit(log.data.W))    # tranpose to have rows = time series and cols = years of data
 
-if(!file.exists(paste0("RData/singleUQ_W_only_winter_", begin.year.W, "_",
+if(!file.exists(paste0("RData/singleUQ_W_only_winter_M", W.bestM, "_", 
+                       begin.year.W, "_",
                        end.year, "_", run.date.W, ".rds"))){
   jags.params <- c("A", "U", "Q", "R", "X0", "X", "loglik")
   model.loc <- "models/model_singleUQ.txt"
@@ -763,13 +781,15 @@ if(!file.exists(paste0("RData/singleUQ_W_only_winter_", begin.year.W, "_",
                          seed)
   
   jm.out$data <- thedata
-  saveRDS(jm.out, file = paste0("RData/singleUQ_W_only_winter_", begin.year.W, "_",
+  saveRDS(jm.out, file = paste0("RData/singleUQ_W_only_winter_M", W.bestM, "_", 
+                                begin.year.W, "_",
                                 end.year,  "_", run.date.W, ".rds"))
   print(jm.out$out)
 
 } else {
-  jm.out <- readRDS(file = paste0("RData/singleUQ_W_only_winter_", begin.year.W, "_",
-                                end.year,  "_", run.date.W, ".rds"))
+  jm.out <- readRDS(file = paste0("RData/singleUQ_W_only_winter_M", W.bestM, "_", 
+                                  begin.year.W, "_",
+                                  end.year,  "_", run.date.W, ".rds"))
 }
 
 ```
@@ -796,7 +816,7 @@ p.1 <- p.1 + labs(y = "Density", x = "", title = "Wermon (Winter, one dataset)")
 
 if (save.fig)
   ggsave(p.1,
-         filename = "figures/posterior_U_W_only_winter.png",
+         filename = paste0("figures/posterior_U_W_only_winter_M", W.bestM, ".png"),
          device = "png",
          dpi = 600,
          height = 4, width = 6, units = "in")
@@ -843,7 +863,8 @@ p.1.log <- ggplot(data = W.log.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.1.log, filename = "figures/W_only_trend_winter_log.png",
+  ggsave(p.1.log, 
+         filename = paste0("figures/W_only_trend_winter_log_M", W.bestM, ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -865,7 +886,7 @@ p.1 <- ggplot(data = W.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.1, filename = "figures/W_only_trend_winter.png",
+  ggsave(p.1, filename = paste0("figures/W_only_trend_winter_M", W.bestM, ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -875,7 +896,8 @@ p.1
 Rather than splitting the dataset in two, we can use the data from the two beaches simultaneously. using independent-U and single-Q or independent-Q model output. Using the simpler of the two:
 
 ```{r}
-if(!file.exists(paste0("RData/independentUs_singleQ_out_", 
+if(!file.exists(paste0("RData/independentUs_singleQ_out_JM_M", 
+                       JM.bestM, "_W_M", W.bestM, "_", 
                        begin.year.JM, "_", end.year, "_", run.date.W, ".rds"))){
   jags.params <- c("U", "Q", "R", "X0", "X", "loglik")
   model.loc <- "models/model_independentUs_singleQ.txt"
@@ -895,11 +917,13 @@ if(!file.exists(paste0("RData/independentUs_singleQ_out_",
   
   jm.out$data <- thedata
   
-  saveRDS(jm.out, file = paste0("RData/independentUs_singleQ_out_", 
+  saveRDS(jm.out, file = paste0("RData/independentUs_singleQ_out_JM_M", 
+                                JM.bestM, "_W_M", W.bestM, "_",
                                 begin.year.JM, "_", end.year, "_", run.date.W, ".rds"))
   print(jm.out$out)
 } else {
-  jm.out <- readRDS(file = paste0("RData/independentUs_singleQ_out_",
+  jm.out <- readRDS(file = paste0("RData/independentUs_singleQ_out_JM_M",
+                                  JM.bestM, "_W_M", W.bestM, "_",
                                   begin.year.JM, "_", end.year, "_", run.date.W, ".rds"))
   
 }
@@ -938,14 +962,16 @@ p.1.U2 <- p.1.U2 + labs(y = "Density", x = "", title = "Wermon (two datasets)") 
 
 if (save.fig)
   ggsave(p.1.U1,
-         filename = "figures/posterior_U_JM_indUs.png",
+         filename = paste0("figures/posterior_U_JM_indUs_JM_M", 
+                           JM.bestM, "_W_M", W.bestM, ".png"),
          device = "png",
          dpi = 600,
          height = 4, width = 6, units = "in")
 
 if (save.fig)
   ggsave(p.1.U2,
-         filename = "figures/posterior_U_W_indUs.png",
+         filename = paste0("figures/posterior_U_W_indUs_JM_M", 
+         JM.bestM, "_W_M", W.bestM, ".png"),
          device = "png",
          dpi = 600,
          height = 4, width = 6, units = "in")
@@ -1009,7 +1035,9 @@ p.1.log <- ggplot(data = JM.log.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.1.log, filename = "figures/JM_trend_annual_indU_log.png",
+  ggsave(p.1.log, 
+         filename = paste0("figures/JM_trend_annual_indU_log_JM_M",
+                           JM.bestM, "_W_M", W.bestM, ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -1031,7 +1059,9 @@ p.1 <- ggplot(data = JM.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.1, filename = "figures/JM_trend_annual_indU.png",
+  ggsave(p.1, 
+         filename = paste0("figures/JM_trend_annual_indU_JM_M",
+                           JM.bestM, "_W_M", W.bestM, ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -1073,7 +1103,9 @@ p.2.log <- ggplot(data = W.log.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.2.log, filename = "figures/W_trend_annual_indU_log.png",
+  ggsave(p.2.log, 
+         filename = paste0("figures/W_trend_annual_indU_log_JM_M",
+                           JM.bestM, "_W_M", W.bestM, ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -1095,7 +1127,9 @@ p.2 <- ggplot(data = W.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.2, filename = "figures/W_trend_annual_indU.png",
+  ggsave(p.2, 
+         filename = paste0("figures/W_trend_annual_indU_JM_M",
+                           JM.bestM, "_W_M", W.bestM, ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -1119,7 +1153,7 @@ dat <- t(log.data)    # tranpose to have rows = time series and cols = years of 
 Single-U and single-Q.
 ```{r}
   
-if(!file.exists(paste0("RData/singleUQ_out_", 
+if(!file.exists(paste0("RData/singleUQ_out_JM_M", JM.bestM, "_W_M", W.bestM, "_", 
                        begin.year.JM, "_", end.year, "_", run.date.W, ".rds"))){
   jags.params <- c("A", "U", "Q", "R", "X0", "X", "loglik")
   model.loc <- "models/model_singleUQ.txt"
@@ -1134,7 +1168,7 @@ if(!file.exists(paste0("RData/singleUQ_out_",
                          seed)
   
   jm.out$data <- thedata
-  saveRDS(jm.out, file = paste0("RData/singleUQ_out_", 
+  saveRDS(jm.out, file = paste0("RData/singleUQ_out_JM_M",JM.bestM, "_W_M", W.bestM, "_", 
                                 begin.year.JM, "_", end.year,  "_", run.date.W, ".rds"))
   print(jm.out$out)
 
@@ -1147,7 +1181,7 @@ In the second model, both U (slope) and Q (process variance) are independent bet
 ```{r}
 # Model 2:  'independentUQs' ... multiple time series -> multiple population processes (trends)
 
-if(!file.exists(paste0("RData/independentUQ_out_", 
+if(!file.exists(paste0("RData/independentUQ_out_JM_M",JM.bestM, "_W_M", W.bestM, "_", 
                        begin.year.JM, "_", end.year, "_", run.date.W, ".rds"))){
   jags.params <- c("U", "Q", "R", "X0", "X", "loglik")
   model.loc <- paste("models/model_independentUQs.txt", sep="")
@@ -1163,7 +1197,7 @@ if(!file.exists(paste0("RData/independentUQ_out_",
   
   jm.out$data <- thedata
   
-  saveRDS(jm.out, file = paste0("RData/independentUQ_out_", 
+  saveRDS(jm.out, file = paste0("RData/independentUQ_out_JM_M",JM.bestM, "_W_M", W.bestM, "_", 
                                 begin.year.JM, "_", end.year, "_", run.date.W, ".rds"))
   print(jm.out$out)
 } 
@@ -1173,7 +1207,7 @@ if(!file.exists(paste0("RData/independentUQ_out_",
 Model 3 has single slope (U) and location specific process variance (Q).
 
 ```{r}
-if(!file.exists(paste0("RData/independentQs_singleU_out_", 
+if(!file.exists(paste0("RData/independentQs_singleU_out_JM_M",JM.bestM, "_W_M", W.bestM, "_", 
                        begin.year.JM, "_", end.year, "_", run.date.W, ".rds"))){
   jags.params <- c("U", "Q", "R", "X0", "X", "loglik")
   model.loc <- "models/model_independentQs_singleU.txt"
@@ -1188,7 +1222,7 @@ if(!file.exists(paste0("RData/independentQs_singleU_out_",
   
   jm.out$data <- thedata
   
-  saveRDS(jm.out, file = paste0("RData/independentQs_singleU_out_", 
+  saveRDS(jm.out, file = paste0("RData/independentQs_singleU_out_JM_M",JM.bestM, "_W_M", W.bestM, "_", 
                                 begin.year.JM, "_", end.year, "_", run.date.W, ".rds"))
   print(jm.out$out)
 } 
@@ -1221,7 +1255,7 @@ This section is currently unnecessary because we use these different models to a
 Using the simplest model results in the lowest DIC value. So, use that for the following section.
 
 ```{r}
-jags.model <- readRDS(paste0("RData/singleUQ_out_", 
+jags.model <- readRDS(paste0("RData/singleUQ_out_JM_M",JM.bestM, "_W_M", W.bestM, "_", 
                              begin.year.JM, "_", end.year, 
                              "_", run.date.W, ".rds"))
 
@@ -1262,7 +1296,9 @@ p.1.log <- ggplot(data = JM.log.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.1.log, filename = "figures/JM_trend_annual_log.png",
+  ggsave(p.1.log, 
+         filename = paste0("figures/JM_trend_annual_log_JM_M", 
+         JM.bestM, "_W_M", W.bestM, ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -1284,7 +1320,9 @@ p.1 <- ggplot(data = JM.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.1, filename = "figures/JM_trend_annual.png",
+  ggsave(p.1, 
+         filename = paste0("figures/JM_trend_annual_JM_M", 
+                           JM.bestM, "_W_M", W.bestM, ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -1328,7 +1366,9 @@ p.2.log <- ggplot(data = W.log.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.2.log, filename = "figures/W_trend_annual_log.png",
+  ggsave(p.2.log, 
+         filename = paste0("figures/W_trend_annual_log_JM_M", 
+                           JM.bestM, "_W_M", W.bestM, ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -1350,7 +1390,9 @@ p.2 <- ggplot(data = W.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.2, filename = "figures/W_trend_annual.png",
+  ggsave(p.2, 
+         filename = paste0("figures/W_trend_annual_JM_M", 
+                           JM.bestM, "_W_M", W.bestM, ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -1376,7 +1418,8 @@ p.1 <- p.1 + labs(y = "Density", x = "", title = "Jamursba-Medi and Wermon") +
 
 if (save.fig)
   ggsave(p.1,
-         filename = "figures/posterior_singleU.png",
+         filename = paste0("figures/posterior_singleU_JM_M",
+                           JM.bestM, "_W_M", W.bestM, ".png"),
          device = "png",
          dpi = 600,
          height = 4, width = 6, units = "in")
@@ -1399,7 +1442,7 @@ dat <- t(log.data)    # tranpose to have rows = time series and cols = years of 
 For computing seasonal growth rates, run the four models on just summer and winter separately.
 
 ```{r}
-if(!file.exists(paste0("RData/singleUQ_summer_out_", 
+if(!file.exists(paste0("RData/singleUQ_summer_out_JM_M",JM.bestM, "_W_M", W.bestM, "_", 
                        begin.year.JM, "_", end.year, "_", run.date.W, ".rds"))){
   jags.params <- c("A", "U", "Q", "R", "X0", "X", "loglik")
   model.loc <- "models/model_singleUQ.txt"
@@ -1414,7 +1457,7 @@ if(!file.exists(paste0("RData/singleUQ_summer_out_",
                          seed)
   
   jm.out$data <- thedata
-  saveRDS(jm.out, file = paste0("RData/singleUQ_summer_out_", 
+  saveRDS(jm.out, file = paste0("RData/singleUQ_summer_out_JM_M",JM.bestM, "_W_M", W.bestM, "_", 
                                 begin.year.JM, "_", end.year, "_", run.date.W, ".rds"))
   print(jm.out$out)
 
@@ -1423,7 +1466,7 @@ if(!file.exists(paste0("RData/singleUQ_summer_out_",
 ```
 
 ```{r}
-if(!file.exists(paste0("RData/independentUQ_summer_out_", 
+if(!file.exists(paste0("RData/independentUQ_summer_out_JM_M",JM.bestM, "_W_M", W.bestM, "_", 
                        begin.year.JM, "_", end.year, "_", run.date.W, ".rds"))){
   jags.params <- c("U", "Q", "R", "X0", "X", "loglik")
   model.loc <- "models/model_independentUQs.txt"
@@ -1439,14 +1482,16 @@ if(!file.exists(paste0("RData/independentUQ_summer_out_",
   
   jm.out$data <- thedata
   
-  saveRDS(jm.out, file = paste0("RData/independentUQ_summer_out_", 
+  saveRDS(jm.out, file = paste0("RData/independentUQ_summer_out_JM_M",
+                                JM.bestM, "_W_M", W.bestM, "_",
                                 begin.year.JM, "_", end.year, "_", run.date.W, ".rds"))
   print(jm.out$out)
 } 
 ```
 
 ```{r}
-if(!file.exists(paste0("RData/independentQs_singleU_summer_out_", 
+if(!file.exists(paste0("RData/independentQs_singleU_summer_out_JM_M",
+                       JM.bestM, "_W_M", W.bestM, "_",
                        begin.year.JM, "_", end.year, "_", run.date.W, ".rds"))){
   jags.params <- c("U", "Q", "R", "X0", "X", "loglik")
   model.loc <- "models/model_independentQs_singleU.txt"
@@ -1461,14 +1506,16 @@ if(!file.exists(paste0("RData/independentQs_singleU_summer_out_",
   
   jm.out$data <- thedata
   
-  saveRDS(jm.out, file = paste0("RData/independentQs_singleU_summer_out_", 
+  saveRDS(jm.out, file = paste0("RData/independentQs_singleU_summer_out_JM_M",
+                                JM.bestM, "_W_M", W.bestM, "_",
                                 begin.year.JM, "_", end.year, "_", run.date.W, ".rds"))
   print(jm.out$out)
 } 
 ```
 
 ```{r}
-if(!file.exists(paste0("RData/independentUs_singleQ_summer_out_", 
+if(!file.exists(paste0("RData/independentUs_singleQ_summer_out_JM_M",
+                       JM.bestM, "_W_M", W.bestM, "_",
                        begin.year.JM, "_", end.year, "_", run.date.W, ".rds"))){
   jags.params <- c("U", "Q", "R", "X0", "X", "loglik")
   model.loc <- "models/model_independentUs_singleQ.txt"
@@ -1483,7 +1530,8 @@ if(!file.exists(paste0("RData/independentUs_singleQ_summer_out_",
   
   jm.out$data <- thedata
   
-  saveRDS(jm.out, file = paste0("RData/independentUs_singleQ_summer_out_", 
+  saveRDS(jm.out, file = paste0("RData/independentUs_singleQ_summer_out_JM_M",
+                                JM.bestM, "_W_M", W.bestM, "_",
                                 begin.year.JM, "_", end.year, "_", run.date.W, ".rds"))
   print(jm.out$out)
 } 
@@ -1513,7 +1561,8 @@ DIC can be used to compare models but currently we use these models to answer di
 Using the simplest model results in the lowest DIC value. So, use that for the following seciton.
 
 ```{r}
-jags.model_summer <- readRDS(paste0("RData/singleUQ_summer_out_", 
+jags.model_summer <- readRDS(paste0("RData/singleUQ_summer_out_JM_M",
+                                    JM.bestM, "_W_M", W.bestM, "_",
                              begin.year.JM, "_", end.year, "_", run.date.W, ".rds"))
 jags.data_summer <- jags.model_summer$jags.data
 
@@ -1553,7 +1602,9 @@ p.3 <- ggplot(data = JM.summer.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.3, filename = "figures/JM_trend_summer.png",
+  ggsave(p.3, 
+         filename = paste0("figures/JM_trend_summer_JM_M",
+                           JM.bestM, "_W_M", W.bestM, ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -1575,7 +1626,9 @@ p.3.log <- ggplot(data = JM.summer.log.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.3.log, filename = "figures/JM_trend_summer_log.png",
+  ggsave(p.3.log, 
+         filename = paste0("figures/JM_trend_summer_log_JM_M",
+                           JM.bestM, "_W_M", W.bestM, ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -1619,7 +1672,9 @@ p.4 <- ggplot(data = W.summer.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.4, filename = "figures/W_trend_summer.png",
+  ggsave(p.4, 
+         filename = paste0("figures/W_trend_summer_JM_M",
+                           JM.bestM, "_W_M", W.bestM, ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -1641,7 +1696,9 @@ p.4.log <- ggplot(data = W.summer.log.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.4.log, filename = "figures/W_trend_summer_log.png",
+  ggsave(p.4.log, 
+         filename = paste0("figures/W_trend_summer_log_JM_M",
+                           JM.bestM, "_W_M", W.bestM, ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -1666,7 +1723,8 @@ p.1 <- p.1 + xlim(c(-1.1, 1.1)) +
 
 if (save.fig)
   ggsave(p.1,
-         filename = "figures/posterior_U_summer.png",
+         filename = paste0("figures/posterior_U_summer_JM_M",
+                           JM.bestM, "_W_M", W.bestM,  ".png"),
          device = "png",
          dpi = 600,
          height = 4, width = 6, units = "in")
@@ -1680,8 +1738,9 @@ signif(jags.model_summer$out$summary["U", "f"], 3) * 100
 We can also look at the seasonal beach-specific slopes using the combined dataset.
 
 ```{r}
-jags.model_summer <- readRDS(paste0("RData/independentUs_singleQ_summer_out_", 
-                             begin.year.JM, "_", end.year, "_", run.date.W, ".rds"))
+jags.model_summer <- readRDS(paste0("RData/independentUs_singleQ_summer_out_JM_M",
+                                    JM.bestM, "_W_M", W.bestM, "_",
+                                    begin.year.JM, "_", end.year, "_", run.date.W, ".rds"))
 jags.data_summer <- jags.model_summer$jags.data
 
 # create a dataframe for plotting - need median, upper, and lower 95% limits for each 
@@ -1720,7 +1779,9 @@ p.3 <- ggplot(data = JM.summer.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.3, filename = "figures/JM_trend_summer_independentUs.png",
+  ggsave(p.3, 
+         filename = paste0("figures/JM_trend_summer_independentUs_JM_M",
+                           JM.bestM, "_W_M", W.bestM,  ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -1742,7 +1803,9 @@ p.3.log <- ggplot(data = JM.summer.log.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.3.log, filename = "figures/JM_trend_summer_log_independentUs.png",
+  ggsave(p.3.log, 
+         filename = paste0("figures/JM_trend_summer_log_independentUs_JM_M", 
+                           JM.bestM, "_W_M", W.bestM,  ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -1770,7 +1833,8 @@ p.1 <- p.1 + xlim(c(-1.1, 1.1)) +
 
 if (save.fig)
   ggsave(p.1,
-         filename = "figures/posterior_U_summer_JM_independentUs.png",
+         filename = paste0("figures/posterior_U_summer_JM_independentUs_JM_M",
+                           JM.bestM, "_W_M", W.bestM,  ".png"),
          device = "png",
          dpi = 600,
          height = 4, width = 6, units = "in")
@@ -1816,7 +1880,9 @@ p.3 <- ggplot(data = W.summer.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.3, filename = "figures/W_trend_summer_independentUs.png",
+  ggsave(p.3, 
+         filename = paste0("figures/W_trend_summer_independentUs_JM_M",
+                           JM.bestM, "_W_M", W.bestM, ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -1839,7 +1905,9 @@ p.3.log <- ggplot(data = W.summer.log.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.3.log, filename = "figures/W_trend_summer_log_independentUs.png",
+  ggsave(p.3.log, 
+         filename = paste0("figures/W_trend_summer_log_independentUs_JM_M",
+                           JM.bestM, "_W_M", W.bestM, ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -1866,7 +1934,8 @@ p.1 <- p.1 + xlim(c(-1.1, 1.1)) +
 
 if (save.fig)
   ggsave(p.1,
-         filename = "figures/posterior_U_summer_W_independentUs.png",
+         filename = paste0("figures/posterior_U_summer_W_independentUs_JM_M",
+                           JM.bestM, "_W_M", W.bestM, ".png"),
          device = "png",
          dpi = 600,
          height = 4, width = 6, units = "in")
@@ -1896,7 +1965,8 @@ dat <- t(log.data)    # tranpose to have rows = time series and cols = years of 
 Run all four models.
 
 ```{r}
-if(!file.exists(paste0("RData/singleUQ_winter_out_", 
+if(!file.exists(paste0("RData/singleUQ_winter_out_JM_M",
+                       JM.bestM, "_W_M", W.bestM, "_", 
                        begin.year.JM, "_", end.year, "_", run.date.W,  ".rds"))){
   jags.params <- c("A", "U", "Q", "R", "X0", "X", "loglik")
   model.loc <- "models/model_singleUQ.txt"
@@ -1911,7 +1981,8 @@ if(!file.exists(paste0("RData/singleUQ_winter_out_",
                          seed)
   
   jm.out$data <- thedata
-  saveRDS(jm.out, file = paste0("RData/singleUQ_winter_out_", 
+  saveRDS(jm.out, file = paste0("RData/singleUQ_winter_out_JM_M",
+                                JM.bestM, "_W_M", W.bestM, "_", 
                                 begin.year.JM, "_", end.year,  "_", run.date.W, ".rds"))
   print(jm.out$out)
 
@@ -1920,7 +1991,8 @@ if(!file.exists(paste0("RData/singleUQ_winter_out_",
 ```
 
 ```{r}
-if(!file.exists(paste0("RData/independentUQ_winter_out_", 
+if(!file.exists(paste0("RData/independentUQ_winter_out_JM_M",
+                       JM.bestM, "_W_M", W.bestM, "_", 
                        begin.year.JM, "_", end.year, "_", run.date.W, ".rds"))){
   jags.params <- c("U", "Q", "R", "X0", "X", "loglik")
   model.loc <- "models/model_independentUQs.txt"
@@ -1936,14 +2008,16 @@ if(!file.exists(paste0("RData/independentUQ_winter_out_",
   
   jm.out$data <- thedata
   
-  saveRDS(jm.out, file = paste0("RData/independentUQ_winter_out_", 
+  saveRDS(jm.out, file = paste0("RData/independentUQ_winter_out_JM_M",
+                                JM.bestM, "_W_M", W.bestM, "_",
                                 begin.year.JM, "_", end.year, "_", run.date.W, ".rds"))
   print(jm.out$out)
 } 
 ```
 
 ```{r results=FALSE}
-if(!file.exists(paste0("RData/independentQs_singleU_winter_out_", 
+if(!file.exists(paste0("RData/independentQs_singleU_winter_out_JM_M",
+                       JM.bestM, "_W_M", W.bestM, "_",
                        begin.year.JM, "_", end.year, "_", run.date.W, ".rds"))){
   jags.params <- c("U", "Q", "R", "X0", "X", "loglik")
   model.loc <- "models/model_independentQs_singleU.txt"
@@ -1958,14 +2032,16 @@ if(!file.exists(paste0("RData/independentQs_singleU_winter_out_",
   
   jm.out$data <- thedata
   
-  saveRDS(jm.out, file = paste0("RData/independentQs_singleU_winter_out_", 
+  saveRDS(jm.out, file = paste0("RData/independentQs_singleU_winter_out_JM_M",
+                                JM.bestM, "_W_M", W.bestM, "_",
                                 begin.year.JM, "_", end.year, "_", run.date.W, ".rds"))
   print(jm.out$out)
 } 
 ```
 
 ```{r echo=FALSE}
-if(!file.exists(paste0("RData/independentUs_singleQ_winter_out_", 
+if(!file.exists(paste0("RData/independentUs_singleQ_winter_out_JM_M",
+                       JM.bestM, "_W_M", W.bestM, "_",
                        begin.year.JM, "_", end.year, "_", run.date.W, ".rds"))){
   jags.params <- c("U", "Q", "R", "X0", "X", "loglik")
   model.loc <- "models/model_independentUs_singleQ.txt"
@@ -1980,7 +2056,8 @@ if(!file.exists(paste0("RData/independentUs_singleQ_winter_out_",
   
   jm.out$data <- thedata
   
-  saveRDS(jm.out, file = paste0("RData/independentUs_singleQ_winter_out_", 
+  saveRDS(jm.out, file = paste0("RData/independentUs_singleQ_winter_out_JM_M",
+                                JM.bestM, "_W_M", W.bestM, "_",
                                 begin.year.JM, "_", end.year, "_", run.date.W, ".rds"))
   print(jm.out$out)
 } 
@@ -2010,8 +2087,9 @@ Again, DIC part is commented out.
 Using the simplest:
 
 ```{r}
-jags.model_winter <- readRDS(paste0("RData/singleUQ_winter_out_", 
-                             begin.year.JM, "_", end.year, "_", run.date.W, ".rds"))
+jags.model_winter <- readRDS(paste0("RData/singleUQ_winter_out_JM_M",
+                                    JM.bestM, "_W_M", W.bestM, "_",
+                                    begin.year.JM, "_", end.year, "_", run.date.W, ".rds"))
 jags.data_winter <- jags.model_winter$jags.data
 
 # create a dataframe for plotting - need median, upper, and lower 95% limits for each 
@@ -2051,7 +2129,9 @@ p.5 <- ggplot(data = JM.winter.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.5, filename = "figures/JM_trend_winter.png",
+  ggsave(p.5, 
+         filename = paste0("figures/JM_trend_winter_JM_M",
+                           JM.bestM, "_W_M", W.bestM, ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -2073,7 +2153,9 @@ p.5.log <- ggplot(data = JM.winter.log.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.5.log, filename = "figures/JM_trend_winter_log.png",
+  ggsave(p.5.log, 
+         filename = paste0("figures/JM_trend_winter_log_JM_M",
+                           JM.bestM, "_W_M", W.bestM, ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -2117,7 +2199,9 @@ p.6 <- ggplot(data = W.winter.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.6, filename = "figures/W_trend_winter.png",
+  ggsave(p.6, 
+         filename = paste0("figures/W_trend_winter_JM_M",
+                           JM.bestM, "_W_M", W.bestM,  ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -2139,7 +2223,9 @@ p.6.log <- ggplot(data = W.winter.log.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.6.log, filename = "figures/W_trend_winter_log.png",
+  ggsave(p.6.log, 
+         filename = paste0("figures/W_trend_winter_log_JM_M",
+                           JM.bestM, "_W_M", W.bestM, ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -2163,7 +2249,8 @@ p.1 <- p.1 + xlim(c(-1.1, 1.1)) +
 
 if (save.fig)
   ggsave(p.1,
-         filename = "figures/posterior_U_winter.png",
+         filename = paste0("figures/posterior_U_winter_JM_M", 
+                           JM.bestM, "_W_M", W.bestM, ".png"),
          device = "png",
          dpi = 600,
          height = 4, width = 6, units = "in")
@@ -2178,8 +2265,9 @@ signif(jags.model_winter$out$summary["U", "f"], 3) * 100
 We can also look at the seasonal beach-specific slopes using the combined dataset.
 
 ```{r}
-jags.model_winter <- readRDS(paste0("RData/independentUs_singleQ_winter_out_", 
-                             begin.year.JM, "_", end.year, "_", run.date.W, ".rds"))
+jags.model_winter <- readRDS(paste0("RData/independentUs_singleQ_winter_out_JM_M", 
+                                    JM.bestM, "_W_M", W.bestM, "_", 
+                                    begin.year.JM, "_", end.year, "_", run.date.W, ".rds"))
 jags.data_winter <- jags.model_winter$jags.data
 
 # create a dataframe for plotting - need median, upper, and lower 95% limits for each 
@@ -2218,7 +2306,9 @@ p.3 <- ggplot(data = JM.winter.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.3, filename = "figures/JM_trend_winter_independentUs.png",
+  ggsave(p.3, 
+         filename = paste0("figures/JM_trend_winter_independentUs_JM_M", 
+                           JM.bestM, "_W_M", W.bestM, ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -2240,7 +2330,9 @@ p.3.log <- ggplot(data = JM.winter.log.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.3.log, filename = "figures/JM_trend_winter_log_independentUs.png",
+  ggsave(p.3.log, 
+         filename = paste0("figures/JM_trend_winter_log_independentUs_JM_M",
+                           JM.bestM, "_W_M", W.bestM, ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -2267,7 +2359,8 @@ p.1 <- p.1 + xlim(c(-1.1, 1.1)) +
         text = element_text(size = 12))
 if (save.fig)
   ggsave(p.1,
-         filename = "figures/posterior_U_winter_JM_independentUs.png",
+         filename = paste0("figures/posterior_U_winter_JM_independentUs",
+                           JM.bestM, "_W_M", W.bestM, ".png"),
          device = "png",
          dpi = 600,
          height = 4, width = 6, units = "in")
@@ -2313,7 +2406,9 @@ p.3 <- ggplot(data = W.winter.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.3, filename = "figures/W_trend_winter_independentUs.png",
+  ggsave(p.3, 
+         filename = paste0("figures/W_trend_winter_independentUs_JM_M",
+                           JM.bestM, "_W_M", W.bestM, ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -2336,7 +2431,9 @@ p.3.log <- ggplot(data = W.summer.log.df) +
         text = element_text(size = 12))
 
 if (save.fig)
-  ggsave(p.3.log, filename = "figures/W_trend_winter_log_independentUs.png",
+  ggsave(p.3.log, 
+         filename = paste0("figures/W_trend_winter_log_independentUs_JM_M",
+                           JM.bestM, "_W_M", W.bestM, ".png"),
          device = "png", dpi = 600,
          height = 4, width = 6, units = "in")
 
@@ -2363,7 +2460,8 @@ p.1 <- p.1 + xlim(c(-1.1, 1.1)) +
 
 if (save.fig)
   ggsave(p.1,
-         filename = "figures/posterior_U_winter_W_independentUs.png",
+         filename = paste0("figures/posterior_U_winter_W_independentUs",
+                           JM.bestM, "_W_M", W.bestM, ".png"),
          device = "png",
          dpi = 600,
          height = 4, width = 6, units = "in")

@@ -523,14 +523,14 @@ run.independentUs_singleQ <- function(dat,
 }
 
 
-model.Comparison.Fourier <- function(loc){
+model.Comparison.Fourier <- function(loc, year.begin, year.end, run.date){
   models <- model.names()
         
   M.ys.stats <- M.Xs.stats <- M.jm <- M.loo.out <- M.data.y <- vector(mode = "list", 
-                                                          length = length(models))
+                                                          length = nrow(models))
   
-  for (k in 1:length(models)){
-    str.root <- strsplit(strsplit(models, "model_")[[1]][2], ".txt")[[1]]
+  for (k in 1:nrow(models)){
+    str.root <- strsplit(strsplit(as.character(models[k, "names"]), "model_")[[1]][2], ".txt")[[1]]
     M <- readRDS(paste0("RData/jagsout_", str.root, "_", loc, "_", 
                         year.begin, "_", year.end, "_",
                         run.date, ".rds"))
@@ -590,7 +590,7 @@ PSIS.plots <- function(pareto.k, data.y, m, loc, save.fig = TRUE){
          title = paste0("PSIS diagnostic plot (Model ", m, ")"))
   
   if (save.fig)
-    ggsave(p2, 
+    ggsave(p.2, 
            filename = paste0("figures/", loc, "_PSIS_M", m, ".png"),
            device = "png", dpi = 600)
   
@@ -598,7 +598,8 @@ PSIS.plots <- function(pareto.k, data.y, m, loc, save.fig = TRUE){
   
 }
 
-plot.combined.counts <- function(M.jm, Xs.stats, ys.stats, run.date, loc, m,
+plot.combined.counts <- function(M.jm, Xs.stats, ys.stats, 
+                                 year.begin, year.end, run.date, loc, m,
                                  fill.color =  "darkseagreen",
                                  fill.color.summer = "darksalmon",
                                  fill.color.winter = "gray65",
@@ -711,7 +712,7 @@ plot.combined.counts <- function(M.jm, Xs.stats, ys.stats, run.date, loc, m,
   return(p.estimated.counts)
 }
 
-plot.imputed <- fucntion(Xs.stats, ys.stats, loc, year.begin, year.end, 
+plot.imputed <- function(Xs.stats, ys.stats, loc, year.begin, year.end, 
                          fill.color =  "darkseagreen",
                          fill.alpha =  0.65,
                          line.color =  "darkblue",

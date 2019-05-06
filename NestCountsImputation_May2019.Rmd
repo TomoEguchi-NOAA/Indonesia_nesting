@@ -9,8 +9,10 @@ This document includes code for nest count imputation for both beaches using mod
 rm(list=ls())
 knitr::opts_chunk$set(echo = TRUE)
 source("Dc_Indonesia_nesting_fcns.R")
-run.date <- "2019-04-30"
-save.fig <- F
+run.date.JM <- "2019-05-01"
+run.date.W <- "2019-04-30"
+
+save.fig <- T
 
 models.df <- model.names()
 year.begin.W <- 2003
@@ -68,8 +70,15 @@ The models were fit to datasets from turtle nesting beaches. Bayesian computatio
 
 First get all model outputs.
 ```{r}
-JM_out <- model.Comparison.Fourier("JM")
-W_out <- model.Comparison.Fourier("W")
+JM_out <- model.Comparison.Fourier(loc = "JM", 
+                                   year.begin = year.begin.JM, 
+                                   year.end = year.end.JM, 
+                                   run.date = run.date.JM)
+
+W_out <- model.Comparison.Fourier(loc = "W",
+                                  year.begin = year.begin.W, 
+                                   year.end = year.end.W, 
+                                   run.date = run.date.W)
 ```
 
 ##Jamursba-Medi
@@ -85,11 +94,12 @@ y[t] ~ N(x[t], v.obs)
 
 
 ```{r model1, cache=TRUE, include=TRUE}
-M1.loo.out <- JM_out[[1]]$loo.out$loo.out
-M1.jm <- JM_out[[1]]$jags.out
-M1.Xs.stats <- JM_out[[1]]$Xs.stats
-M1.ys.stats <- JM_out[[1]]$ys.stats
-data.y <-JM_out[[1]]$data.y
+m <- 1
+M1.loo.out <- JM_out$loo.out[[m]]
+M1.jm <- JM_out$jm[[m]]
+M1.Xs.stats <- JM_out$Xs.stats[[m]]
+M1.ys.stats <- JM_out$ys.stats[[m]]
+data.y <-JM_out$data.y[[m]]
 ```
 
 Diagnostics of the expected log predictive density indicated that the model was not appropriate, where many (```r signif(sum(M1.loo.out$diagnostics$pareto_k > 0.7)/length(M1.loo.out$diagnostics$pareto_k) * 100, 3)``` %) of estimated Pareto k statistics (a measure of model fit - TRUE?) were greater than 0.7. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M1.jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M1.jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M1.jm$Rhat, FUN = max, na.rm = T))), 3)```). 
@@ -115,11 +125,12 @@ y[t] ~ N(x[t], v.obs)
 
 ```{r model2, cache=TRUE, include=TRUE}
 m <- 2
-M2.loo.out <- JM_out[[m]]$loo.out$loo.out
-M2.jm <- JM_out[[m]]$jags.out
-M2.Xs.stats <- JM_out[[m]]$Xs.stats
-M2.ys.stats <- JM_out[[m]]$ys.stats
-data.y <-JM_out[[m]]$data.y
+M2.loo.out <- JM_out$loo.out[[m]]
+M2.jm <- JM_out$jm[[m]]
+M2.Xs.stats <- JM_out$Xs.stats[[m]]
+M2.ys.stats <- JM_out$ys.stats[[m]]
+data.y <-JM_out$data.y[[m]]
+
 ```
 
 Although better than the first model, some estimated Pareto k statistics were greater than 0.7 (```r signif(sum(M2.loo.out$diagnostics$pareto_k > 0.7)/length(M1.loo.out$diagnostics$pareto_k) * 100, 3)``` %). Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M2.jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M2.jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M2.jm$Rhat, FUN = max, na.rm = T))), 3)```). 
@@ -149,11 +160,12 @@ y[t] ~ N(x[t], v.obs)
 
 ```{r model3, cache=TRUE, include=TRUE}
 m <- 3
-M3.loo.out <- JM_out[[m]]$loo.out$loo.out
-M3.jm <- JM_out[[m]]$jags.out
-M3.Xs.stats <- JM_out[[m]]$Xs.stats
-M3.ys.stats <- JM_out[[m]]$ys.stats
-data.y <-JM_out[[m]]$data.y
+M3.loo.out <- JM_out$loo.out[[m]]
+M3.jm <- JM_out$jm[[m]]
+M3.Xs.stats <- JM_out$Xs.stats[[m]]
+M3.ys.stats <- JM_out$ys.stats[[m]]
+data.y <-JM_out$data.y[[m]]
+
 
 ```
 
@@ -182,11 +194,12 @@ y[t] ~ t(x[t], v.obs, df)
 
 ```{r model10, cache=TRUE, include=TRUE}
 m <- 4
-M4.loo.out <- JM_out[[m]]$loo.out$loo.out
-M4.jm <- JM_out[[m]]$jags.out
-M4.Xs.stats <- JM_out[[m]]$Xs.stats
-M4.ys.stats <- JM_out[[m]]$ys.stats
-data.y <-JM_out[[m]]$data.y
+
+M4.loo.out <- JM_out$loo.out[[m]]
+M4.jm <- JM_out$jm[[m]]
+M4.Xs.stats <- JM_out$Xs.stats[[m]]
+M4.ys.stats <- JM_out$ys.stats[[m]]
+data.y <-JM_out$data.y[[m]]
 
 ```
 
@@ -215,11 +228,11 @@ y[t] ~ t(x[t], v.obs, df)
 
 ```{r model5, cache=TRUE, include=TRUE}
 m <- 5
-M5.loo.out <- JM_out[[m]]$loo.out$loo.out
-M5.jm <- JM_out[[m]]$jags.out
-M5.Xs.stats <- JM_out[[m]]$Xs.stats
-M5.ys.stats <- JM_out[[m]]$ys.stats
-data.y <-JM_out[[m]]$data.y
+M5.loo.out <- JM_out$loo.out[[m]]
+M5.jm <- JM_out$jm[[m]]
+M5.Xs.stats <- JM_out$Xs.stats[[m]]
+M5.ys.stats <- JM_out$ys.stats[[m]]
+data.y <-JM_out$data.y[[m]]
 
 ```
 
@@ -249,11 +262,12 @@ y[t] ~ t(x[t], v.obs, df)
 
 ```{r model6, cache=T, include=TRUE}
 m <- 6
-M6.loo.out <- JM_out[[m]]$loo.out$loo.out
-M6.jm <- JM_out[[m]]$jags.out
-M6.Xs.stats <- JM_out[[m]]$Xs.stats
-M6.ys.stats <- JM_out[[m]]$ys.stats
-data.y <-JM_out[[m]]$data.y
+M6.loo.out <- JM_out$loo.out[[m]]
+M6.jm <- JM_out$jm[[m]]
+M6.Xs.stats <- JM_out$Xs.stats[[m]]
+M6.ys.stats <- JM_out$ys.stats[[m]]
+data.y <-JM_out$data.y[[m]]
+
 
 ```
 
@@ -274,8 +288,8 @@ First, we compared all models using using ELPD values although Pareto k statisti
 
 ```{r ModelComparison, include=TRUE}
 
-M.compare <- compare(M1.loo.out, M2.loo.out, M3.loo.out,  
-                     M4.loo.out, M5.loo.out, M6.loo.out) 
+M.compare <- compare(M1.loo.out, M2.loo.out,   
+                     M4.loo.out, M5.loo.out) 
 
 print(M.compare)
 ```
@@ -295,20 +309,24 @@ Here, I use M1 for the predictions.
 
 ```{r posterior_M1_theta, fig.cap="Figure. Posterior distributions of slope parameters for M1"}
 m <- 1
-bayesplot::mcmc_dens(M1.jm$samples, c("theta[1]", "theta[2]", "theta[3]", "theta[4]",
+MCMC.samples <- M1.jm$samples
+Xs.stats <- M1.Xs.stats
+ys.stats <- M1.ys.stats
+M.jm <- M1.jm
+bayesplot::mcmc_dens(MCMC.samples, c("theta[1]", "theta[2]", "theta[3]", "theta[4]",
                                       "theta[5]", "theta[6]", "theta[7]", "theta[8]",
                                       "theta[9]", "theta[10]", "theta[11]", "theta[12]"))
 ```
 
 ```{r posterior_M1_sigmas, fig.cap="Figure. Posterior distributions of process and sampling standard deviations"}
 
-bayesplot::mcmc_dens(M1.jm$samples, c("sigma.pro1", "sigma.obs"))
+bayesplot::mcmc_dens(MCMC.samples, c("sigma.pro1", "sigma.obs"))
 ```
 
 
 
 ```{r}
-p.JM.imputed <- plot.imputed(M1.Xs.stats, M1.ys.stats, "JM", 
+p.JM.imputed <- plot.imputed(Xs.stats, ys.stats, "JM", 
                              year.begin.JM, year.end.JM)
 if (save.fig)
   ggsave(p.JM.imputed$p.1, 
@@ -321,18 +339,20 @@ if (save.fig)
          filename = paste0("figures/JM_log_imputed_M", m, ".png"),
          device = "png", height = 4, width = 6, units = "in",
          dpi = 600)
-print(p.1.log)
+print(p.JM.imputed$p.1.log)
 ```
 
 Combine all counts per year.
 
 ```{r }
-p.JM.estimated.counts <- plot.combined.counts(M1.jm, 
-                                              M1.Xs.stats, 
-                                              M1.ys.stats, 
-                                              run.date, 
-                                              "JM", 
-                                              m=1)
+p.JM.estimated.counts <- plot.combined.counts(M.jm = M.jm, 
+                                              Xs.stats = Xs.stats, 
+                                              ys.stats = ys.stats, 
+                                              year.begin = year.begin.JM,
+                                              year.end = year.end.JM,
+                                              run.date = run.date.JM, 
+                                              loc = "JM", 
+                                              m = m)
 
 if (save.fig)
   ggsave(filename = "figures/CountsPerSeason_best_JM.png",
@@ -348,11 +368,12 @@ All models are the same as before so I won't explain each model.
 ###Model 1
 ```{r model1, cache=TRUE, include=TRUE}
 m <- 1
-M1.loo.out <- W_out[[m]]$loo.out$loo.out
-M1.jm <- W_out[[m]]$jags.out
-M1.Xs.stats <- W_out[[m]]$Xs.stats
-M1.ys.stats <- W_out[[m]]$ys.stats
-data.y <-W_out[[m]]$data.y
+M1.loo.out <- W_out$loo.out[[m]]
+M1.jm <- W_out$jm[[m]]
+M1.Xs.stats <- W_out$Xs.stats[[m]]
+M1.ys.stats <- W_out$ys.stats[[m]]
+data.y <- W_out$data.y[[m]]
+
 ```
 
 Diagnostics of the expected log predictive density indicated that the model was not appropriate, where many (```r signif(sum(M1.loo.out$diagnostics$pareto_k > 0.7)/length(M1.loo.out$diagnostics$pareto_k) * 100, 3)``` %) of estimated Pareto k statistics (a measure of model fit - TRUE?) were greater than 0.7. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M1.jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M1.jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M1.jm$Rhat, FUN = max, na.rm = T))), 3)```). 
@@ -370,11 +391,11 @@ print(plots$p2)
 ###Model 2
 ```{r model2, cache=TRUE, include=TRUE}
 m <- 2
-M2.loo.out <- W_out[[m]]$loo.out$loo.out
-M2.jm <- W_out[[m]]$jags.out
-M2.Xs.stats <- W_out[[m]]$Xs.stats
-M2.ys.stats <- W_out[[m]]$ys.stats
-data.y <-W_out[[m]]$data.y
+M2.loo.out <- W_out$loo.out[[m]]
+M2.jm <- W_out$jm[[m]]
+M2.Xs.stats <- W_out$Xs.stats[[m]]
+M2.ys.stats <- W_out$ys.stats[[m]]
+data.y <- W_out$data.y[[m]]
 
 ```
 
@@ -395,11 +416,12 @@ print(plots$p2)
 
 ```{r model3, cache=TRUE, include=TRUE}
 m <- 3
-M3.loo.out <- W_out[[m]]$loo.out$loo.out
-M3.jm <- W_out[[m]]$jags.out
-M3.Xs.stats <- W_out[[m]]$Xs.stats
-M3.ys.stats <- W_out[[m]]$ys.stats
-data.y <-W_out[[m]]$data.y
+M3.loo.out <- W_out$loo.out[[m]]
+M3.jm <- W_out$jm[[m]]
+M3.Xs.stats <- W_out$Xs.stats[[m]]
+M3.ys.stats <- W_out$ys.stats[[m]]
+data.y <- W_out$data.y[[m]]
+
 
 ```
 
@@ -420,11 +442,11 @@ print(plots$p2)
 
 ```{r model10, cache=TRUE, include=TRUE}
 m <- 4
-M4.loo.out <- W_out[[m]]$loo.out$loo.out
-M4.jm <- W_out[[m]]$jags.out
-M4.Xs.stats <- W_out[[m]]$Xs.stats
-M4.ys.stats <- W_out[[m]]$ys.stats
-data.y <-W_out[[m]]$data.y
+M4.loo.out <- W_out$loo.out[[m]]
+M4.jm <- W_out$jm[[m]]
+M4.Xs.stats <- W_out$Xs.stats[[m]]
+M4.ys.stats <- W_out$ys.stats[[m]]
+data.y <- W_out$data.y[[m]]
 
 ```
 
@@ -434,7 +456,7 @@ There were some large estimated Pareto k parameter values, where ```r sum(M4.loo
 
 plots <- PSIS.plots(pareto.k = M4.loo.out$diagnostics$pareto_k, 
                     data.y = data.y, 
-                    m = "1", loc = "W", save.fig = save.fig)
+                    m = "4", loc = "W", save.fig = save.fig)
 
 print(plots$p2)
 
@@ -444,11 +466,11 @@ print(plots$p2)
 
 ```{r model5, cache=TRUE, include=TRUE}
 m <- 5
-M5.loo.out <- W_out[[m]]$loo.out$loo.out
-M5.jm <- W_out[[m]]$jags.out
-M5.Xs.stats <- W_out[[m]]$Xs.stats
-M5.ys.stats <- W_out[[m]]$ys.stats
-data.y <-W_out[[m]]$data.y
+M5.loo.out <- W_out$loo.out[[m]]
+M5.jm <- W_out$jm[[m]]
+M5.Xs.stats <- W_out$Xs.stats[[m]]
+M5.ys.stats <- W_out$ys.stats[[m]]
+data.y <- W_out$data.y[[m]]
 
 ```
 
@@ -470,11 +492,12 @@ print(plots$p2)
 
 ```{r model6, cache=T, include=TRUE}
 m <- 6
-M6.loo.out <- W_out[[m]]$loo.out$loo.out
-M6.jm <- W_out[[m]]$jags.out
-M6.Xs.stats <- W_out[[m]]$Xs.stats
-M6.ys.stats <- W_out[[m]]$ys.stats
-data.y <-W_out[[m]]$data.y
+M6.loo.out <- W_out$loo.out[[m]]
+M6.jm <- W_out$jm[[m]]
+M6.Xs.stats <- W_out$Xs.stats[[m]]
+M6.ys.stats <- W_out$ys.stats[[m]]
+data.y <- W_out$data.y[[m]]
+
 
 ```
 
@@ -507,7 +530,12 @@ print(M.compare)
 It is interesting that two worst models according to Pareto k statistics are the two best ones according to looic values... M5 seems best based on Pareto k statistics but worst according to looic.  
 
 ```{r}
-m <- 4
+m <- 5
+MCMC.samples <- M5.jm$samples
+Xs.stats <- M5.Xs.stats
+ys.stats <- M5.ys.stats
+M.jm <- M5.jm
+
 tmp <- data.frame(M.compare) %>%
   select(elpd_diff, looic, se_looic)
 knitr::kable(tmp, format = "html", digits = 2,
@@ -515,50 +543,55 @@ knitr::kable(tmp, format = "html", digits = 2,
 ```
 
 
-Here, I use M4 for the predictions. 
+Here, I use M5 for the predictions. 
 
-```{r posterior_M4_theta, fig.cap="Figure. Posterior distributions of slope parameters for M8"}
+```{r posterior_M5_theta, fig.cap="Figure. Posterior distributions of slope parameters for M5"}
 
-bayesplot::mcmc_dens(M4.jm$samples, 
+bayesplot::mcmc_dens(MCMC.samples, 
                      c("theta[1]", "theta[2]", "theta[3]", "theta[4]",
                        "theta[5]", "theta[6]", "theta[7]", "theta[8]",
                        "theta[9]", "theta[10]", "theta[11]", "theta[12]"))
 ```
 
-```{r posterior_M4_sigmas, fig.cap="Figure. Posterior distributions of process and sampling standard deviations"}
+```{r posterior_M5_sigmas, fig.cap="Figure. Posterior distributions of process and sampling standard deviations"}
 
-bayesplot::mcmc_dens(M4.jm$samples, c("sigma.pro1", "sigma.obs"))
+# For M5, sigma.pro1 is defined for each month so just too many to plot. 
+bayesplot::mcmc_dens(MCMC.samples, c("sigma.obs"))
 ```
 
 
 
 ```{r}
-p.W.imputed <- plot.imputed(M4.Xs.stats, M4.ys.stats, 
+p.W.imputed <- plot.imputed(Xs.stats, ys.stats, 
                             "W", year.begin.W, year.end.W)
 
 if (save.fig)
-  ggsave(p.w.imputed$p.1, 
+  ggsave(p.W.imputed$p.1, 
          filename = paste0("figures/W_imputed_M", m, ".png"),
          device = "png", height = 4, width = 6, units = "in",
          dpi = 600)
 
 
 if (save.fig)
-  ggsave(p.w.imputed$p.1.log, 
+  ggsave(p.W.imputed$p.1.log, 
          filename = paste0("figures/W_log_imputed_M", m, ".png"),
          device = "png", height = 4, width = 6, units = "in",
          dpi = 600)
 
-print(p.1.log)
+print(p.W.imputed$p.1.log)
 ```
 
 Combine all counts per year.
 
 ```{r }
-p.W.estimated.counts <- plot.combined.counts(M4.jm, 
-                                             M4.Xs.stats, 
-                                             M4.ys.stats, 
-                                             run.date, "W", 4)
+p.W.estimated.counts <- plot.combined.counts(M.jm = M.jm, 
+                                             Xs.stats = Xs.stats, 
+                                             ys.stats = ys.stats, 
+                                             year.begin = year.begin.W,
+                                             year.end = year.end.W,
+                                             run.date = run.date.W, 
+                                             loc = "W", 
+                                             m=m)
 
 if (save.fig)
   ggsave(filename = "figures/CountsPerSeason_best_W.png",

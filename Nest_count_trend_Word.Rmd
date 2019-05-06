@@ -36,7 +36,7 @@ JM.yrs <- begin.year.JM:end.year
 W.yrs <- begin.year.W:end.year
 
 JM.bestM <- 1
-W.bestM <- 4
+W.bestM <- 5
 
 fill.color <-  "darkseagreen"
 fill.alpha <-  0.65
@@ -53,7 +53,8 @@ tableCount <- c(`_` = 0)
 ```
 
 ```{r data_setup, include=FALSE}
-JM <- read.csv(paste0("data/estimatedX_JM_M", JM.bestM, "_", run.date.JM, ".csv"), 
+JM <- read.csv(paste0("data/estimatedX_JM_M", 
+                      JM.bestM, "_", run.date.JM, ".csv"), 
                 header=T)
 JMdat <- JM[which(JM$season %in% JM.yrs), ]
 
