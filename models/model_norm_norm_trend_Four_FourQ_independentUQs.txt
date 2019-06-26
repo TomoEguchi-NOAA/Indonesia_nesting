@@ -22,6 +22,8 @@
 #
 # I didn't see any reason to make the priors flatter because that would make convergence difficult
 # and did not gain anything in return. 
+#
+# I used another discrete Fourier series for the variance of the state process. 
 
 model{
     # Initial states
@@ -46,9 +48,6 @@ model{
            
            # observation
            y[1,t,j] ~  dnorm(predY[1,t,j], tau.R[j])
-           #y[1,t,j] ~ dt(predY[1,t,j], tau.R[j], df)
-
-           #loglik[1,t,j] <- logdensity.t(y[1,t,j], X[1,t,j], tau.R[j], df)
            loglik[1,t,j] <- logdensity.norm(y[1,t,j], X[1,t,j], tau.R[j])
         }       
 
@@ -70,9 +69,6 @@ model{
                 # observation
                 predY[s,t,j] <- inprod(Z[j, 1:n.states], X[s,t,])
                 y[s,t,j] ~  dnorm(predY[s,t,j], tau.R[j])
-                #y[s,t,j] ~ dt(predY[s,t,j], tau.R[j], df)
-                
-                #loglik[s,t,j] <- logdensity.t(y[s,t,j], X[s,t,j], tau.R[j], df)
                 loglik[s,t,j] <- logdensity.norm(y[s,t,j], X[s,t,j], tau.R[j])
             }       
 

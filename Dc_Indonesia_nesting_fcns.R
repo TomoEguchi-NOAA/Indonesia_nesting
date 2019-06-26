@@ -30,7 +30,7 @@ sum.posterior <- function(yr, months = c(1:12), Xs.stats, zm) {
   return(list(samples = zm.yr, var.names = Xs.name))
 }
 
-data.extract <- function(location, year.begin, year.end, season.begin, season.end){
+data.extract <- function(location, year.begin, year.end, season.begin = NULL, season.end = NULL){
   # In March 2019, we received new data for 2018. So, the raw data file
   # has been updated.  
   # On 16 April 2019, the last few data points for 2019 were received

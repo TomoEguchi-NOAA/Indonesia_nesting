@@ -25,7 +25,7 @@ library(loo)
 ```{r}
 save.data <- T
 save.fig <- F
-run.date <- Sys.Date()
+run.date <- "2019-06-25" #Sys.Date()
 
 year.begin <- 2003
 year.end <- 2018
@@ -35,13 +35,17 @@ period.W <- 6
 maxN <- 10000
 
 #model.number <- 5
-model.names <- c("singleUQ", "singleU_independentQs",
-                 "independentUs_singleQ", "independentUQs",
-                 "FourQ_independentUQs", "monthQ_independentUQs",
-                 "monthQ_independentUs_singleQ")
+model.names <- c("singleUQ", 
+                 "singleU_independentQs",
+                 "independentUs_singleQ", 
+                 "independentUQs",
+                 "FourQ_independentUQs", 
+                 "monthQ_independentUQs",
+                 "monthQ_independentUs_singleQ",
+                 "constCV_Q_independentUQs")
 
 # t_loc has location (or series) specific df parameter 
-obs.models <- c("norm", "t") 
+obs.models <- c("norm", "t") # 
 
 ```
 
@@ -123,7 +127,7 @@ run jags on each model
 ```{r}
 
 k1 <- k2 <- 1
-for (k1 in 3:(length(model.names))){
+for (k1 in 1:length(model.names) ){ #3:()
   model.number <- k1
   model.name <- model.names[k1]
 
@@ -180,6 +184,9 @@ for (k1 in 3:(length(model.names))){
       jags.params <- c(jags.params, "C0_Q")
     }
    
+    if (length(grep("constCV", model.names[model.number])) != 0)
+      jags.params <- c(jags.params, "cv.Q")
+    
     model.name <- paste0("models/model_norm_", obs.model, "_trend_Four_", 
                      model.names[model.number], ".txt")
     
