@@ -1,0 +1,26 @@
+---
+title: "Summarizing output from imputation-trend analysis results - Step 2"
+output: html_notebook
+---
+
+This document summarizes output from imputation/trend analysis results.  The first step should have been done in time_series_trend_Four_summary.Rmd and results saved in RData/time_series_trend_Four_summary_yyyy-mm-dd.rds, where yyyy-mm-dd is the run date. The rds file contains loo output and Pareto k statistics plots for all models. 
+
+```{r}
+rm(list=ls())
+
+source('Dc_Indonesia_nesting_fcns.R')
+
+library(jagsUI)
+library(coda)
+library(tidyverse)
+library(loo)
+
+run.date <- "2019-06-27"
+```
+
+First load the results:
+```{r}
+all.results <- readRDS(file = paste0("RData/time_series_trend_Four_summary_", 
+                                     run.date,  ".rds"))
+```
+

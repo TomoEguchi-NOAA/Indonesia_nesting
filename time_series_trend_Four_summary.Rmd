@@ -1,5 +1,5 @@
 ---
-title: "Summarizing output from imputation-trend analysis results"
+title: "Summarizing output from imputation-trend analysis results - Step 1"
 output: html_notebook
 ---
 
@@ -124,7 +124,8 @@ for (k in 1:length(obs.models)){
   }
 }
 
-out.obj <- c(loo.out, pareto.plots)
+out.obj <- list(loo.out = loo.out, 
+                pareto.plots = pareto.plots)
 
 saveRDS(out.obj, file = paste0("RData/time_series_trend_Four_summary_", 
                                Sys.Date(),  ".rds"))
