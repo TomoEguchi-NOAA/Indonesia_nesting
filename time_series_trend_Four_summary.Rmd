@@ -24,7 +24,7 @@ Some constants defined here.
 ```{r}
 save.data <- T
 save.fig <- F
-run.date <- "2019-06-26"
+run.date <- "2019-06-25"
 
 year.begin <- 2003
 year.end <- 2018
@@ -51,7 +51,7 @@ obs.models <- c("norm", "t")
 Go through all results and summarize.
 
 ```{r}
-pareto.plots <- list()
+pareto.plots <- loo.out <- list()
 k <- k1 <- c <- 1
 for (k in 1:length(obs.models)){
   
@@ -96,9 +96,9 @@ for (k in 1:length(obs.models)){
                                         each = n.per.chain),
                          cores = 1)
     #   
-    loo.out <- loo(loglik.obs, r_eff = Reff, cores = 1)
+    loo.out[[c]] <- loo(loglik.obs, r_eff = Reff, cores = 1)
     
-    pareto.k <- loo.out$diagnostics$pareto_k
+    pareto.k <- loo.out[[c]]$diagnostics$pareto_k
     data.y <- na.omit(c(y.JM, y.W))
     # 
     pareto.df <- data.frame(y = data.y,
@@ -115,7 +115,8 @@ for (k in 1:length(obs.models)){
       scale_size_continuous(limits = c(0.0, 1.3),
                             range = c(1, 4))+
       scale_color_manual(values = c("<=0.7" = "black",
-                                    ">0.7" = "red"))
+                                    ">0.7" = "red")) + 
+      labs(title = unlist(strsplit(jm$modfile, "models/"))[2])
     
     c <- c + 1
     #   ####
@@ -123,6 +124,10 @@ for (k in 1:length(obs.models)){
   }
 }
 
+out.obj <- c(loo.out, pareto.plots)
+
+saveRDS(out.obj, file = paste0("RData/time_series_trend_Four_summary_", 
+                               Sys.Date(),  ".rds"))
 
 ```
 

@@ -192,7 +192,8 @@ for (k1 in 1:length(model.names) ){ #3:()
     
     if (file.exists(model.name)){
       
-      jm <- jags(jags.data,
+      if (!file.exists(paste0("RData/", filename.root, '.rds'))){
+        jm <- jags(jags.data,
                  inits = NULL,
                  parameters.to.save= jags.params,
                  model.file = model.name,
@@ -202,76 +203,80 @@ for (k1 in 1:length(model.names) ){ #3:()
                  n.iter = MCMC.params$n.samples,
                  DIC = T, parallel=T)
       
-      ys.stats.JM <- data.frame(low = as.vector(t(jm$q2.5$y[,,1])),
-                                median = as.vector(t(jm$q50$y[,,1])),
-                                high = as.vector(t(jm$q97.5$y[,,1])))
-      ys.stats.JM$time <- data.jags.JM$data.1$Frac.Year
-      ys.stats.JM$obsY <- data.jags.JM$data.1$Nests
-      ys.stats.JM$month <- data.jags.JM$data.1$Month
-      ys.stats.JM$year <- data.jags.JM$data.1$Year
-      ys.stats.JM$Season <- data.jags.JM$data.1$Season
-      ys.stats.JM$location <- "Jamursba-Medi"
+        ys.stats.JM <- data.frame(low = as.vector(t(jm$q2.5$y[,,1])),
+                                  median = as.vector(t(jm$q50$y[,,1])),
+                                  high = as.vector(t(jm$q97.5$y[,,1])))
+        ys.stats.JM$time <- data.jags.JM$data.1$Frac.Year
+        ys.stats.JM$obsY <- data.jags.JM$data.1$Nests
+        ys.stats.JM$month <- data.jags.JM$data.1$Month
+        ys.stats.JM$year <- data.jags.JM$data.1$Year
+        ys.stats.JM$Season <- data.jags.JM$data.1$Season
+        ys.stats.JM$location <- "Jamursba-Medi"
+        
+        ys.stats.W <- data.frame(low = as.vector(t(jm$q2.5$y[,,2])),
+                                 median = as.vector(t(jm$q50$y[,,2])),
+                                 high = as.vector(t(jm$q97.5$y[,,2])))
+        ys.stats.W$time <- data.jags.W$data.1$Frac.Year
+        ys.stats.W$obsY <- data.jags.W$data.1$Nests
+        ys.stats.W$month <- data.jags.W$data.1$Month
+        ys.stats.W$year <- data.jags.W$data.1$Year
+        ys.stats.W$Season <- data.jags.W$data.1$Season
+        ys.stats.W$location <- "Wermon"
+        
+        ys.stats <- rbind(ys.stats.JM, ys.stats.W)
+        
+        # extract Xs - the state model
+        
+        Xs.stats.JM <- data.frame(low = as.vector(t(jm$q2.5$X[,,1])),
+                                  median = as.vector(t(jm$q50$X[,,1])),
+                                  high = as.vector(t(jm$q97.5$X[,,1])))
+        Xs.stats.JM$time <- data.jags.JM$data.1$Frac.Year
+        Xs.stats.JM$obsY <- data.jags.JM$data.1$Nests
+        Xs.stats.JM$month <- data.jags.JM$data.1$Month
+        Xs.stats.JM$year <- data.jags.JM$data.1$Year
+        Xs.stats.JM$Season <- data.jags.JM$data.1$Season
+        Xs.stats.JM$location <- "Jamursba-Medi"
+        
+        Xs.stats.W <- data.frame(low = as.vector(t(jm$q2.5$X[,,2])),
+                                 median = as.vector(t(jm$q50$X[,,2])),
+                                 high = as.vector(t(jm$q97.5$X[,,2])))
+        Xs.stats.W$location <- "Wermon"
+        
+        Xs.stats.W$time <- data.jags.W$data.1$Frac.Year
+        Xs.stats.W$obsY <- data.jags.W$data.1$Nests
+        Xs.stats.W$month <- data.jags.W$data.1$Month
+        Xs.stats.W$year <- data.jags.W$data.1$Year
+        Xs.stats.W$Season <- data.jags.W$data.1$Season
+        
+        Xs.stats <- rbind(Xs.stats.JM, Xs.stats.W)
+        
+        Ns.stats.JM <- data.frame(time = year.begin:year.end,
+                                  low = as.vector(t(jm$q2.5$N[1,])),
+                                  median = as.vector(t(jm$q50$N[1,])),
+                                  high = as.vector(t(jm$q97.5$N[1,])))
+        Ns.stats.JM$location <- "Jamursba-Medi"
+        
+        Ns.stats.W <- data.frame(time = year.begin:year.end,
+                                 low = as.vector(t(jm$q2.5$N[2,])),
+                                 median = as.vector(t(jm$q50$N[2,])),
+                                 high = as.vector(t(jm$q97.5$N[2,])))
+        Ns.stats.W$location <- "Wermon"
+        
+        Ns.stats <- rbind(Ns.stats.JM, Ns.stats.W)
+        
+        results.all <- list(jm = jm,
+                            Xs.stats = Xs.stats,
+                            ys.stats = ys.stats,
+                            Ns.stats = Ns.stats)
+        
+        saveRDS(results.all,
+                file = paste0("RData/", filename.root, '.rds'))
+      } 
       
-      ys.stats.W <- data.frame(low = as.vector(t(jm$q2.5$y[,,2])),
-                               median = as.vector(t(jm$q50$y[,,2])),
-                               high = as.vector(t(jm$q97.5$y[,,2])))
-      ys.stats.W$time <- data.jags.W$data.1$Frac.Year
-      ys.stats.W$obsY <- data.jags.W$data.1$Nests
-      ys.stats.W$month <- data.jags.W$data.1$Month
-      ys.stats.W$year <- data.jags.W$data.1$Year
-      ys.stats.W$Season <- data.jags.W$data.1$Season
-      ys.stats.W$location <- "Wermon"
       
-      ys.stats <- rbind(ys.stats.JM, ys.stats.W)
-      
-      # extract Xs - the state model
-      
-      Xs.stats.JM <- data.frame(low = as.vector(t(jm$q2.5$X[,,1])),
-                                median = as.vector(t(jm$q50$X[,,1])),
-                                high = as.vector(t(jm$q97.5$X[,,1])))
-      Xs.stats.JM$time <- data.jags.JM$data.1$Frac.Year
-      Xs.stats.JM$obsY <- data.jags.JM$data.1$Nests
-      Xs.stats.JM$month <- data.jags.JM$data.1$Month
-      Xs.stats.JM$year <- data.jags.JM$data.1$Year
-      Xs.stats.JM$Season <- data.jags.JM$data.1$Season
-      Xs.stats.JM$location <- "Jamursba-Medi"
-      
-      Xs.stats.W <- data.frame(low = as.vector(t(jm$q2.5$X[,,2])),
-                               median = as.vector(t(jm$q50$X[,,2])),
-                               high = as.vector(t(jm$q97.5$X[,,2])))
-      Xs.stats.W$location <- "Wermon"
-      
-      Xs.stats.W$time <- data.jags.W$data.1$Frac.Year
-      Xs.stats.W$obsY <- data.jags.W$data.1$Nests
-      Xs.stats.W$month <- data.jags.W$data.1$Month
-      Xs.stats.W$year <- data.jags.W$data.1$Year
-      Xs.stats.W$Season <- data.jags.W$data.1$Season
-      
-      Xs.stats <- rbind(Xs.stats.JM, Xs.stats.W)
-      
-      Ns.stats.JM <- data.frame(time = year.begin:year.end,
-                                low = as.vector(t(jm$q2.5$N[1,])),
-                                median = as.vector(t(jm$q50$N[1,])),
-                                high = as.vector(t(jm$q97.5$N[1,])))
-      Ns.stats.JM$location <- "Jamursba-Medi"
-      
-      Ns.stats.W <- data.frame(time = year.begin:year.end,
-                               low = as.vector(t(jm$q2.5$N[2,])),
-                               median = as.vector(t(jm$q50$N[2,])),
-                               high = as.vector(t(jm$q97.5$N[2,])))
-      Ns.stats.W$location <- "Wermon"
-      
-      Ns.stats <- rbind(Ns.stats.JM, Ns.stats.W)
-      
-      results.all <- list(jm = jm,
-                          Xs.stats = Xs.stats,
-                          ys.stats = ys.stats,
-                          Ns.stats = Ns.stats)
-      
-      saveRDS(results.all,
-              file = paste0("RData/", filename.root, '.rds'))
-    }
-    
+    } else {
+      print(paste0("Model file", model.name, " does not exist" ))
+    }    
     
   }
   
