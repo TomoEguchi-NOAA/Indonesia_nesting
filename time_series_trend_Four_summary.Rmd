@@ -3,7 +3,7 @@ title: "Summarizing output from imputation-trend analysis results - Step 1"
 output: html_notebook
 ---
 
-This document and code summarizes the results of data imputation-trend analysis for Indonesia leatherback nesting data at two beaches; Jamursba Medi and Wermon. Models were ran using time_series_trend_Four_run_all_models.Rmd, where Four indicates Fourier series (discrete), which was used to model the cyclical nature of nesting. Observation models are either normal or Student's t.  Outputs are saved as .Rds files in RData folder.
+This document and code summarizes the results of data imputation-trend analysis for Indonesia leatherback nesting data at two beaches; Jamursba Medi and Wermon. Models were ran using time_series_trend_Four_run_all_models.Rmd, where Four indicates Fourier series (discrete), which was used to model the cyclical nature of nesting. Observation models are either normal or Student's t.  Outputs are saved as .Rds files in RData folder. Results of this analysis can be used in time_series_trend_Four_summary_Step2.Rmd. 
 
 ```{r}
 rm(list=ls())
@@ -17,6 +17,7 @@ library(jagsUI)
 library(coda)
 library(tidyverse)
 library(loo)
+library(rstanarm)
 ```
 
 
@@ -51,7 +52,7 @@ obs.models <- c("norm", "t")
 Go through all results and summarize.
 
 ```{r}
-pareto.plots <- loo.out <- list()
+pareto.plots <- loo.out <- pareto.df <- list()
 k <- k1 <- c <- 1
 for (k in 1:length(obs.models)){
   
@@ -100,23 +101,31 @@ for (k in 1:length(obs.models)){
     
     pareto.k <- loo.out[[c]]$diagnostics$pareto_k
     data.y <- na.omit(c(y.JM, y.W))
+    locs <- c(rep(1, times = sum(!is.na(y.JM))), 
+              rep(2, times = sum(!is.na(y.W))))
     # 
-    pareto.df <- data.frame(y = data.y,
-                            khat = pareto.k,
-                            datapoint = seq(from = 1, to = length(data.y)),
-                            k0.7 = cut(pareto.k,
-                                       breaks = c(0, 0.7, 1.5),
-                                       labels = c("<=0.7", ">0.7")))
-    pareto.plots[[c]] <- ggplot(data = pareto.df) +
-      geom_path(aes(x = datapoint, y = y), alpha = 0.5) +
-      geom_point(aes(x = datapoint, y = y,
-                     size = khat,
-                     color = k0.7)) +
-      scale_size_continuous(limits = c(0.0, 1.3),
-                            range = c(1, 4))+
-      scale_color_manual(values = c("<=0.7" = "black",
-                                    ">0.7" = "red")) + 
-      labs(title = unlist(strsplit(jm$modfile, "models/"))[2])
+    pareto.df[[c]] <- data.frame(y = data.y,
+                                 loc = locs,
+                                 khat = pareto.k,
+                                 datapoint = c(seq(from = 1, to = length(na.omit(y.JM))),
+                                               seq(from = 1, to = length(na.omit(y.W)))),
+                                 datapoint.all = seq(from = 1, to = length(data.y)),
+                                 k0.7 = cut(pareto.k,
+                                            breaks = c(0, 0.7, 1.5),
+                                            labels = c("<=0.7", ">0.7")),
+                                 model = paste0("norm_", obs.models[k],
+                                               "_", model.names[k1]))
+    
+    # pareto.plots[[c]] <- ggplot(data = pareto.df[[c]]) +
+    #   geom_path(aes(x = datapoint, y = y), alpha = 0.5) +
+    #   geom_point(aes(x = datapoint, y = y,
+    #                  size = khat,
+    #                  color = k0.7)) +
+    #   scale_size_continuous(limits = c(0.0, 1.3),
+    #                         range = c(1, 4))+
+    #   scale_color_manual(values = c("<=0.7" = "black",
+    #                                 ">0.7" = "red")) + 
+    #   labs(title = unlist(strsplit(jm$modfile, "models/"))[2])
     
     c <- c + 1
     #   ####
@@ -125,7 +134,8 @@ for (k in 1:length(obs.models)){
 }
 
 out.obj <- list(loo.out = loo.out, 
-                pareto.plots = pareto.plots)
+                pareto.df = pareto.df)
+#                pareto.plots = pareto.plots)
 
 saveRDS(out.obj, file = paste0("RData/time_series_trend_Four_summary_", 
                                Sys.Date(),  ".rds"))
