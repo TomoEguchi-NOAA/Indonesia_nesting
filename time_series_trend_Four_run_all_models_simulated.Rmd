@@ -1,0 +1,300 @@
+---
+title: "Combining data imputation and trend analysis using discrete Fourier series and simuated data"
+output: html_notebook
+---
+
+This document is used to fit all time series models for data imputations and trend analysis on simulated data. This is done to examine pareto-k statistics and LOOIC values.
+
+```{r}
+rm(list=ls())
+
+# tic <- Sys.time()
+# Sys <- Sys.info()
+source('Dc_Indonesia_nesting_fcns.R')
+#library(rjags)
+
+library(jagsUI)
+library(coda)
+library(tidyverse)
+library(loo)
+```
+
+Initialize some constants 
+```{r}
+save.data <- T
+save.fig <- F
+run.date <- Sys.Date()
+
+period.1 <- 12
+period.2 <- 6
+maxN <- 10000
+
+#model.number <- 5
+model.names <- c("singleUQ", 
+                 "singleU_independentQs",
+                 "independentUs_singleQ", 
+                 "independentUQs",
+                 "FourQ_independentUQs", 
+                 "monthQ_independentUQs",
+                 "monthQ_independentUs_singleQ",
+                 "constCV_Q_independentUQs")
+
+# t_loc has location (or series) specific df parameter 
+obs.models <- c("norm", "t") # 
+
+```
+
+
+Set up the MCMC parameters
+
+```{r}
+MCMC.n.chains <- 5
+MCMC.n.samples <- 500000
+MCMC.n.burnin <- 350000
+MCMC.n.thin <- 50
+
+MCMC.params <- list(n.chains = MCMC.n.chains,
+                    n.samples = MCMC.n.samples,
+                    n.burnin = MCMC.n.burnin,
+                    n.thin = MCMC.n.thin)
+```
+
+
+Bring in the data
+
+```{r}
+out.list <- readRDS("RData/sim_constCV_independentUQ_data_parameters.rds")
+
+data.1 <- out.list$data %>% select(year, month, y.1.norm) %>% 
+  mutate(Frac.Year = year + (month-0.5)/12,
+         nests = y.1.norm) %>%
+  select(-y.1.norm)
+
+data.2 <- out.list$data %>% select(year, month, y.2.norm) %>% 
+  mutate(Frac.Year = year + (month-0.5)/12,
+         nests = y.2.norm) %>%
+  select(-y.2.norm)
+
+# add some missing data:
+n.NA <- 20
+data.1$nests[sample(1:length(data.1$nests), n.NA, replace = FALSE)] <- NA
+data.2$nests[sample(1:length(data.2$nests), n.NA, replace = FALSE)] <- NA
+
+y.1 <- matrix(data.1$nests, ncol = 12, byrow = TRUE)
+y.2 <- matrix(data.2$nests, ncol = 12, byrow = TRUE)
+
+m <- matrix(out.list$data$month, 
+            ncol = 12, byrow = TRUE)
+
+year.begin <- min(out.list$data$year)
+year.end <- max(out.list$data$year)
+```
+
+
+Combine datasets for analysis
+
+```{r}
+y <- array(data= NA, 
+           dim = c(nrow(y.1),
+                   ncol(y.1), 2))
+y[,,1] <- y.1
+y[,,2] <- y.2
+
+jags.data <- list(y = y,
+                  m = m,
+                  C0 = c(15, 15),
+                  n.months = 12,
+                  C_cos = c(sum(apply(matrix(1:12, nrow=1), 
+                                      MARGIN = 1, 
+                                      FUN = function(x) cos(2 * pi * x/period.1))), 
+                            sum(apply(matrix(1:12, nrow=1), 
+                                      MARGIN = 1, 
+                                      FUN = function(x) cos(2 * pi * x/period.2)))),
+                  C_sin = c(sum(apply(matrix(1:12, nrow=1), 
+                                      MARGIN = 1, 
+                                      FUN = function(x) sin(2 * pi * x/period.1))),
+                            sum(apply(matrix(1:12, nrow=1), 
+                                      MARGIN = 1, 
+                                      FUN = function(x) sin(2 * pi * x/period.2)))),
+                  pi = pi,
+                  period = c(period.1, period.2),
+                  N0_mean = c(log(sum(exp(y[1,,1]), na.rm = T)),
+                              log(sum(exp(y[1,,2]), na.rm = T))),
+                  N0_sd = c(10, 10))
+
+n.timeseries <- dim(y)[3]
+
+jags.data$n.timeseries <- n.timeseries
+jags.data$n.years <- dim(y)[1]
+
+# jags.data$q_alpha <- 2
+# jags.data$q_beta <- 0.5
+# jags.data$r_alpha <- 2
+# jags.data$r_beta <- 0.5
+
+```
+
+run jags on each model
+```{r}
+
+k1 <- k2 <- 1
+for (k1 in 1:length(model.names) ){ #3:()
+  model.number <- k1
+  model.name <- model.names[k1]
+
+  # Model-specific parameters
+  
+  if (length(grep("independentU", model.name)) == 1){
+    # multiple U
+    whichPop <- 1:n.timeseries         # multiple time series -> unique population processes
+    n.states <- max(whichPop)
+    
+    # matrix with rows as n.timeseries and cols as n.states (pops)
+    Z <- matrix(0,n.timeseries+1,n.states+1)   
+    # add a row of NAs to keep jagsUI from converting single time series matrix into vector
+    Z[n.timeseries+1, ] <- NA                  
+    # add a col of NAs to keep jagsUI from converting single state matrix into vector
+    Z[ , n.states+1] <- NA                     
+    for(i in 1:length(whichPop)) Z[i,whichPop[i]] <- 1
+    
+  } else if (length(grep("singleU", model.name)) == 1){
+    ### single U
+    n.states <- 1
+    whichPop <- rep(1, n.timeseries)
+    # matrix with rows as n.timeseries and cols as n.states (pops)
+    Z <- matrix(0, n.timeseries+1, n.states+1) 
+    # add a row of NAs to keep jagsUI from converting single time series matrix into vector
+    Z[n.timeseries+1, ] <- NA                  
+    # add a col of NAs to keep jagsUI from converting single state matrix into vector
+    Z[ , n.states+1] <- NA                     
+    for(i in 1:n.timeseries) Z[i, whichPop[i]] <- 1
+    
+  }
+  
+  jags.data$Z <- Z
+  jags.data$n.states <- n.states
+
+  for (k2 in 1:length(obs.models)){
+    
+    obs.model <- obs.models[k2]
+    filename.root <- paste0("sim_SSAR1_norm_", obs.models[k2], "_trend_Four_", 
+                            model.names[model.number], "_",
+                            "1", period.1, "_2", period.2, "_",
+                            year.begin, "_", year.end, "_", run.date)
+    
+    # define parameters to monitor - add "df" for t distribution
+    jags.params <- c('N', 'U', "p", "p.beta.cos", "p.beta.sin",
+                     "sigma.N", 'sigma.Q', "sigma.R", 
+                     "mu", "y", "X", "deviance", "loglik")
+    
+    if (obs.model == "t"){
+      jags.params <- c(jags.params, "df")
+    }
+    
+    if (length(grep("FourQ", model.names[model.number])) != 0){
+      jags.params <- c(jags.params, "C0_Q")
+    }
+   
+    if (length(grep("constCV", model.names[model.number])) != 0)
+      jags.params <- c(jags.params, "cv.Q")
+    
+    model.name <- paste0("models/model_norm_", obs.model, "_trend_Four_", 
+                     model.names[model.number], ".txt")
+    
+    if (file.exists(model.name)){
+      
+      if (!file.exists(paste0("RData/", filename.root, '.rds'))){
+        jm <- jags(jags.data,
+                 inits = NULL,
+                 parameters.to.save= jags.params,
+                 model.file = model.name,
+                 n.chains = MCMC.params$n.chains,
+                 n.burnin = MCMC.params$n.burnin,
+                 n.thin = MCMC.params$n.thin,
+                 n.iter = MCMC.params$n.samples,
+                 DIC = T, parallel=T)
+      
+        ys.stats.1 <- data.frame(low = as.vector(t(jm$q2.5$y[,,1])),
+                                  median = as.vector(t(jm$q50$y[,,1])),
+                                  high = as.vector(t(jm$q97.5$y[,,1])))
+        ys.stats.1$time <- data.1$Frac.Year
+        ys.stats.1$obsY <- data.1$nests
+        ys.stats.1$month <- data.1$month
+        ys.stats.1$year <- data.1$year
+        #ys.stats.1$Season <- data.1$Season
+        ys.stats.1$location <- "1"
+        
+        ys.stats.2 <- data.frame(low = as.vector(t(jm$q2.5$y[,,2])),
+                                 median = as.vector(t(jm$q50$y[,,2])),
+                                 high = as.vector(t(jm$q97.5$y[,,2])))
+        ys.stats.2$time <- data.2$Frac.Year
+        ys.stats.2$obsY <- data.2$nests
+        ys.stats.2$month <- data.2$month
+        ys.stats.2$year <- data.2$year
+        #ys.stats.2$Season <- data.2$Season
+        ys.stats.2$location <- "2"
+        
+        ys.stats <- rbind(ys.stats.1, ys.stats.2)
+        
+        # extract Xs - the state model
+        
+        Xs.stats.1 <- data.frame(low = as.vector(t(jm$q2.5$X[,,1])),
+                                  median = as.vector(t(jm$q50$X[,,1])),
+                                  high = as.vector(t(jm$q97.5$X[,,1])))
+        Xs.stats.1$time <- data.1$Frac.Year
+        Xs.stats.1$obsY <- data.1$nests
+        Xs.stats.1$month <- data.1$month
+        Xs.stats.1$year <- data.1$year
+        #Xs.stats.1$Season <- data.jags.JM$data.1$Season
+        Xs.stats.1$location <- "1"
+        
+        Xs.stats.2 <- data.frame(low = as.vector(t(jm$q2.5$X[,,2])),
+                                 median = as.vector(t(jm$q50$X[,,2])),
+                                 high = as.vector(t(jm$q97.5$X[,,2])))
+        Xs.stats.2$location <- "2"
+        
+        Xs.stats.2$time <- data.2$Frac.Year
+        Xs.stats.2$obsY <- data.2$bests
+        Xs.stats.2$month <- data.2$month
+        Xs.stats.2$year <- data.2$year
+        #Xs.stats.2$Season <- data.jags.W$data.1$Season
+        
+        Xs.stats <- rbind(Xs.stats.1, Xs.stats.2)
+        
+        Ns.stats.1 <- data.frame(time = year.begin:year.end,
+                                  low = as.vector(t(jm$q2.5$N[1,])),
+                                  median = as.vector(t(jm$q50$N[1,])),
+                                  high = as.vector(t(jm$q97.5$N[1,])))
+        Ns.stats.1$location <- "1"
+        
+        Ns.stats.2 <- data.frame(time = year.begin:year.end,
+                                 low = as.vector(t(jm$q2.5$N[2,])),
+                                 median = as.vector(t(jm$q50$N[2,])),
+                                 high = as.vector(t(jm$q97.5$N[2,])))
+        Ns.stats.2$location <- "2"
+        
+        Ns.stats <- rbind(Ns.stats.1, Ns.stats.2)
+        
+        results.all <- list(jm = jm,
+                            Xs.stats = Xs.stats,
+                            ys.stats = ys.stats,
+                            Ns.stats = Ns.stats)
+        
+        saveRDS(results.all,
+                file = paste0("RData/", filename.root, '.rds'))
+      } 
+      
+      
+    } else {
+      print(paste0("Model file", model.name, " does not exist" ))
+    }    
+    
+  }
+  
+}
+
+
+```
+
+
+
