@@ -55,7 +55,7 @@ true.data <- readRDS("RData/sim_constCV_independentUQ_data_parameters.rds")
 Go through all results and summarize.
 
 ```{r}
-U.stats <- sigma.N.stats <- sigma.R.stats <- sigma.Q.stats <- Ns.stats <- cv.Q.stats <- list() 
+U.stats <- sigma.N.stats <- sigma.R.stats <- sigma.Q.stats <- Ns.stats <- cv.Q.stats <- df.stats <- list() 
 
 k <- k1 <- c <- 1
 for (k in 1:length(obs.models)){
@@ -73,6 +73,7 @@ for (k in 1:length(obs.models)){
     sigma.Q.stats[[c]] <- jm$summary[grep("sigma.Q", row.names(jm$summary)),]
     Ns.stats[[c]] <- jm$summary[grep("N\\[", row.names(jm$summary)),]
     cv.Q.stats[[c]] <- jm$summary[grep("cv.Q", row.names(jm$summary)),] 
+    df.stats[[c]] <- jm$summary[grep("df", row.names(jm$summary)),] 
     c <- c + 1
     
   }
@@ -83,7 +84,8 @@ summary.stats <- list(U.stats = U.stats,
                       sigma.R.stats = sigma.R.stats,
                       sigma.Q.stats = sigma.Q.stats,
                       Ns.stats = Ns.stats,
-                      cv.Q.stats = cv.Q.stats)
+                      cv.Q.stats = cv.Q.stats,
+                      df.stats = df.stats)
 
 saveRDS(summary.stats, 
         file = paste0("RData/time_series_trend_Four_sim_summary_", 
