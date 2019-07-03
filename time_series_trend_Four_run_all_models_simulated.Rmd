@@ -63,7 +63,7 @@ MCMC.params <- list(n.chains = MCMC.n.chains,
 Bring in the data
 
 ```{r}
-out.list <- readRDS("RData/sim_constCV_independentUQ_data_parameters.rds")
+out.list <- readRDS("RData/sim_constCV_independentUQ_data_parameters_2019-07-03.rds")
 
 data.1 <- out.list$data %>% select(year, month, y.1.norm) %>% 
   mutate(Frac.Year = year + (month-0.5)/12,
@@ -254,7 +254,7 @@ for (k1 in 1:length(model.names) ){ #3:()
         Xs.stats.2$location <- "2"
         
         Xs.stats.2$time <- data.2$Frac.Year
-        Xs.stats.2$obsY <- data.2$bests
+        Xs.stats.2$obsY <- data.2$nests
         Xs.stats.2$month <- data.2$month
         Xs.stats.2$year <- data.2$year
         #Xs.stats.2$Season <- data.jags.W$data.1$Season

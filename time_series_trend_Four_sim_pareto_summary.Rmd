@@ -1,0 +1,145 @@
+---
+title: "Summarizing output from imputation-trend simulation analysis results - Step 1"
+output: html_notebook
+---
+
+This document and code summarizes the results of data imputation-trend analysis for Indonesia leatherback nesting data at two beaches; Jamursba Medi and Wermon. Models were ran using time_series_trend_Four_run_all_models.Rmd, where Four indicates Fourier series (discrete), which was used to model the cyclical nature of nesting. Observation models are either normal or Student's t.  Outputs are saved as .Rds files in RData folder. Results of this analysis can be used in time_series_trend_Four_summary_Step2.Rmd. 
+
+```{r}
+rm(list=ls())
+
+# tic <- Sys.time()
+# Sys <- Sys.info()
+source('Dc_Indonesia_nesting_fcns.R')
+#library(rjags)
+
+library(jagsUI)
+library(coda)
+library(tidyverse)
+library(loo)
+library(rstanarm)
+```
+
+
+Some constants defined here.
+```{r}
+save.data <- T
+save.fig <- F
+run.date <- "2019-07-03"
+
+year.begin <- 1
+year.end <- 17
+
+period.1 <- 12
+period.2 <- 6
+maxN <- 10000
+
+model.names <- c("singleUQ", 
+                 "singleU_independentQs",
+                 "independentUs_singleQ", 
+                 "independentUQs",
+                 "FourQ_independentUQs", 
+                 "monthQ_independentUQs",
+                 "monthQ_independentUs_singleQ",
+                 "constCV_Q_independentUQs")
+
+
+# t_loc has location (or series) specific df parameter 
+obs.models <- c("norm", "t") 
+
+```
+
+Go through all results and summarize.
+
+```{r}
+pareto.plots <- loo.out <- pareto.df <- list()
+k <- k1 <- c <- 1
+for (k in 1:length(obs.models)){
+  
+  for (k1 in 1:length(model.names)){
+    tmp1 <- readRDS(paste0("RData/sim_SSAR1_norm_", obs.models[k], "_trend_Four_", 
+                            model.names[k1], "_",
+                            "1", period.1, "_2", period.2, "_",
+                            year.begin, "_", year.end, "_", run.date, ".rds"))
+    
+    jm <- tmp1$jm
+    jags.data <- tmp1$jm$model$cluster1$data()
+    MCMC.params <- data.frame(n.chains = jm$mcmc.info$n.chains,
+                              n.samples = jm$mcmc.info$n.iter,
+                              n.burnin = jm$mcmc.info$n.burnin,
+                              n.thin = jm$mcmc.info$n.thin)
+
+    n.per.chain <- (MCMC.params$n.samples - MCMC.params$n.burnin)/MCMC.params$n.thin
+    #   
+    # reduce the dimension by MCMC iterations by year x month
+    loglik.1 <- t(apply(jm$sims.list$loglik[,,,1], 
+                         MARGIN = 1, 
+                         FUN = function(x) as.vector(t(x))))
+    
+    loglik.2 <- t(apply(jm$sims.list$loglik[,,,2],
+                        MARGIN = 1,
+                        FUN = function(x) as.vector(t(x))))
+
+    # convert the data (y) into a vector also:
+    y.1 <- as.vector(t(jags.data$y[,,1]))
+    y.2 <- as.vector(t(jags.data$y[,,2]))
+    #   
+    loglik.obs.1 <- loglik.1[, !is.na(y.1)]
+    loglik.obs.2 <- loglik.2[, !is.na(y.2)]
+    
+    loglik.obs <- cbind(loglik.obs.1, loglik.obs.2)
+    #   # cores = 1 is needed in the relative_eff function if the number of cores was set to more than
+    #   # 1 with options(mc.cores = parallel::detectCores()) or something similear. See also here:
+    #   # https://discourse.mc-stan.org/t/error-in-loo-relative-eff-related-to-options-mc-cores/5610/2
+    #   
+    Reff <- relative_eff(exp(loglik.obs),
+                         chain_id = rep(1:MCMC.params$n.chains,
+                                        each = n.per.chain),
+                         cores = 1)
+    #   
+    loo.out[[c]] <- rstanarm::loo(loglik.obs, r_eff = Reff, cores = 1, k_threshold = 0.7)
+    
+    pareto.k <- loo.out[[c]]$diagnostics$pareto_k
+    data.y <- na.omit(c(y.1, y.2))
+    locs <- c(rep(1, times = sum(!is.na(y.1))), 
+              rep(2, times = sum(!is.na(y.2))))
+    # 
+    pareto.df[[c]] <- data.frame(y = data.y,
+                                 loc = locs,
+                                 khat = pareto.k,
+                                 datapoint = c(seq(from = 1, to = length(na.omit(y.1))),
+                                               seq(from = 1, to = length(na.omit(y.2)))),
+                                 datapoint.all = seq(from = 1, to = length(data.y)),
+                                 k0.7 = cut(pareto.k,
+                                            breaks = c(0, 0.7, 1.5),
+                                            labels = c("<=0.7", ">0.7")),
+                                 model = paste0("norm_", obs.models[k],
+                                               "_", model.names[k1]))
+    
+    # pareto.plots[[c]] <- ggplot(data = pareto.df[[c]]) +
+    #   geom_path(aes(x = datapoint, y = y), alpha = 0.5) +
+    #   geom_point(aes(x = datapoint, y = y,
+    #                  size = khat,
+    #                  color = k0.7)) +
+    #   scale_size_continuous(limits = c(0.0, 1.3),
+    #                         range = c(1, 4))+
+    #   scale_color_manual(values = c("<=0.7" = "black",
+    #                                 ">0.7" = "red")) + 
+    #   labs(title = unlist(strsplit(jm$modfile, "models/"))[2])
+    
+    c <- c + 1
+    #   ####
+    # loo.out <- pareto.k.diag.3D(jm, MCMC.params, jags.data)
+  }
+}
+
+out.obj <- list(loo.out = loo.out, 
+                pareto.df = pareto.df)
+#                pareto.plots = pareto.plots)
+
+saveRDS(out.obj, file = paste0("RData/time_series_trend_Four_sim_pareto_summary_", 
+                               Sys.Date(),  ".rds"))
+
+```
+
+

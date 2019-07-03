@@ -74,7 +74,7 @@ sigma.R <- c(0.96, 0.61)
 df <- c(49.9, 39.8)
 cv.Q <- c(0.08, 0.02)
 
-p.const <- p <- sigma.Q <- array(dim = c(n.states, n.months))
+p.const <- p <- array(dim = c(n.states, n.months))
 for (j in 1:n.states){
   for (k in 1:n.months){
     p.const[j, k] <-  2 * pi * k / periods[j]
@@ -116,8 +116,11 @@ for (tt in 1:TT){
       # observation - normal
       y.norm[tt, k, j] <- rnorm(n = 1, mean = X[tt, k, j], sd = sigma.R[j])
       
-      # observation - t - note rt() does not have sigma.R component... 
-      y.t[tt, k, j] <- rt(n = 1, ncp = X[tt, k, j], df = df[j])
+      # observation - t - note rt() does not have sigma.R component...
+      # I think tau/k is equivalent of df in the other formulation. 
+      y.t[tt, k, j] <- rt(n = 1, 
+                          ncp = X[tt, k, j], 
+                          df = 1/((sigma.Q[tt,k,j])^2 * df[j]))
       
       loglik.norm[tt, k, j] <- dnorm(y.norm[tt, k, j], 
                                      mean = X[tt, k, j], 
@@ -154,9 +157,11 @@ params.list <- list(N0.mean = N0.mean,
                     p.beta.sin = p.beta.sin,
                     sigma.R = sigma.R,
                     df = df,
-                    cv.Q = cv.Q)
+                    cv.Q = cv.Q,
+                    N = N)
 
 out.list <- list(data = ys.df,
                  parameters = params.list)
 
-saveRDS(out.list, "RData/sim_constCV_independentUQ_data_parameters.rds")
+saveRDS(out.list, paste0("RData/sim_constCV_independentUQ_data_parameters_",
+                         Sys.Date(), ".rds"))

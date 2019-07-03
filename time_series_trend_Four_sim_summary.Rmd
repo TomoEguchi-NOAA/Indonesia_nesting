@@ -1,0 +1,94 @@
+---
+title: "Summarizing output from imputation-trend simulation analysis results - Step 1"
+output: html_notebook
+---
+
+This document and code summarizes the results of data imputation-trend analysis for Indonesia leatherback nesting data at two beaches; Jamursba Medi and Wermon. Models were ran using time_series_trend_Four_run_all_models.Rmd, where Four indicates Fourier series (discrete), which was used to model the cyclical nature of nesting. Observation models are either normal or Student's t.  Outputs are saved as .Rds files in RData folder. Results of this analysis can be used in time_series_trend_Four_summary_Step2.Rmd. 
+
+```{r}
+rm(list=ls())
+
+# tic <- Sys.time()
+# Sys <- Sys.info()
+source('Dc_Indonesia_nesting_fcns.R')
+#library(rjags)
+
+library(jagsUI)
+library(coda)
+library(tidyverse)
+library(loo)
+library(rstanarm)
+```
+
+
+Some constants defined here.
+```{r}
+save.data <- T
+save.fig <- F
+run.date <- "2019-07-03"
+
+year.begin <- 1
+year.end <- 17
+
+period.1 <- 12
+period.2 <- 6
+maxN <- 10000
+
+model.names <- c("singleUQ", 
+                 "singleU_independentQs",
+                 "independentUs_singleQ", 
+                 "independentUQs",
+                 "FourQ_independentUQs", 
+                 "monthQ_independentUQs",
+                 "monthQ_independentUs_singleQ",
+                 "constCV_Q_independentUQs")
+
+
+# t_loc has location (or series) specific df parameter 
+obs.models <- c("norm", "t") 
+
+# bring in the true parameters
+true.data <- readRDS("RData/sim_constCV_independentUQ_data_parameters.rds")
+
+```
+
+Go through all results and summarize.
+
+```{r}
+U.stats <- sigma.N.stats <- sigma.R.stats <- sigma.Q.stats <- Ns.stats <- cv.Q.stats <- list() 
+
+k <- k1 <- c <- 1
+for (k in 1:length(obs.models)){
+  
+  for (k1 in 1:length(model.names)){
+    tmp1 <- readRDS(paste0("RData/sim_SSAR1_norm_", obs.models[k], "_trend_Four_", 
+                            model.names[k1], "_",
+                            "1", period.1, "_2", period.2, "_",
+                            year.begin, "_", year.end, "_", run.date, ".rds"))
+    
+    jm <- tmp1$jm
+    U.stats[[c]] <- jm$summary[grep("U", row.names(jm$summary)),]
+    sigma.N.stats[[c]] <- jm$summary[grep("sigma.N", row.names(jm$summary)),]
+    sigma.R.stats[[c]] <- jm$summary[grep("sigma.R", row.names(jm$summary)),]
+    sigma.Q.stats[[c]] <- jm$summary[grep("sigma.Q", row.names(jm$summary)),]
+    Ns.stats[[c]] <- jm$summary[grep("N\\[", row.names(jm$summary)),]
+    cv.Q.stats[[c]] <- jm$summary[grep("cv.Q", row.names(jm$summary)),] 
+    c <- c + 1
+    
+  }
+}
+
+summary.stats <- list(U.stats = U.stats,
+                      sigma.N.stats = sigma.N.stats,
+                      sigma.R.stats = sigma.R.stats,
+                      sigma.Q.stats = sigma.Q.stats,
+                      Ns.stats = Ns.stats,
+                      cv.Q.stats = cv.Q.stats)
+
+saveRDS(summary.stats, 
+        file = paste0("RData/time_series_trend_Four_sim_summary_", 
+                      Sys.Date(),  ".rds"))
+
+```
+
+
