@@ -96,11 +96,7 @@ model{
         p.beta.sin[j] ~ dnorm(0, 1)
 
         # Q is the variance of the process (X)
-        #sigma.Q[j] ~ dgamma(2, 0.5)
         C0_Q[j] ~ dgamma(2, 0.5)
-
-        #df[j] ~ dgamma(5, 0.1)T(2,)  # this eliminates df <= 2 without affecting the entire distribution. 
-        # t distribution has no moments when df <= 1 and the variance is infinite when 1 < df <= 2
 
         # this is a bit arbitrary - may need to tweak a little... 
         cv.Q[j] ~ dunif(0, 1.5)

@@ -90,7 +90,6 @@ model{
         sigma.Q[k] ~ dgamma(2, 0.5)
         tau.Q[k] <- 1/(sigma.Q[k] * sigma.Q[k])                       
     }
-    #sigma.Q ~ dgamma(2, 0.5)
     
     sigma.N ~ dgamma(2, 0.5)
     tau.N <- 1/(sigma.N * sigma.N)

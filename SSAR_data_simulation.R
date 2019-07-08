@@ -87,7 +87,7 @@ for (j in 1:n.states){
   }
 }
 
-predX <- X <- predY <- y.norm <- y.t <- loglik.norm <- loglik.t <- sigma.Q <- array(dim = c(TT, n.months, n.states))
+predX <- X <- predY <- y.norm <- y.t <- sigma.Q <- array(dim = c(TT, n.months, n.states))
 tt <- 2
 j <- k <- 1
 for (tt in 1:TT){
@@ -122,14 +122,14 @@ for (tt in 1:TT){
                           ncp = X[tt, k, j], 
                           df = 1/((sigma.Q[tt,k,j])^2 * df[j]))
       
-      loglik.norm[tt, k, j] <- dnorm(y.norm[tt, k, j], 
-                                     mean = X[tt, k, j], 
-                                     sd = sigma.R[j], log = TRUE)
-      
-      loglik.t[tt, k, j] <- logdensity.t(y.t[tt, k, j], 
-                                         mu = X[tt, k, j], 
-                                         tau = 1/((sigma.R[j])^2), 
-                                         k = df[j])
+      # loglik.norm[tt, k, j] <- dnorm(y.norm[tt, k, j], 
+      #                                mean = X[tt, k, j], 
+      #                                sd = sigma.R[j], log = TRUE)
+      # 
+      # loglik.t[tt, k, j] <- logdensity.t(y.t[tt, k, j], 
+      #                                    mu = X[tt, k, j], 
+      #                                    tau = 1/((sigma.R[j])^2), 
+      #                                    k = df[j])
     }
   }  
 }

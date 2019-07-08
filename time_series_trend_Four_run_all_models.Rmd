@@ -182,7 +182,7 @@ for (k1 in 1:length(model.names) ){ #3:()
     }
     
     if (length(grep("FourQ", model.names[model.number])) != 0){
-      jags.params <- c(jags.params, "C0_Q")
+      jags.params <- c(jags.params, c("C0_Q", "q.beta.cos", "q.beta.sin"))
     }
    
     if (length(grep("constCV", model.names[model.number])) != 0)
