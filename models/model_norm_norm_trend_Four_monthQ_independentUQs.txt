@@ -83,8 +83,6 @@ model{
         for (k in 1:n.months){
             p.const[j, k] <-  2 * pi * k / period[j]
             p[j, k] <- (C0[j] + p.beta.cos[j] * cos(p.const[j,k]) + p.beta.sin[j] * sin(p.const[j,k]))/(n.months * C0[j] + p.beta.cos[j] * C_cos[j] + p.beta.sin[j] * C_sin[j])
-
-            #sigma.Q[j,k] <- (C0_Q[j] + p.beta.cos[j] * cos(p.const[j,k]) + p.beta.sin[j] * sin(p.const[j,k]))/(n.months * C0_Q[j] + p.beta.cos[j] * C_cos[j] + p.beta.sin[j] * C_sin[j])
             
             tau.Q[j,k] <- 1/(sigma.Q[j,k] * sigma.Q[j,k])    
             # Q is the variance of the process (X)
@@ -96,7 +94,6 @@ model{
         p.beta.cos[j] ~ dnorm(0, 1)
         p.beta.sin[j] ~ dnorm(0, 1)
 
-        #C0_Q[j] ~ dgamma(2, 0.5)
     }
                           
     sigma.N ~ dgamma(2, 0.5)

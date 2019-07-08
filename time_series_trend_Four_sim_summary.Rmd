@@ -48,7 +48,7 @@ model.names <- c("singleUQ",
 obs.models <- c("norm", "t") 
 
 # bring in the true parameters
-true.data <- readRDS("RData/sim_constCV_independentUQ_data_parameters.rds")
+true.data <- readRDS("RData/sim_constCV_independentUQ_data_parameters_2019-07-03.rds")
 
 ```
 

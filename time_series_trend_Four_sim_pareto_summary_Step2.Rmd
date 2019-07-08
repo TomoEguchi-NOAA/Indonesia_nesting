@@ -15,12 +15,12 @@ library(coda)
 library(tidyverse)
 library(loo)
 
-run.date <- "2019-07-03"
+run.date <- "2019-07-08"  # The date that step 1 was run. 
 ```
 
 First load the results:
 ```{r}
-all.results <- readRDS(file = paste0("RData/time_series_trend_Four_sim_summary_", 
+all.results <- readRDS(file = paste0("RData/time_series_trend_Four_sim_pareto_summary_", 
                                      run.date,  ".rds"))
 
 ```
@@ -38,7 +38,7 @@ p.1 <- ggplot(data = filter(pareto.df, loc == 1)) +
                  color = k0.7)) +
   # scale_size_continuous(limits = c(0.0, 1.3),
   #                       range = c(1, 4))+
-  scale_color_manual(values = c("<=0.7" = "black",
+  scale_color_manual(values = c("<=0.7" = "darkblue",
                                 ">0.7" = "red")) + 
   labs(x = "", y = "", color = "Pareto k") + 
   facet_wrap(model ~., ) + 
@@ -60,7 +60,7 @@ p.2 <- ggplot(data = filter(pareto.df, loc == 2)) +
                  color = k0.7)) +
   # scale_size_continuous(limits = c(0.0, 1.3),
   #                       range = c(1, 4))+
-  scale_color_manual(values = c("<=0.7" = "black",
+  scale_color_manual(values = c("<=0.7" = "darkblue",
                                 ">0.7" = "red")) + 
   labs(x = "", y = "", color = "Pareto k") + 
   facet_wrap(model ~., ) + 
@@ -76,6 +76,11 @@ Compare LOOIC as well?
 
 ```{r}
 LOOIC <- unlist(lapply(all.results$loo.out, function(x) x$estimates["looic", "Estimate"]))
+
+model.names <- unlist(lapply(all.results$pareto.df, function(x) x$model[1]))
+
+LOOIC.df <- data.frame(model = model.names,
+                       LOOIC = LOOIC) %>% arrange(LOOIC)
 
 ```
 
