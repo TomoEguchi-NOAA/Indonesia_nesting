@@ -1,3 +1,4 @@
+
 ---
 title: "Combining data imputation and trend analysis using discrete Fourier series"
 output: html_notebook
@@ -54,8 +55,8 @@ Set up the MCMC parameters
 
 ```{r}
 MCMC.n.chains <- 5
-MCMC.n.samples <- 500000
-MCMC.n.burnin <- 350000
+MCMC.n.samples <- 350000
+MCMC.n.burnin <- 150000
 MCMC.n.thin <- 50
 
 MCMC.params <- list(n.chains = MCMC.n.chains,
