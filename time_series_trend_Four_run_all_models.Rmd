@@ -138,30 +138,30 @@ for (k1 in 1:length(model.names) ){ #3:()
     # multiple U
     whichPop <- 1:n.timeseries         # multiple time series -> unique population processes
     n.states <- max(whichPop)
-    
-    # matrix with rows as n.timeseries and cols as n.states (pops)
-    Z <- matrix(0,n.timeseries+1,n.states+1)   
-    # add a row of NAs to keep jagsUI from converting single time series matrix into vector
-    Z[n.timeseries+1, ] <- NA                  
-    # add a col of NAs to keep jagsUI from converting single state matrix into vector
-    Z[ , n.states+1] <- NA                     
-    for(i in 1:length(whichPop)) Z[i,whichPop[i]] <- 1
+    # 
+    # # matrix with rows as n.timeseries and cols as n.states (pops)
+    # Z <- matrix(0,n.timeseries+1,n.states+1)   
+    # # add a row of NAs to keep jagsUI from converting single time series matrix into vector
+    # Z[n.timeseries+1, ] <- NA                  
+    # # add a col of NAs to keep jagsUI from converting single state matrix into vector
+    # Z[ , n.states+1] <- NA                     
+    # for(i in 1:length(whichPop)) Z[i,whichPop[i]] <- 1
     
   } else if (length(grep("singleU", model.name)) == 1){
     ### single U
     n.states <- 1
-    whichPop <- rep(1, n.timeseries)
-    # matrix with rows as n.timeseries and cols as n.states (pops)
-    Z <- matrix(0, n.timeseries+1, n.states+1) 
-    # add a row of NAs to keep jagsUI from converting single time series matrix into vector
-    Z[n.timeseries+1, ] <- NA                  
-    # add a col of NAs to keep jagsUI from converting single state matrix into vector
-    Z[ , n.states+1] <- NA                     
-    for(i in 1:n.timeseries) Z[i, whichPop[i]] <- 1
+    # whichPop <- rep(1, n.timeseries)
+    # # matrix with rows as n.timeseries and cols as n.states (pops)
+    # Z <- matrix(0, n.timeseries+1, n.states+1) 
+    # # add a row of NAs to keep jagsUI from converting single time series matrix into vector
+    # Z[n.timeseries+1, ] <- NA                  
+    # # add a col of NAs to keep jagsUI from converting single state matrix into vector
+    # Z[ , n.states+1] <- NA                     
+    # for(i in 1:n.timeseries) Z[i, whichPop[i]] <- 1
     
   }
   
-  jags.data$Z <- Z
+#  jags.data$Z <- Z
   jags.data$n.states <- n.states
 
   for (k2 in 1:length(obs.models)){
