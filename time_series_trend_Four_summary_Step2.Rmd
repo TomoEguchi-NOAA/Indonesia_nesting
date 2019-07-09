@@ -15,7 +15,7 @@ library(coda)
 library(tidyverse)
 library(loo)
 
-run.date <- "2019-07-01"
+run.date <- "2019-07-08"
 ```
 
 First load the results:
@@ -76,7 +76,10 @@ Compare LOOIC as well?
 
 ```{r}
 LOOIC <- unlist(lapply(all.results$loo.out, function(x) x$estimates["looic", "Estimate"]))
+model.names <- unlist(lapply(all.results$pareto.df, function(x) x$model[1]))
 
+LOOIC.df <- data.frame(model = model.names,
+                       LOOIC = LOOIC) %>% arrange(LOOIC)
 ```
 
 Again, the best LOOIC value goes to one of the worst models based on Pareto k statistic... 
