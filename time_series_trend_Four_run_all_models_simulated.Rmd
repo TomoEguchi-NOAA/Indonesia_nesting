@@ -29,17 +29,16 @@ period.1 <- 12
 period.2 <- 6
 maxN <- 10000
 
-#model.number <- 5
-model.names <- c("FourQ_independentUQs")
+#model.names <- c("FourQ_independentUQs")
 
-# model.names <- c("singleUQ", 
-#                  "singleU_independentQs",
-#                  "independentUs_singleQ", 
-#                  "independentUQs",
-#                  "FourQ_independentUQs", 
-#                  "monthQ_independentUQs",
-#                  "monthQ_independentUs_singleQ",
-#                  "constCV_Q_independentUQs")
+model.names <- c("singleUQ",
+                 "singleU_independentQs",
+                 "independentUs_singleQ",
+                 "independentUQs",
+                 "FourQ_independentUQs",
+                 "monthQ_independentUQs",
+                 "monthQ_independentUs_singleQ",
+                 "constCV_Q_independentUQs")
 
 # t_loc has location (or series) specific df parameter 
 obs.models <- c("norm", "t") # 
@@ -65,7 +64,7 @@ MCMC.params <- list(n.chains = MCMC.n.chains,
 Bring in the data
 
 ```{r}
-out.list <- readRDS("RData/sim_constCV_independentUQ_data_parameters_2019-07-03.rds")
+out.list <- readRDS("RData/sim_constCV_independentUQ_data_parameters_2019-07-08.rds")
 
 data.1 <- out.list$data %>% select(year, month, y.1.norm) %>% 
   mutate(Frac.Year = year + (month-0.5)/12,

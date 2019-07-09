@@ -43,9 +43,12 @@ model{
            X[1,t,j] ~ dnorm(predX[1,t,j], tau.Q[1,t,j])
 
            # observation
-           predY[1,t,j] <- inprod(Z[j, 1:n.states], X[1,t,])
+           # By having the total abundance N in the model, I don't think this inproduct
+           # calculation is needed. The dependency between the timeseries, or lack thereof,
+           # is modeled by the new parameters U (one for single and two for independent)
+           #predY[1,t,j] <- inprod(Z[j, 1:n.states], X[1,t,])
            
-           y[1,t,j] ~ dt(predY[1,t,j], tau.R[j], df[j])
+           y[1,t,j] ~ dt(X[1,t,j], tau.R[j], df[j])
 
            loglik[1,t,j] <- logdensity.t(y[1,t,j], X[1,t,j], tau.R[j], df[j])
         }       
@@ -71,9 +74,12 @@ model{
                 X[s,t,j] ~ dnorm(predX[s,t,j], tau.Q[s,t,j])
 
                 # observation
-                predY[s,t,j] <- inprod(Z[j, 1:n.states], X[s,t,])
+                # By having the total abundance N in the model, I don't think this inproduct
+                # calculation is needed. The dependency between the timeseries, or lack thereof,
+                # is modeled by the new parameters U (one for single and two for independent)
+                #predY[s,t,j] <- inprod(Z[j, 1:n.states], X[s,t,])
                 
-                y[s,t,j] ~ dt(predY[s,t,j], tau.R[j], df[j])
+                y[s,t,j] ~ dt(X[s,t,j], tau.R[j], df[j])
                 
                 loglik[s,t,j] <- logdensity.t(y[s,t,j], X[s,t,j], tau.R[j], df[j])
             }       

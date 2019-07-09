@@ -24,7 +24,7 @@ n.months <- 12  # # months
 periods <- c(12, 6)  # periods of nesting cycles
 
 N0.mean <- c(8.1, 7.9)   # initial values for the abundance mean in log scale
-N0_sd <- c(1.4, 1.2)       # SD of the initial N in log scale
+N0_sd <- c(1.2, 1.2)       # SD of the initial N in log scale
 
 # multiple U
 # matrix with rows as n.timeseries and cols as n.states (pops)
@@ -36,8 +36,8 @@ Z <- matrix(0, n.states, n.states)
 # Z[ , n.states+1] <- NA                     
 for(i in 1:n.states) Z[i, i] <- 1
 
-U.mean <- c(-0.12, -0.10)    # annual growth rates for the two population
-U.sd <- c(0.15, 0.15)        # SD of the growth rates
+U.mean <- c(-0.01, -0.12)    # annual growth rates for the two population
+U.sd <- c(0.01, 0.2)        # SD of the growth rates
 
 sigma.N <- 0.6   # SD of N
 
@@ -81,7 +81,7 @@ for (j in 1:n.states){
     p[j, k] <- (C0[j] + p.beta.cos[j] * cos(p.const[j,k]) + p.beta.sin[j] * sin(p.const[j,k]))/(n.months * C0[j] + p.beta.cos[j] * C_cos[j] + p.beta.sin[j] * C_sin[j])
     
     # This is for sigma-Q to be Fourier function... 
-    #sigma.Q[j,k] <- (C0_Q[j] + p.beta.cos[j] * cos(p.const[j,k]) + p.beta.sin[j] * sin(p.const[j,k]))/(n.months * C0_Q[j] + p.beta.cos[j] * C_cos[j] + p.beta.sin[j] * C_sin[j])
+    #sigma.Q[j,k] <- (C0_Q[j] + q.beta.cos[j] * cos(p.const[j,k]) + q.beta.sin[j] * sin(p.const[j,k]))
     
     
   }
@@ -97,7 +97,7 @@ for (tt in 1:TT){
     if (tt == 1){
       predN[j, tt] <- N0[j] + rnorm(n = 1, mean = U.mean[j], sd = U.sd[j])
     } else {
-      predN[j, tt] <- rnorm(n = 1, mean = U.mean[j], sd = U.sd[j]) + N[j, tt-1]
+      predN[j, tt] <- N[j, tt-1] + rnorm(n = 1, mean = U.mean[j], sd = U.sd[j])
     }
     
     # Total N for the year
