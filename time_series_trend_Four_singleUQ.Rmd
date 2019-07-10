@@ -126,17 +126,17 @@ jags.data <- list(y = y,
 n.timeseries <- dim(y)[3]
 
 # Model-specific parameters
-whichPop <- 1:n.timeseries         # multiple time series -> unique population processes
-n.states <- max(whichPop)
-
-Z <- matrix(0,n.timeseries+1,n.states+1)   # matrix with rows as n.timeseries and cols as n.states (pops)
-Z[n.timeseries+1, ] <- NA                  # add a row of NAs to keep jagsUI from converting single time series matrix into vector
-Z[ , n.states+1] <- NA                     # add a col of NAs to keep jagsUI from converting single state matrix into vector
-for(i in 1:length(whichPop)) Z[i,whichPop[i]] <- 1
-
-jags.data$Z <- Z
+# whichPop <- 1:n.timeseries         # multiple time series -> unique population processes
+# n.states <- max(whichPop)
+# 
+# Z <- matrix(0,n.timeseries+1,n.states+1)   # matrix with rows as n.timeseries and cols as n.states (pops)
+# Z[n.timeseries+1, ] <- NA                  # add a row of NAs to keep jagsUI from converting single time series matrix into vector
+# Z[ , n.states+1] <- NA                     # add a col of NAs to keep jagsUI from converting single state matrix into vector
+# for(i in 1:length(whichPop)) Z[i,whichPop[i]] <- 1
+# 
+# jags.data$Z <- Z
 jags.data$n.timeseries <- n.timeseries
-jags.data$n.states <- n.states
+jags.data$n.states <- 1
 jags.data$n.years <- dim(y)[1]
 
 ```

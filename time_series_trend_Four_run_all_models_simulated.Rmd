@@ -50,8 +50,8 @@ Set up the MCMC parameters
 
 ```{r}
 MCMC.n.chains <- 5
-MCMC.n.samples <- 500000
-MCMC.n.burnin <- 350000
+MCMC.n.samples <- 400000
+MCMC.n.burnin <- 250000
 MCMC.n.thin <- 50
 
 MCMC.params <- list(n.chains = MCMC.n.chains,
@@ -118,10 +118,7 @@ jags.data <- list(y = y,
                                       MARGIN = 1, 
                                       FUN = function(x) sin(2 * pi * x/period.2)))),
                   pi = pi,
-                  period = c(period.1, period.2),
-                  N0_mean = c(log(sum(exp(y[1,,1]), na.rm = T)),
-                              log(sum(exp(y[1,,2]), na.rm = T))),
-                  N0_sd = c(10, 10))
+                  period = c(period.1, period.2))
 
 n.timeseries <- dim(y)[3]
 
@@ -136,7 +133,7 @@ jags.data$n.years <- dim(y)[1]
 ```
 
 run jags on each model
-```{r}
+```{r message=F, warning=F}
 
 k1 <- k2 <- 1
 for (k1 in 1:length(model.names) ){ #3:()
@@ -157,6 +154,9 @@ for (k1 in 1:length(model.names) ){ #3:()
     # # add a col of NAs to keep jagsUI from converting single state matrix into vector
     # Z[ , n.states+1] <- NA                     
     # for(i in 1:length(whichPop)) Z[i,whichPop[i]] <- 1
+    jags.data$N0_mean <- c(log(sum(exp(y[1,,1]), na.rm = T)),
+                              log(sum(exp(y[1,,2]), na.rm = T)))
+    jags.data$N0_sd <- c(10, 10)
     
   } else if (length(grep("singleU", model.name)) == 1){
     ### single U
@@ -169,7 +169,9 @@ for (k1 in 1:length(model.names) ){ #3:()
     # # add a col of NAs to keep jagsUI from converting single state matrix into vector
     # Z[ , n.states+1] <- NA                     
     # for(i in 1:n.timeseries) Z[i, whichPop[i]] <- 1
-    
+    jags.data$N0_mean <- c(log(sum(exp(y[1,,1]), na.rm = T) + 
+                              sum(exp(y[1,,2]), na.rm = T)))
+    jags.data$N0_sd <- 10
   }
   
   #jags.data$Z <- Z
