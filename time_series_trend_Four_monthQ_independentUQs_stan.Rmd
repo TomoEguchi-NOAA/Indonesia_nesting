@@ -45,7 +45,9 @@ obsd.color <- "red2"
 Set up the MCMC parameters
 
 ```{r}
-MCMC.n.chains <- 5
+n.cores <- parallel::detectCores()
+
+MCMC.n.chains <- ifelse(n.cores < 5, n.cores, 5)
 MCMC.n.samples <- 500000
 MCMC.n.burnin <- 350000
 MCMC.n.thin <- 50
@@ -121,16 +123,17 @@ data.list <- list(y = y,
                               log(sum(exp(y[1,,2]), na.rm = T))),
                   N0_sd = c(10, 10),
                   n.states = dim(y)[3],
-                  n.years = dim(y)[1])
+                  n.years = dim(y)[1],
+                  pi = pi)
 
 ```
 
 Define which parameters to monitor
 
 ```{r}
-jags.params <- c('N', 'U', "p", "p.beta.cos", "p.beta.sin",
-                 "sigma.N", 'sigma.Q', "sigma.R",
-                 "mu", "y", "X", "deviance", "loglik")
+jags.params <- c('N', 'U', "p", "p_beta_cos", "p_beta_sin",
+                 "sigma_N", 'sigma_Q', "sigma_R",
+                 "mu", "y", "X", "deviance", "log_lik")
 
 ```
 
@@ -138,13 +141,24 @@ jags.params <- c('N', 'U', "p", "p.beta.cos", "p.beta.sin",
 Run stan
 
 ```{r}
-mod_q_phi <- stan("models/model_norm_norm_trend_Four_monthQ_independentUQs.stan", 
-                 data = data_list, 
-                 chains = MCMC.n.chains, 
-                 warmup = MCMC.n.burnin,
-                 iter = MCMC.n.samples,
-                 cores = getOption("mc.cores", 5),
-                 control = list(adapt_delta = 0.99))
+# rstan and stan are having issues as of 2019-07-10. Will come back to this later. 
+
+mod_monthQ_independentUQs <- stan("models/model_norm_norm_trend_Four_monthQ_independentUQs.stan", 
+                                  data = data.list, 
+                                  chains = MCMC.n.chains, 
+                                  warmup = MCMC.n.burnin,
+                                  iter = MCMC.n.samples,
+                                  cores = getOption("mc.cores", MCMC.n.chains),
+                                  control = list(adapt_delta = 0.99))
+
+log_lik_monthQ_independentUQs <- extract_log_lik(mod_monthQ_independentUQs, 
+                                   merge_chains = FALSE)
+
+rel_n_eff_monthQ_independentUQs <- relative_eff(exp(log_lik_monthQ_independentUQs))
+loo__monthQ_independentUQs <- loo(log_lik_monthQ_independentUQs, 
+                                  r_eff = rel_n_eff_monthQ_independentUQs, 
+                                  cores = n.cores)
+
 ```
 
 
