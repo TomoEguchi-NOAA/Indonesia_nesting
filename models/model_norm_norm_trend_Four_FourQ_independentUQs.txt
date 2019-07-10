@@ -27,17 +27,12 @@
 
 model{
     # Initial states
-    for(i in 1:n.states) {
-        U[i] ~ dnorm(u_mean, 1/(u_sd^2))
+    for(j in 1:n.states) {
+        U[j] ~ dnorm(u_mean, 1/(u_sd^2))
             
-        N0[i] ~ dnorm(N0_mean[i], 1/(N0_sd[i]^2))    # prior on init state
-        predN[i,1] <- N0[i] + U[i]  
-        N[i,1] <- predN[i,1]
-
-    }
-   
-    # R is the variance of the observation process (Y)
-    for(j in 1:n.timeseries) {
+        N0[j] ~ dnorm(N0_mean[j], 1/(N0_sd[j]^2))    # prior on init state
+        predN[j,1] <- N0[j] + U[j]  
+        N[j,1] <- predN[j,1]
         
         for (t in 1:n.months){
            predX[1,t,j] <- log(p[j, m[1,t]]) + N[j,1]
@@ -58,12 +53,10 @@ model{
     ####  End of initial states ####
     
     for (s in 2:n.years){
-        for (i in 1:n.states){
-            N[i, s] ~ dnorm(pred.N[i, s], tau.N)
-            pred.N[i, s] <- U[i] + N[i, s-1]
-        }
-            
-        for (j in 1:n.timeseries){
+        for (j in 1:n.states){
+            N[j, s] ~ dnorm(pred.N[j, s], tau.N)
+            pred.N[j, s] <- U[j] + N[j, s-1]
+        
             for (t in 1:n.months){
                 predX[s,t,j] <- log(p[j, m[s,t]]) + N[j,s]
                 X[s,t,j] ~ dnorm(predX[s,t,j], tau.Q[j,t])
@@ -83,7 +76,7 @@ model{
 
     # n.months = 12 when entire year is modeled. 
     # n.months = 6 when one season is modeled (Wermon only)
-    for (j in 1:n.timeseries){
+    for (j in 1:n.states){
         for (k in 1:n.months){
             p.const[j, k] <-  2 * pi * k / period[j]
             p[j, k] <- (C0[j] + p.beta.cos[j] * cos(p.const[j,k]) + p.beta.sin[j] * sin(p.const[j,k]))/(n.months * C0[j] + p.beta.cos[j] * C_cos[j] + p.beta.sin[j] * C_sin[j])

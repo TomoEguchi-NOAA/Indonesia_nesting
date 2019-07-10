@@ -131,7 +131,7 @@ n.states <- max(whichPop)
 # for(i in 1:length(whichPop)) Z[i,whichPop[i]] <- 1
 # 
 # jags.data$Z <- Z
-jags.data$n.timeseries <- n.timeseries
+#jags.data$n.timeseries <- n.timeseries
 jags.data$n.states <- n.states
 jags.data$n.years <- dim(y)[1]
 

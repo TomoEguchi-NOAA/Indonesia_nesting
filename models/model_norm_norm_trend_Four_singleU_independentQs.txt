@@ -25,17 +25,12 @@
 
 model{
     # Initial states
-    for(i in 1:n.timeseries) {
+    for(j in 1:n.states) {
             
-        N0[i] ~ dnorm(N0_mean[i], 1/(N0_sd[i]^2))    # prior on init state
-        predN[i,1] <- N0[i] + U 
-        N[i,1] <- predN[i,1]
+        N0[j] ~ dnorm(N0_mean[j], 1/(N0_sd[j]^2))    # prior on init state
+        predN[j,1] <- N0[j] + U 
+        N[j,1] <- predN[j,1]
 
-    }
-   
-    # R is the variance of the observation process (Y)
-    for(j in 1:n.timeseries) {
-        
         for (t in 1:n.months){
            predX[1,t,j] <- log(p[j, m[1,t]]) + N[j,1]
            X[1,t,j] ~ dnorm(predX[1,t,j], tau.Q[j])
@@ -56,7 +51,7 @@ model{
     
     for (s in 2:n.years){
             
-        for (j in 1:n.timeseries){
+        for (j in 1:n.states){
             N[j, s] ~ dnorm(pred.N[j, s], tau.N)
             pred.N[j, s] <- U + N[j, s-1]
             for (t in 1:n.months){
