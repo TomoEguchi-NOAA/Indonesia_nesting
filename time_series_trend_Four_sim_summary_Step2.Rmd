@@ -23,7 +23,7 @@ First load the results:
 all.results <- readRDS(file = paste0("RData/time_series_trend_Four_sim_summary_", 
                                      run.date,  ".rds"))
 
-true.data <- readRDS("RData/sim_constCV_independentUQ_data_parameters_2019-07-03.rds")
+true.data <- readRDS("RData/sim_constCV_independentUQ_data_parameters_2019-07-08.rds")
 
 ```
 

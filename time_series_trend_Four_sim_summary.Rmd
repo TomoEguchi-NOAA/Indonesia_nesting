@@ -25,7 +25,7 @@ Some constants defined here.
 ```{r}
 save.data <- T
 save.fig <- F
-run.date <- "2019-07-03"
+run.date <- "2019-07-09"
 
 year.begin <- 1
 year.end <- 17
@@ -48,7 +48,7 @@ model.names <- c("singleUQ",
 obs.models <- c("norm", "t") 
 
 # bring in the true parameters
-true.data <- readRDS("RData/sim_constCV_independentUQ_data_parameters_2019-07-03.rds")
+true.data <- readRDS("RData/sim_constCV_independentUQ_data_parameters_2019-07-08.rds")
 
 ```
 
@@ -64,7 +64,7 @@ for (k in 1:length(obs.models)){
     tmp1 <- readRDS(paste0("RData/sim_SSAR1_norm_", obs.models[k], "_trend_Four_", 
                             model.names[k1], "_",
                             "1", period.1, "_2", period.2, "_",
-                            year.begin, "_", year.end, "_", run.date, ".rds"))
+                            year.begin, "_", year.end, "_no_missing_", run.date, ".rds"))
     
     jm <- tmp1$jm
     U.stats[[c]] <- jm$summary[grep("U", row.names(jm$summary)),]

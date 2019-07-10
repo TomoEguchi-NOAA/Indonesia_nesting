@@ -15,7 +15,7 @@ library(coda)
 library(tidyverse)
 library(loo)
 
-run.date <- "2019-07-08"  # The date that step 1 was run. 
+run.date <- "2019-07-09"  # The date that step 1 was run. 
 ```
 
 First load the results:
