@@ -30,7 +30,7 @@ model{
             
         N0[j] ~ dnorm(N0_mean[j], 1/(N0_sd[j]^2))    # prior on init state
         predN[j,1] <- N0[j] + U[j]  
-        N[j,1] <- predN[j,1]
+        N[j,1] ~ dnorm(predN[j,1], tau.N)
 
         for (t in 1:n.months){
            predX[1,t,j] <- log(p[j, m[1,t]]) + N[j,1]

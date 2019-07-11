@@ -23,7 +23,7 @@ Initialize some constants
 ```{r}
 save.data <- T
 save.fig <- F
-run.date <- Sys.Date()
+run.date <- "2019-07-10" #Sys.Date()
 
 period.1 <- 12
 period.2 <- 6
@@ -264,19 +264,29 @@ for (k1 in 1:length(model.names) ){ #3:()
         
         Xs.stats <- rbind(Xs.stats.1, Xs.stats.2)
         
-        Ns.stats.1 <- data.frame(time = year.begin:year.end,
-                                  low = as.vector(t(jm$q2.5$N[1,])),
-                                  median = as.vector(t(jm$q50$N[1,])),
-                                  high = as.vector(t(jm$q97.5$N[1,])))
-        Ns.stats.1$location <- "1"
-        
-        Ns.stats.2 <- data.frame(time = year.begin:year.end,
-                                 low = as.vector(t(jm$q2.5$N[2,])),
-                                 median = as.vector(t(jm$q50$N[2,])),
-                                 high = as.vector(t(jm$q97.5$N[2,])))
-        Ns.stats.2$location <- "2"
-        
-        Ns.stats <- rbind(Ns.stats.1, Ns.stats.2)
+        if (length(grep("singleU", model.name)) == 1){
+          Ns.stats <- data.frame(time = year.begin:year.end,
+                                 low = jm$q2.5$N,
+                                 median = jm$q50$N,
+                                 high = jm$q97.5$N)
+          Ns.stats$location <- "All"
+          
+        } else {
+          Ns.stats.1 <- data.frame(time = year.begin:year.end,
+                                   low = as.vector(t(jm$q2.5$N[1,])),
+                                   median = as.vector(t(jm$q50$N[1,])),
+                                   high = as.vector(t(jm$q97.5$N[1,])))
+          Ns.stats.1$location <- "1"
+          
+          Ns.stats.2 <- data.frame(time = year.begin:year.end,
+                                   low = as.vector(t(jm$q2.5$N[2,])),
+                                   median = as.vector(t(jm$q50$N[2,])),
+                                   high = as.vector(t(jm$q97.5$N[2,])))
+          Ns.stats.2$location <- "2"
+          
+          Ns.stats <- rbind(Ns.stats.1, Ns.stats.2)
+          
+        }
         
         results.all <- list(jm = jm,
                             Xs.stats = Xs.stats,

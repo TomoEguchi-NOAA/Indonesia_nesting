@@ -26,8 +26,8 @@ model{
         U[j] ~ dnorm(u_mean, 1/(u_sd^2))
             
         N0[j] ~ dnorm(N0_mean[j], 1/(N0_sd[j]^2))    # prior on init state
-        predN[i,1] <- N0[i] + U[i]  
-        N[i,1] <- predN[i,1]
+        predN[j,1] <- N0[j] + U[j]  
+        N[j,1] <- predN[j,1]
 
         for (t in 1:n.months){
            predX[1,t,j] <- log(p[j, m[1,t]]) + N[j,1]
