@@ -310,7 +310,8 @@ results.all <- list(jm = jm,
                     Ns.stats = Ns.stats)
 if (save.data)
   saveRDS(results.all,
-          file = paste0("RData/", filename.root, '.rds'))
+          file = paste0("RData/", "norm_norm_trend_Four_monthQ_independentUQs_stan_", 
+                        Sys.date(), '.rds'))
 ```
 
 
