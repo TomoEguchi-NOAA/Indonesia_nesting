@@ -14,9 +14,9 @@ save.fig <- T
 
 
 MCMC.n.chains <- 5
-MCMC.n.samples <- 150000
-MCMC.n.burnin <- 100000
-MCMC.n.thin <- 100
+MCMC.n.samples <- 50000
+MCMC.n.burnin <- 25000
+MCMC.n.thin <- 5
 
 MCMC.params <- list(n.chains = MCMC.n.chains,
                     n.samples = MCMC.n.samples,
@@ -39,8 +39,8 @@ data.1.JM$MONTH <- unlist(lapply(data.1.JM$month, FUN = mmm2month))
 data.1.JM %>% mutate(., f.month = as.factor(MONTH),
                      f.year = as.factor(YEAR))%>%
   #filter(YEAR > 1999) %>%
-  #filter(YEAR > 2000) %>%
-  filter(YEAR > 1998) %>%
+  filter(YEAR > 2000) %>%
+  #filter(YEAR > 1998) %>%
   mutate(Frac.Year = YEAR + (MONTH-0.5)/12) %>%
   reshape::sort_df(.,vars = "Frac.Year") -> data.2
 

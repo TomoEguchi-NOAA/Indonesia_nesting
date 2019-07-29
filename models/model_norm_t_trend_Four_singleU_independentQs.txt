@@ -25,13 +25,13 @@
 
 model{
     # Initial states
-    N0 ~ dnorm(N0_mean, 1/(N0_sd^2))    # prior on init state
-    N[1] ~ dnorm(N0 + U, tau.N) 
 
     for(j in 1:n.timeseries) {
+        N0[j] ~ dnorm(N0_mean[j], 1/(N0_sd[j]^2))    # prior on init state
+        N[j,1] ~ dnorm(N0[j] + U, tau.N) 
             
         for (t in 1:n.months){
-           predX[1,t,j] <- log(p[j, m[1,t]]) + N[1]
+           predX[1,t,j] <- log(p[j, t]) + N[j,1]
            X[1,t,j] ~ dnorm(predX[1,t,j], tau.Q[j])
 
            # observation
@@ -49,13 +49,13 @@ model{
     ####  End of initial states ####
     
     for (s in 2:n.years){
-        N[s] ~ dnorm(pred.N[s], tau.N)
-        pred.N[s] <- U + N[s-1]    
         
         for (j in 1:n.timeseries){
-           
+            #N[j,s] ~ dnorm(pred.N[j,s], tau.N)
+            #pred.N[j,s] <- U + N[j,s-1]    
+            N[j,s] <- U + N[j,s-1]
             for (t in 1:n.months){
-                predX[s,t,j] <- log(p[j, m[s,t]]) + N[s]
+                predX[s,t,j] <- log(p[j,t]) + N[s]
                 X[s,t,j] ~ dnorm(predX[s,t,j], tau.Q[j])
 
                 # observation - the following line is just a scalar multiplication, isn't it?

@@ -1,0 +1,117 @@
+# simple state space AR1 model for turtle nesting 
+# original code from Lab 7, Introduction to Bayesian Time-Series
+# analysis using Jags. Univ Washington: 
+# https://www.scribd.com/document/373707632/Lab-7-Fitting-models-with-JAGS-pdf
+
+# Also can be found here:
+# https://nwfsc-timeseries.github.io/atsa-labs/sec-jags-uss.html
+#
+# For this model, the natural log of raw counts were used as data (y). The state model
+# is normal and the observation model is norm. The probability of nesting in a month
+# is modeled with a discrete Fourier series - p[month] sums to 1.0 over each 12 month period.
+# To normalize the monthly probability (i.e., they have to sum to 1.0 over 12 months), each
+# monthly value has to be divided by the sum.  Constant parts (sum(cos(2*pi*m/P)) and sum(sin(2*pi*m/P),
+# where sum is over all m (months) and P is period (6 months for Wermon and 12 months for JM)),
+# need to be supplied as data as C_cos and C_sin. Also, C0 is a constant to make all Fourier 
+# series values to be > 0.  I think C0 >= 2 should do... (not really... 10 did the trick)
+#
+# I used quite informative prior for X[1] ~ dnorm(5, 0.1) although variance of 10 should 
+# be wide enough in the log scale.  I used similar priors for the slopes: dnorm(0, 0.1).
+# For all standard deviations (process and observation), I used uniform between 0 and 20, 
+# which should be wide enough in the log scale. 
+#
+# I didn't see any reason to make the priors flatter because that would make convergence difficult
+# and did not gain anything in return. 
+
+model{
+    # Initial states
+    for(j in 1:n.timeseries) {            
+       predX0[j] ~ dnorm(5, 0.1)
+       predX[1,j] <- c[j, m[1]] + predX0[j]
+       X[1,j] ~ dnorm(predX[1,j], tau.X[j])
+
+       # observation
+       y[1,j] ~  dnorm(X[1,j], tau.y[j])
+                
+       loglik[1,j] <- logdensity.norm(y[1,j], X[1,j], tau.y[j])
+
+       for (t in 2:n.steps){
+           predX[t,j] <-  c[j,m[t]] + X[t-1, j]
+           X[t,j] ~ dnorm(predX[t,j], tau.X[j])
+
+           # observation
+           y[t,j] ~  dnorm(X[t,j], tau.y[j])
+                
+           loglik[t,j] <- logdensity.norm(y[t,j], X[t,j], tau.y[j])
+        }
+       
+        for (y in 1:n.years){
+           
+           #tmp <- X[(y*12 - 11):(y*12),j] 
+	   for (mm in 1:12){
+	      tmp2[y, mm, j] <- exp(X[(y*12 - mm + 1),j])
+           }
+           N[y, j] <- log(sum(tmp2[y,,j])) 
+        }
+
+    }
+    
+    ###########################  U estimate starts here
+    U ~ dnorm(u_mean, 1/(u_sd^2))
+   
+    for(i in 1:n.states) {
+        tauQ[i] ~ dgamma(q_alpha, q_beta)
+        Q[i] <- 1/tauQ[i] # Note: Q is variance
+        XX0.mean[i] <- N[1,i]
+      
+        XX0[i] ~ dnorm(XX0.mean[i], 0.1)  # prior on init state
+        predXX[i,1] <- XX0[i] + U  
+        XX[i,1] <- predX[i,1]
+    }
+   
+    for(j in 1:n.timeseries) {
+        tauR[j] ~ dgamma(r_alpha, r_beta)
+        sigma.R[j] <- sqrt(1/tauR[j])  # Note: sigma.R is SD
+      
+        predN[j,1] <- inprod(Z[j,1:n.states], XX[,1])
+        Ntrue[j,1] ~  dnorm(predN[j,1], tauR[j])
+        #loglik[j,1] <- logdensity.norm(Y[j,1], predY[j,1], tauR[j])
+    }
+   
+    for(tt in 2:n.years) {      
+        for(i in 1:n.states) {
+           predXX[i,tt] <- XX[i,tt-1] + U
+           XX[i,tt] ~ dnorm(predXX[i,tt], tauQ[i])
+        }
+      
+        for(j in 1:n.timeseries) {
+            predN[j,tt] <- inprod(Z[j,1:n.states], XX[,tt])
+            Ntrue[j,tt] ~  dnorm(predN[j,tt], tauR[j])
+            #loglik[j,tt] <- logdensity.norm(Y[j,tt], predY[j,tt], tauR[j])
+        }
+    }
+    
+    ###########################
+
+    # n.months = 12 when entire year is modeled. 
+    # n.months = 6 when one season is modeled (Wermon only)
+    for (j in 1:n.timeseries){
+        for (k in 1:n.months){
+            c.const[j, k] <-  2 * pi * k / period[j]
+            c[j, k] <- beta.cos[j] * cos(c.const[j,k]) + beta.sin[j] * sin(c.const[j,k])
+        }
+
+        sigma.y[j] ~ dgamma(2, 0.5)
+        tau.y[j] <- 1/(sigma.y[j] * sigma.y[j])
+        beta.cos[j] ~ dnorm(0, 1)
+        beta.sin[j] ~ dnorm(0, 1)
+
+        # sigma.X is the SD of the process (X)
+        sigma.X[j] ~ dgamma(2, 0.5)
+        tau.X[j] <- 1/(sigma.X[j] * sigma.X[j])    
+    }
+
+    for (i in 1:n.states){
+       sigma.Q[i] <- sqrt(1/tauQ[i])
+    }
+}

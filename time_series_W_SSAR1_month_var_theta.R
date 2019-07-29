@@ -90,11 +90,11 @@ summary.zm <- summary(zm)
 
 # Computing WAIC. Code is from
 # https://sourceforge.net/p/mcmc-jags/discussion/610036/thread/8211df61/
-WAIC.s <- jags.samples(jm, c("deviance", "WAIC"),
-                       type="mean",
-                       n.iter=10000, thin=10)
-WAIC.s <- lapply(WAIC.s, unclass)
-sapply(WAIC.s, sum)
+#WAIC.s <- jags.samples(jm, c("deviance", "WAIC"),
+#                       type="mean",
+#                       n.iter=10000, thin=10)
+# WAIC.s <- lapply(WAIC.s, unclass)
+# sapply(WAIC.s, sum)
 
 # According to the website, "the monitor called WAIC does
 # indeed return the WAIC penalty, so it is currently misnamed."  So that means
@@ -115,7 +115,7 @@ sapply(WAIC.s, sum)
 ys.stats <- data.frame(summary.zm$quantiles[grep(pattern = 'y[/[]',
                                                  row.names(summary.zm$quantiles)),
                                             c('2.5%', '50%', '97.5%')])
-colnames(ys.stats) <- c('low_y', 'mode_y', 'high_y')
+colnames(ys.stats) <- c('low_y', 'median_y', 'high_y')
 ys.stats$time <- data.2$Frac.Year
 ys.stats$obsY <- data.2$count
 ys.stats$month <- data.2$MONTH
@@ -125,7 +125,7 @@ ys.stats$year <- data.2$YEAR
 Xs.stats <- data.frame(summary.zm$quantiles[grep(pattern = 'X[/[]',
                                                  row.names(summary.zm$quantiles)),
                                             c('2.5%', '50%', '97.5%')])
-colnames(Xs.stats) <- c('low_X', 'mode_X', 'high_X')
+colnames(Xs.stats) <- c('low_X', 'median_X', 'high_X')
 Xs.stats$time <- data.2$Frac.Year
 Xs.stats$obsY <- data.2$count
 Xs.stats$month <- data.2$MONTH

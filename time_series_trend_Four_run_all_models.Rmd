@@ -25,7 +25,7 @@ library(loo)
 
 ```{r}
 save.data <- T
-save.fig <- F
+save.fig <- T
 run.date <- Sys.Date() #"2019-06-25" #
 
 year.begin <- 2003
@@ -36,14 +36,17 @@ period.W <- 6
 maxN <- 10000
 
 #model.number <- 5
+# model.names <- c("singleUQ", 
+#                  "singleU_independentQs",
+#                  "independentUs_singleQ", 
+#                  "independentUQs",
+#                  "FourQ_independentUQs", 
+#                  "monthQ_independentUQs",
+#                  "monthQ_independentUs_singleQ",
+#                  "constCV_Q_independentUQs")
+
 model.names <- c("singleUQ", 
-                 "singleU_independentQs",
-                 "independentUs_singleQ", 
-                 "independentUQs",
-                 "FourQ_independentUQs", 
-                 "monthQ_independentUQs",
-                 "monthQ_independentUs_singleQ",
-                 "constCV_Q_independentUQs")
+                 "singleU_independentQs")
 
 # t_loc has location (or series) specific df parameter 
 obs.models <- c("norm", "t") # 
@@ -55,9 +58,9 @@ Set up the MCMC parameters
 
 ```{r}
 MCMC.n.chains <- 5
-MCMC.n.samples <- 350000
-MCMC.n.burnin <- 150000
-MCMC.n.thin <- 50
+MCMC.n.samples <- 50000
+MCMC.n.burnin <- 10000
+MCMC.n.thin <- 5
 
 MCMC.params <- list(n.chains = MCMC.n.chains,
                     n.samples = MCMC.n.samples,
@@ -91,7 +94,7 @@ y[,,1] <- data.jags.JM$jags.data2$y
 y[,,2] <- data.jags.W$jags.data2$y
 
 jags.data <- list(y = y,
-                  m = data.jags.JM$jags.data2$m,
+                  #m = data.jags.JM$jags.data2$m,
                   C0 = c(15, 15),
                   n.months = 12,
                   C_cos = c(sum(apply(matrix(1:12, nrow=1), 

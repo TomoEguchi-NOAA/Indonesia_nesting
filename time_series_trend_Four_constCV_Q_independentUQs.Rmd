@@ -1,5 +1,5 @@
 ---
-title: "Combining data imputation and trend analysis using discrete Fourier series for single U (growth rate) and independent Q (process variance)"
+title: "Combining data imputation and trend analysis using discrete Fourier series with constant CV for Qs and independent Us and Qs for the two locations."
 output: html_notebook
 ---
 
@@ -20,8 +20,8 @@ library(coda)
 library(tidyverse)
 library(loo)
 
-save.data <- T
-save.fig <- T
+save.data <- F
+save.fig <- F
 run.date <- Sys.Date()
 
 ```
@@ -52,8 +52,8 @@ Set up the MCMC parameters
 ```{r}
 MCMC.n.chains <- 5
 MCMC.n.samples <- 50000
-MCMC.n.burnin <- 35000
-MCMC.n.thin <- 2
+MCMC.n.burnin <- 10000
+MCMC.n.thin <- 4
 
 MCMC.params <- list(n.chains = MCMC.n.chains,
                     n.samples = MCMC.n.samples,
@@ -66,11 +66,15 @@ Bring in the data
 
 ```{r}
 # JM
-year.begin <- 2001
-year.end <- 2017
+year.begin <- 2003
+year.end <- 2018
+# loc <- "JM"
+# loc.name <- "Jamursba-Medi"
 period.JM <- 12
-period.W <- 6
 maxN <- 10000
+
+# W
+period.W <- 6
 
 data.jags.JM <- data.extract(location = "JM", 
                              year.begin = year.begin, 
@@ -80,22 +84,21 @@ data.jags.W <- data.extract(location = "W",
                              year.begin = year.begin, 
                              year.end = year.end)
 
-filename.root <- paste0("SSAR1_norm_norm_trend_Four_singleU_independentQs_",
+filename.root <- paste0("SSAR1_norm_norm_trend_Four_constCV_Q_independentUQs_",
+                        "JM", period.JM, "_W", period.W, "_",
                         year.begin, "_", year.end, "_", run.date)
 ```
 
 Combine datasets for analysis
 
 ```{r}
-y <- array(data= NA, 
-           dim = c(nrow(data.jags.JM$jags.data2$y),
-                   ncol(data.jags.JM$jags.data2$y), 2))
-
+y <- array(data= NA, dim = c(nrow(data.jags.JM$jags.data2$y),
+                             ncol(data.jags.JM$jags.data2$y), 2))
 y[,,1] <- data.jags.JM$jags.data2$y
 y[,,2] <- data.jags.W$jags.data2$y
 
 jags.data <- list(y = y,
-                  #m = data.jags.JM$jags.data2$m,
+                  #m = data.jags.JM$jags.data2$m[1,],
                   C0 = c(15, 15),
                   n.months = 12,
                   C_cos = c(sum(apply(matrix(1:12, nrow=1), 
@@ -112,12 +115,24 @@ jags.data <- list(y = y,
                                       FUN = function(x) sin(2 * pi * x/period.W)))),
                   pi = pi,
                   period = c(period.JM, period.W),
-                  N0_mean = c(6, 6),
+                  N0_mean = c(log(sum(exp(y[1,,1]), na.rm = T)),
+                              log(sum(exp(y[1,,2]), na.rm = T))),
                   N0_sd = c(10, 10))
 
 n.timeseries <- dim(y)[3]
 
-jags.data$n.timeseries <- n.timeseries
+# Model-specific parameters
+whichPop <- 1:n.timeseries         # multiple time series -> unique population processes
+n.states <- max(whichPop)
+
+# Z <- matrix(0,n.timeseries+1,n.states+1)   # matrix with rows as n.timeseries and cols as n.states (pops)
+# Z[n.timeseries+1, ] <- NA                  # add a row of NAs to keep jagsUI from converting single time series matrix into vector
+# Z[ , n.states+1] <- NA                     # add a col of NAs to keep jagsUI from converting single state matrix into vector
+# for(i in 1:length(whichPop)) Z[i,whichPop[i]] <- 1
+# 
+# jags.data$Z <- Z
+#jags.data$n.timeseries <- n.timeseries
+jags.data$n.states <- n.states
 jags.data$n.years <- dim(y)[1]
 
 # jags.data$q_alpha <- 2
@@ -131,7 +146,7 @@ Define which parameters to monitor
 
 ```{r}
 jags.params <- c('N', 'U', "p", "p.beta.cos", "p.beta.sin",
-                 "sigma.N", 'sigma.Q', "sigma.R",
+                 "sigma.N", 'cv.Q', "sigma.R",
                  "mu", "y", "X", "deviance", "loglik")
 
 ```
@@ -148,14 +163,14 @@ Run jags
 jm <- jags(jags.data,
            inits = NULL,
            parameters.to.save= jags.params,
-           model.file = 'models/model_norm_norm_trend_Four_singleU_independentQs.txt',
+           model.file = 'models/model_norm_norm_trend_Four_constCV_Q_independentUQs.txt',
            n.chains = MCMC.params$n.chains,
            n.burnin = MCMC.params$n.burnin,
            n.thin = MCMC.params$n.thin,
            n.iter = MCMC.params$n.samples,
            DIC = T, parallel=T)
 
-saveRDS(jm, file = paste0("RData/", filename.root, ".rds"))
+#saveRDS(jm, file = paste0("RData/", filename.root, ".rds"))
 ```
 
 
@@ -226,7 +241,6 @@ Ns.stats <- rbind(Ns.stats.JM, Ns.stats.W)
 ```
 
 
-
 Save results if needed
 
 ```{r}
@@ -239,6 +253,8 @@ if (save.data)
           file = paste0("RData/", filename.root, '.rds'))
 ```
 
+
+Look at some posteriors
 Look at some posteriors
 ```{r}
 # pop growth rates - over the entire time
@@ -246,13 +262,13 @@ Look at some posteriors
 # 
 # bayesplot::mcmc_trace(jm$samples, "p.beta.cos[1]")
 
-bayesplot::mcmc_dens(jm$samples, c("U"))
+bayesplot::mcmc_dens(jm$samples, c("U[1]", "U[2]"))
 
 ```
 
 CV for two beaches:
 ```{r}
-bayesplot::mcmc_dens(jm$samples, c("sigma.Q[1]", "sigma.Q[2]"))
+bayesplot::mcmc_dens(jm$samples, c("cv.Q[1]", "cv.Q[2]"))
 
 
 ```

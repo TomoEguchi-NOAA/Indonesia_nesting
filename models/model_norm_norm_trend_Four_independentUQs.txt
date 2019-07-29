@@ -29,11 +29,12 @@ model{
         U[j] ~ dnorm(u_mean, 1/(u_sd^2))
             
         N0[j] ~ dnorm(N0_mean[j], 1/(N0_sd[j]^2))    # prior on init state
-        predN[j,1] <- N0[j] + U[j]  
-        N[j,1] ~ dnorm(predN[j,1], tau.N)
+        #predN[j,1] <- N0[j] + U[j]  
+        #N[j,1] ~ dnorm(predN[j,1], tau.N)
+        N[j,1] <- N0[j] + U[j]
 
         for (t in 1:n.months){
-           predX[1,t,j] <- log(p[j, m[1,t]]) + N[j,1]
+           predX[1,t,j] <- log(p[j, t]) + N[j,1]
            X[1,t,j] ~ dnorm(predX[1,t,j], tau.Q[j])
 
            # observation
@@ -52,11 +53,12 @@ model{
     
     for (s in 2:n.years){
         for (j in 1:n.states){
-            N[j, s] ~ dnorm(pred.N[j, s], tau.N)
-            pred.N[j, s] <- U[j] + N[j, s-1]
-        
+            #N[j, s] ~ dnorm(pred.N[j, s], tau.N)
+            #pred.N[j, s] <- U[j] + N[j, s-1]
+            N[j, s] <- U[j] + N[j, s-1]
+
             for (t in 1:n.months){
-                predX[s,t,j] <- log(p[j, m[s,t]]) + N[j,s]
+                predX[s,t,j] <- log(p[j, t]) + N[j,s]
                 X[s,t,j] ~ dnorm(predX[s,t,j], tau.Q[j])
 
                 # observation

@@ -33,7 +33,7 @@ model{
         N[j,1] <- predN[j,1]
 
         for (t in 1:n.months){
-           predX[1,t,j] <- log(p[j, m[1,t]]) + N[j,1]
+           predX[1,t,j] <- log(p[j, t]) + N[j,1]
            X[1,t,j] ~ dnorm(predX[1,t,j], tau.Q)
 
            # observation
@@ -52,11 +52,11 @@ model{
     
     for (s in 2:n.years){
         for (j in 1:n.states){
-            N[j, s] ~ dnorm(pred.N[j, s], tau.N)
-            pred.N[j, s] <- U[j] + N[j, s-1]
-        
+            #N[j, s] ~ dnorm(pred.N[j, s], tau.N)
+            #pred.N[j, s] <- U[j] + N[j, s-1]
+            N[j, s] <- U[j] + N[j, s-1]
             for (t in 1:n.months){
-                predX[s,t,j] <- log(p[j, m[s,t]]) + N[j,s]
+                predX[s,t,j] <- log(p[j, t]) + N[j,s]
                 X[s,t,j] ~ dnorm(predX[s,t,j], tau.Q)
 
                 # observation

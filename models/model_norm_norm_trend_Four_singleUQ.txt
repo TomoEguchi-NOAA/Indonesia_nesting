@@ -27,13 +27,22 @@ model{
     # for single U model, there is one state but two time series.
     # Initial states
            
-    N0 ~ dnorm(N0_mean, 1/(N0_sd^2))    # prior on init state
+     for(i in 1:n.timeseries) {
+            
+        N0[i] ~ dnorm(N0_mean[i], 1/(N0_sd[i]^2))    # prior on init state
+        predN[i,1] <- N0[i] + U  
+        N[i,1] <- predN[i,1]
+
+    }	
+    #N0 ~ dnorm(N0_mean, 1/(N0_sd^2))    # prior on init state
     #predN[j,1] <- N0[j] + U  
-    N[1] ~ dnorm(N0 + U, tau.N) 
+    #N[1] ~ dnorm(N0 + U, tau.N) 
   
     for (j in 1:n.timeseries){
         for (t in 1:n.months){
-            predX[1,t,j] <- log(p[j, m[1,t]]) + N[1]
+            # m[j,t] is the same for all rows so change array to a vector?
+            #predX[1,t,j] <- log(p[j, m[1,t]]) + N[j,1]
+            predX[1,t,j] <- log(p[j, t]) + N[j,1]
             X[1,t,j] ~ dnorm(predX[1,t,j], tau.Q)
 
             # observation
@@ -50,13 +59,15 @@ model{
     ####  End of initial states ####
     
     for (s in 2:n.years){            
-        N[s] ~ dnorm(pred.N[s], tau.N)
-        pred.N[s] <- U + N[s-1]
 
         for (j in 1:n.timeseries){
+           #N[j,s] ~ dnorm(pred.N[j, s], tau.N)
+           #pred.N[j, s] <- U + N[j, s-1]
+           N[j, s] <- U + N[j, s-1]
 
             for (t in 1:n.months){
-                predX[s,t,j] <- log(p[j, m[s,t]]) + N[s]
+                # N is in the log space but p is not. 
+                predX[s,t,j] <- log(p[j, t]) + N[j,s]
                 X[s,t,j] ~ dnorm(predX[s,t,j], tau.Q)
 
                 # observation
@@ -73,6 +84,8 @@ model{
 
     }
 
+    # monthly proportions for distributing N into 12 months are modeled discrete Fourier series with a given
+    # period
     # n.months = 12 when entire year is modeled. 
     # n.months = 6 when one season is modeled (Wermon only)
     for (j in 1:n.timeseries){

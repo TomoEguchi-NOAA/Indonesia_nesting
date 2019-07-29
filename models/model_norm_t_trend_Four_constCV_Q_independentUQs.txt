@@ -30,7 +30,7 @@ model{
         N[j,1] <- predN[j,1]
 
         for (t in 1:n.months){
-           predX[1,t,j] <- log(p[j, m[1,t]]) + N[j,1]
+           predX[1,t,j] <- log(p[j, t]) + N[j,1]
 
            # process - constant CV 
            sigma.Q[1,t,j] <- predX[1,t,j] * cv.Q[j]
@@ -54,11 +54,11 @@ model{
     
     for (s in 2:n.years){
         for (j in 1:n.states){
-            N[j, s] ~ dnorm(pred.N[j, s], tau.N)
-            pred.N[j, s] <- U[j] + N[j, s-1]
-        
+            #N[j, s] ~ dnorm(pred.N[j, s], tau.N)
+            #pred.N[j, s] <- U[j] + N[j, s-1]
+            N[j,s] <- U[j] + N[j, s-1]
             for (t in 1:n.months){
-                predX[s,t,j] <- log(p[j, m[s,t]]) + N[j,s]
+                predX[s,t,j] <- log(p[j, t]) + N[j,s]
 
                 # process - constant CV 
                 sigma.Q[s,t,j] <- predX[s,t,j] * cv.Q[j]

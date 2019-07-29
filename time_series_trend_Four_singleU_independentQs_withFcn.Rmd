@@ -10,6 +10,112 @@ Set things up:
 ```{r}
 rm(list=ls())
 
+data.extract <- function(location, 
+                         year.begin, 
+                         year.end, season.begin = year.begin, season.end = year.end){
+  # In March 2019, we received new data for 2018. So, the raw data file
+  # has been updated.  
+  # On 16 April 2019, the last few data points for 2019 were received
+  # so the data files have been updated. 
+  if (is.null(season.begin)) season.begin <- year.begin
+  if (is.null(season.end)) season.end <- year.end
+  
+  if (location == "JM"){
+    data.0 <- read.csv("data/JM_nests_April2019.csv")
+    
+    data.0 %>% 
+      select(Year_begin, Month_begin, JM_Nests) %>%
+      mutate(Nests = JM_Nests) -> data.0
+    
+  } else if (location == "W"){
+    data.0 <- read.csv("data/W_nests_April2019.csv")
+    data.0 %>% 
+      select(Year_begin, Month_begin, W_Nests) %>%
+      mutate(Nests = W_Nests) -> data.0
+  }
+  
+  # create regularly spaced time series:
+  data.2 <- data.frame(Year = rep(min(data.0$Year_begin,
+                                      na.rm = T):max(data.0$Year_begin,
+                                                     na.rm = T),
+                                  each = 12),
+                       Month_begin = rep(1:12,
+                                         max(data.0$Year_begin,
+                                             na.rm = T) -
+                                           min(data.0$Year_begin,
+                                               na.rm = T) + 1)) %>%
+    mutate(begin_date = as.Date(paste(Year,
+                                      Month_begin,
+                                      '01', sep = "-"),
+                                format = "%Y-%m-%d"),
+           Frac.Year = Year + (Month_begin-0.5)/12) %>%
+    select(Year, Month_begin, begin_date, Frac.Year)
+
+  # also make "nesting season" that starts April and ends March
+  
+  data.0 %>% mutate(begin_date = as.Date(paste(Year_begin,
+                                               Month_begin,
+                                               '01', sep = "-"),
+                                         format = "%Y-%m-%d")) %>%
+    mutate(Year = Year_begin,
+           Month = Month_begin,
+           f_month = as.factor(Month),
+           f_year = as.factor(Year),
+           Frac.Year = Year + (Month_begin-0.5)/12) %>%
+    select(Year, Month, Frac.Year, begin_date, Nests) %>%
+    na.omit() %>%
+    right_join(.,data.2, by = "begin_date") %>%
+    transmute(Year = Year.y,
+              Month = Month_begin,
+              Frac.Year = Frac.Year.y,
+              Nests = Nests,
+              Season = ifelse(Month < 4, Year-1, Year),
+              Seq.Month = ifelse(Month < 4, Month + 9, Month - 3)) %>%
+    reshape::sort_df(.,vars = "Frac.Year") %>%
+    filter(Season >= season.begin & Season <= season.end) -> data.1
+  
+  data.1 %>% filter(Month > 3 & Month < 10) -> data.summer
+  data.1 %>% filter(Month > 9 | Month < 4) %>%
+    mutate(Seq.Month = Seq.Month - 6) -> data.winter
+  
+  jags.data <- list(y = log(data.1$Nests),
+                    m = data.1$Seq.Month,
+                    T = nrow(data.1))
+  
+  y <- matrix(log(data.1$Nests), ncol = 12, byrow = TRUE)
+  
+  jags.data2 <- list(y = y,
+                     m = matrix(data.1$Seq.Month, 
+                                ncol = 12, byrow = TRUE),
+                     n.years = nrow(y))
+  
+  y.summer <- matrix(log(data.summer$Nests),
+                     ncol = 6, byrow = TRUE)
+  
+  y.winter <- matrix(log(data.winter$Nests),
+                     ncol = 6, byrow = TRUE)
+  
+  jags.data2.summer <- list(y = y.summer,
+                            m = matrix(data.summer$Seq.Month, 
+                                       ncol = 6, byrow = TRUE),
+                            n.years = nrow(y.summer))
+  
+  jags.data2.winter <- list(y = y.winter,
+                            m = matrix(data.winter$Seq.Month, 
+                                       ncol = 6, byrow = TRUE),
+                            n.years = nrow(y.winter))
+  
+  out <- list(jags.data = jags.data,
+              jags.data2 = jags.data2,
+              jags.data.summer = jags.data2.summer,
+              jags.data.winter = jags.data2.winter,
+              data.1 = data.1,
+              data.summer = data.summer,
+              data.winter = data.winter)
+  return(out)
+}
+
+
 # tic <- Sys.time()
 # Sys <- Sys.info()
 source('Dc_Indonesia_nesting_fcns.R')
@@ -66,8 +172,9 @@ Bring in the data
 
 ```{r}
 # JM
-year.begin <- 2001
-year.end <- 2017
+#2001 for JM and 2006 for W to 2017
+year.begin <- 2003
+year.end <- 2018
 period.JM <- 12
 period.W <- 6
 maxN <- 10000
@@ -112,7 +219,8 @@ jags.data <- list(y = y,
                                       FUN = function(x) sin(2 * pi * x/period.W)))),
                   pi = pi,
                   period = c(period.JM, period.W),
-                  N0_mean = c(6, 6),
+                  N0_mean = c(log(sum(exp(y[1,,1]), na.rm = T)),
+                              log(sum(exp(y[1,,2]), na.rm = T))),
                   N0_sd = c(10, 10))
 
 n.timeseries <- dim(y)[3]

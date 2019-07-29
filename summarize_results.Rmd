@@ -1,0 +1,309 @@
+---
+title: "Summarize results for HI SSLL take anlaysis"
+output: html_notebook
+---
+
+Get the results loaded:
+
+```{r}
+rm(list=ls())
+
+library(jagsUI)
+library(coda)
+library(tidyverse)
+library(loo)
+
+fill.color <-  "darkseagreen"
+fill.color.N1 <- "blue4"
+fill.color.N2 <- "gold4"
+fill.color.summer <- "darksalmon"
+fill.color.winter <- "gray65"
+fill.alpha <-  0.65
+line.color <-  "darkblue"
+line.color.N <- "cadetblue"
+line.color.summer <- "red3"
+line.color.winter <- "greenyellow"
+data.color <- "black"
+data.size <- 1.5
+obsd.color <- "red2"
+
+run.date <- "2019-07-24"
+filename.root <- paste0("time_series_Four_imputation_", run.date)
+
+#filename.root <- paste0("SSAR1_norm_norm_Four_singleU_independentQs_", run.date)
+
+results.all<- readRDS(file = paste0("RData/", filename.root, '.rds'))
+
+
+```
+
+Compute medians for Xs and sum for each season and location
+
+```{r}
+Xs.stats <- results.all$Xs.stats
+Xs.stats %>% group_by(Season, location) %>%
+  summarize(median = sum(exp(median)),
+            low = sum(exp(low)),
+            high = sum(exp(high))) %>%
+  filter(location == "Jamursba-Medi") -> sum_medians_JM
+
+Xs.stats %>% group_by(Season, location) %>%
+  summarize(median = sum(exp(median)),
+            low = sum(exp(low)),
+            high = sum(exp(high))) %>%
+  filter(location == "Wermon") -> sum_medians_W
+
+if (!file.exists(paste0("data/JM_medians_", run.date, ".csv")))
+  write.csv(sum_medians_JM, file = paste0("data/JM_medians_", run.date, ".csv"))
+
+if (!file.exists(paste0("data/W_medians_", run.date, ".csv")))
+  write.csv(sum_medians_W, file = paste0("data/W_medians_", run.date, ".csv"))
+
+
+```
+
+Look at the Ns
+```{r}
+Ns.stats <- results.all$Ns.stats
+Ns.stats.JM <- filter(Ns.stats, location == "Jamursba-Medi")
+Ns.stats.W <- filter(Ns.stats, location == "Wermon")
+
+JM_medians <- data.frame(Ns = Ns.stats.JM$median, 
+                         Xs = sum_medians_JM$median)
+
+W_medians <- data.frame(Ns = Ns.stats.W$median, 
+                         Xs = sum_medians_W$median)
+
+ggplot(JM_medians) + 
+  geom_point(aes(x = Xs, y = exp(Ns))) + 
+  labs(x = "Sum of Xs", y = "N", title = "JM")
+```
+
+```{r}
+ggplot(W_medians) + 
+  geom_point(aes(x = Xs, y = exp(Ns))) + 
+  labs(x = "Sum of Xs", y = "N", title = "W")
+
+```
+
+Plot Ns
+
+```{r}
+ggplot() +
+  geom_ribbon(data = Ns.stats,
+              aes(x = Season,
+                  ymin = low,
+                  ymax = high),
+              color = fill.color.N1,
+              alpha = fill.alpha) +
+  geom_line(data = Ns.stats,
+            aes(x = Season, y = median),
+            color = line.color.N,
+            alpha = 0.5,
+            size = 1.5) +
+  geom_point(data = Ns.stats,
+            aes(x = Season, y = median),
+            color = "black",
+            alpha = 0.5,
+            size = 1.5) +
+  #scale_x_continuous(breaks = seq(year.begin.JM, year.end, 5),
+  #                   limits = c(year.begin.JM, year.end)) +
+  #scale_y_continuous(limits = c(0, log(maxN))) + 
+  facet_grid(rows = vars(location)) + 
+  labs(x = '', y = 'log(# nests)')  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+```
+
+Check to see how estimated observations compare with reported observed counts.
+
+```{r}
+ys.stats <- results.all$ys.stats
+ys.stats %>% group_by(Season, location) %>%
+  summarize(median = sum(exp(median)),
+            low = sum(exp(low)),
+            high = sum(exp(high)),
+            obsd = sum(obsY, na.rm = T),
+            n = sum(!is.na(obsY))) %>%
+  filter(location == "Jamursba-Medi") -> y_JM
+
+ys.stats %>% group_by(Season, location) %>%
+  summarize(median = sum(exp(median)),
+            low = sum(exp(low)),
+            high = sum(exp(high)),
+            obsd = sum(obsY, na.rm = T),
+            n = sum(!is.na(obsY))) %>%
+  filter(location == "Wermon") -> y_W
+```
+
+Make some plots:
+```{r}
+Xs.stats[Xs.stats$Season < 2006 & Xs.stats$location == "Wermon", 
+         c("low", "median", "high")] <- NA
+Ns.stats[Ns.stats$Season < 2006 & Ns.stats$location == "Wermon",
+         c("low", "median", "high")] <- NA
+
+
+p.1a <- ggplot() +
+  geom_ribbon(data = Xs.stats,
+              aes(x = time, 
+                  ymin = low, 
+                  ymax = high),
+              fill = fill.color,
+              alpha = fill.alpha) + 
+  geom_point(data = Xs.stats,
+             aes(x = time, 
+                 y = median),
+             color = data.color,
+             alpha = 0.5) +
+  geom_line(data = Xs.stats,
+            aes(x = time, 
+                y = median),
+            color = line.color,
+            alpha = 0.5) +
+  geom_point(data = ys.stats,
+             aes(x = time, 
+                 y = log(obsY)),
+             color = obsd.color,
+             size = 2,
+             alpha = 0.5) + 
+  geom_ribbon(data = Ns.stats,
+              aes(x = Season+0.5,
+                  ymin = low,
+                  ymax = high),
+              color = fill.color.N1,
+              alpha = fill.alpha) +
+  geom_line(data = Ns.stats,
+            aes(x = Season+0.5, 
+                y = median),
+            color = line.color.N,
+            alpha = 0.5,
+            size = 1.5) +
+  geom_point(data = Ns.stats,
+            aes(x = Season + 0.5, 
+                y = median),
+            color = "black",
+            alpha = 0.5,
+            size = 1.5) +
+  # scale_x_continuous(breaks = seq(year.begin.JM, year.end, 5),
+  #                    limits = c(year.begin.JM, year.end)) +
+  # scale_y_continuous(limits = c(0, log(maxN))) + 
+  facet_grid(rows = vars(location)) + 
+  labs(x = '', y = 'log(# nests)')  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+
+p.1a
+
+ggsave(filename = "figures/imputed_nest_counts.png",
+       device = "png", dpi = 600)
+```
+
+Compare imputed values between the old and new models. 
+
+```{r}
+old.W <- readRDS(file = paste0('RData/', "jagsout_SSAR1_logY_norm_norm_var_thetaM_W_", 
+                               "2006_2018_2019-07-26.rds"))
+
+old.y.W <- old.W$ys.stats
+new.y.W <- filter(results.all$ys.stats, location == "Wermon") %>%
+  filter(Season > 2005)
+
+
+p.W.y <- ggplot() + 
+  geom_point(data = old.y.W,
+             aes(x = time, y = median_y),
+             color = obsd.color) + 
+  geom_path(data = old.y.W,
+             aes(x = time, y = median_y),
+             color = obsd.color) + 
+  
+  geom_point(data = new.y.W,
+             aes(x = time, y = median),
+             color = "darkgreen",
+             alpha = 0.5)+
+  geom_path(data = new.y.W, 
+             aes(x = time, y = median),
+             color = "darkgreen")
+
+p.W.y
+```
+
+```{r}
+old.X.W <- old.W$Xs.stats
+new.X.W <- filter(results.all$Xs.stats, location == "Wermon") %>%
+  filter(Season > 2005)
+
+
+p.W.X <- ggplot() + 
+  geom_point(data = old.X.W,
+             aes(x = time, y = median_X),
+             color = obsd.color) + 
+  geom_path(data = old.X.W,
+             aes(x = time, y = median_X),
+             color = obsd.color) + 
+  
+  geom_point(data = new.X.W,
+             aes(x = time, y = median),
+             color = "darkgreen",
+             alpha = 0.5)+
+  geom_path(data = new.X.W, 
+             aes(x = time, y = median),
+             color = "darkgreen")
+
+p.W.X
+```
+
+
+For Jamursba-Medi
+```{r}
+old.JM <- readRDS(file = paste0('RData/', "jagsout_SSAR1_logY_norm_norm_var_thetaM_JM_", 
+                                "2001_2018_2019-07-26.rds"))
+old.y.JM <- old.JM$ys.stats
+new.y.JM <- filter(results.all$ys.stats, location == "Jamursba-Medi") 
+
+p.JM.y <- ggplot() + 
+  geom_point(data = old.y.JM,
+             aes(x = time, y = median_y),
+             color = obsd.color) + 
+  geom_path(data = old.y.JM,
+             aes(x = time, y = median_y),
+             color = obsd.color) + 
+  
+  geom_point(data = new.y.JM,
+             aes(x = time, y = median),
+             color = "darkgreen",
+             alpha = 0.5)+
+  geom_path(data = new.y.JM, 
+             aes(x = time, y = median),
+             color = "darkgreen")
+
+p.JM.y
+
+```
+
+```{r}
+old.X.JM <- old.JM$Xs.stats
+new.X.JM <- filter(results.all$Xs.stats, location == "Jamursba-Medi") %>%
+  filter(Season > 2000)
+
+p.JM.X <- ggplot() + 
+  geom_point(data = old.X.JM,
+             aes(x = time, y = median_X),
+             color = obsd.color) + 
+  geom_path(data = old.X.JM,
+             aes(x = time, y = median_X),
+             color = obsd.color) + 
+  
+  geom_point(data = new.X.JM,
+             aes(x = time, y = median),
+             color = "darkgreen",
+             alpha = 0.5)+
+  geom_path(data = new.X.JM, 
+             aes(x = time, y = median),
+             color = "darkgreen")
+
+p.JM.X
+
+```
+

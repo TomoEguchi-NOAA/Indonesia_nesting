@@ -10,15 +10,15 @@ library(loo)
 
 
 MCMC.params <- list(n.chains = 5,
-                    n.samples = 500000,
-                    n.burnin = 350000,
-                    n.thin = 50)
+                    n.samples = 100000,
+                    n.burnin = 50000,
+                    n.thin = 5)
 
 year.begin <- 2006
-#year.end <- 2014
-year.end <- 2019
+year.end <- 2018
+#year.end <- 2019
 season.begin <- 2006
-season.end <- 2018
+season.end <- 2017
 loc <- "W"
 data.jags <- data.extract(location = loc, 
                           year.begin = year.begin, 
@@ -26,25 +26,28 @@ data.jags <- data.extract(location = loc,
                           season.begin = season.begin,
                           season.end = season.end)
 
-norm.norm.models <- c("models/model_SSAR1_logY_norm_norm.txt",
-                      "models/model_SSAR1_W_logY_norm_norm_theta.txt",
-                      "models/model_SSAR1_W_logY_norm_norm_var.txt",
-                      "models/model_SSAR1_W_logY_norm_norm_var_theta.txt",
-                      "models/model_SSAR1_logY_norm_norm_varM_thetaM.txt",
-                      "models/model_SSAR1_W_logY_norm_norm_varM_theta.txt",
-                      "models/model_SSAR1_W_logY_norm_norm_var_thetaM.txt",
-                      "models/model_SSAR1_logY_norm_norm_thetaM.txt",
-                      "models/model_SSAR1_logY_norm_norm_varM.txt")
+norm.norm.models <- c("models/model_SSAR1_logY_norm_norm_var_thetaM.txt")
+norm.t.models <- c()
 
-norm.t.models <- c("models/model_SSAR1_logY_norm_t.txt",
-                   "models/model_SSAR1_W_logY_norm_t_theta.txt",
-                   "models/model_SSAR1_W_logY_norm_t_var.txt",
-                   "models/model_SSAR1_W_logY_norm_t_var_theta.txt",
-                   "models/model_SSAR1_logY_norm_t_varM_thetaM.txt",
-                   "models/model_SSAR1_W_logY_norm_t_varM_theta.txt",
-                   "models/model_SSAR1_W_logY_norm_t_var_thetaM.txt",
-                   "models/model_SSAR1_logY_norm_t_thetaM.txt",
-                   "models/model_SSAR1_logY_norm_t_varM.txt")
+# norm.norm.models <- c("models/model_SSAR1_logY_norm_norm.txt",
+#                       "models/model_SSAR1_W_logY_norm_norm_theta.txt",
+#                       "models/model_SSAR1_W_logY_norm_norm_var.txt",
+#                       "models/model_SSAR1_W_logY_norm_norm_var_theta.txt",
+#                       "models/model_SSAR1_logY_norm_norm_varM_thetaM.txt",
+#                       "models/model_SSAR1_W_logY_norm_norm_varM_theta.txt",
+#                       "models/model_SSAR1_W_logY_norm_norm_var_thetaM.txt",
+#                       "models/model_SSAR1_logY_norm_norm_thetaM.txt",
+#                       "models/model_SSAR1_logY_norm_norm_varM.txt")
+
+# norm.t.models <- c("models/model_SSAR1_logY_norm_t.txt",
+#                    "models/model_SSAR1_W_logY_norm_t_theta.txt",
+#                    "models/model_SSAR1_W_logY_norm_t_var.txt",
+#                    "models/model_SSAR1_W_logY_norm_t_var_theta.txt",
+#                    "models/model_SSAR1_logY_norm_t_varM_thetaM.txt",
+#                    "models/model_SSAR1_W_logY_norm_t_varM_theta.txt",
+#                    "models/model_SSAR1_W_logY_norm_t_var_thetaM.txt",
+#                    "models/model_SSAR1_logY_norm_t_thetaM.txt",
+#                    "models/model_SSAR1_logY_norm_t_varM.txt")
 
 all.models <- c(norm.norm.models, norm.t.models)
 
