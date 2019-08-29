@@ -25,12 +25,12 @@ model{
         }
        
         #N[1, j] <- log(sum(tmp2[y,,j]
-        for (y in 1:n.years){           
-	   for (mm in 1:12){
-	      tmp2[y, mm, j] <- exp(X[(y*12 - mm + 1), j])
+        for (yy in 1:n.years){           
+	         for (mm in 1:12){
+	            tmp2[yy, mm, j] <- exp(X[(yy*12 - mm + 1), j])
            }
 
-           N[y, j] <- log(sum(tmp2[y,,j]))
+           N[yy, j] <- log(sum(tmp2[yy,,j]))
         }
     }
     
