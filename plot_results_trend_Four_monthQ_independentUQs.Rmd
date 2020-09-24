@@ -1,0 +1,300 @@
+---
+title: "Plot results from data imputated trend analysis using discrete Fourier series with montly Qs and independent Us and Qs for the two locations."
+output: html_notebook
+---
+
+Set things up:
+
+```{r}
+rm(list=ls())
+
+# tic <- Sys.time()
+# Sys <- Sys.info()
+source('Dc_Indonesia_nesting_fcns.R')
+#library(rjags)
+
+library(jagsUI)
+library(coda)
+library(tidyverse)
+library(loo)
+
+save.data <- F
+save.fig <- F
+run.date <- "2019-06-25" #Sys.Date()
+
+```
+
+Set up the plotting colors.
+```{r}
+
+fill.color <-  "darkseagreen"
+fill.color.N1 <- "blue4"
+fill.color.N2 <- "gold4"
+fill.color.summer <- "darksalmon"
+fill.color.winter <- "gray65"
+fill.alpha <-  0.65
+line.color <-  "darkblue"
+line.color.N <- "cadetblue"
+line.color.summer <- "red3"
+line.color.winter <- "greenyellow"
+data.color <- "black"
+data.size <- 1.5
+obsd.color <- "red2"
+
+```
+
+
+Bring in the results
+
+```{r}
+# JM
+year.begin <- 2003
+year.end <- 2018
+# loc <- "JM"
+# loc.name <- "Jamursba-Medi"
+period.JM <- 12
+maxN <- 10000
+
+# W
+period.W <- 6
+
+results <- readRDS(paste0("RData/SSAR1_norm_norm_trend_Four_monthQ_independentUQs_",
+                        "JM", period.JM, "_W", period.W, "_",
+                        year.begin, "_", year.end, "_", run.date, ".rds"))
+```
+
+
+
+parameters monitored
+```{r}
+# jags output:
+jm <- results$jm
+jags.params <- jm$parameters
+
+```
+
+
+pull together results
+```{r}
+# extract ys - include estimated missing data
+# these need to be arranged in vectors
+ys.stats <- results$ys.stats
+
+# extract Xs - the state model
+Xs.stats <- results$Xs.stats
+
+# extract Ns - annual counts
+Ns.stats <- results$Ns.stats
+```
+
+
+Look at some posteriors
+```{r}
+# pop growth rates - over the entire time
+# bayesplot::mcmc_trace(jm$samples, c("U[1]", "U[2]"))
+# 
+# bayesplot::mcmc_trace(jm$samples, "p.beta.cos[1]")
+
+bayesplot::mcmc_dens(jm$samples, c("U[1]", "U[2]"))
+
+```
+
+SD for JM per month:
+```{r}
+bayesplot::mcmc_dens(jm$samples, c("sigma.Q[1,1]", "sigma.Q[1,2]",
+                                   "sigma.Q[1,3]", "sigma.Q[1,4]",
+                                   "sigma.Q[1,5]", "sigma.Q[1,6]",
+                                   "sigma.Q[1,7]", "sigma.Q[1,8]",
+                                   "sigma.Q[1,9]", "sigma.Q[1,10]",
+                                   "sigma.Q[1,11]", "sigma.Q[1,12]"))
+
+
+```
+
+SD for W per month
+```{r}
+bayesplot::mcmc_dens(jm$samples, c("sigma.Q[2,1]", "sigma.Q[2,2]",
+                                   "sigma.Q[2,3]", "sigma.Q[2,4]",
+                                   "sigma.Q[2,5]", "sigma.Q[2,6]",
+                                   "sigma.Q[2,7]", "sigma.Q[2,8]",
+                                   "sigma.Q[2,9]", "sigma.Q[2,10]",
+                                   "sigma.Q[2,11]", "sigma.Q[2,12]"))
+
+```
+
+
+```{r}
+# cos and sin for the discrete Foureir series 
+bayesplot::mcmc_dens(jm$samples, c("p.beta.cos[1]", "p.beta.sin[1]",
+                                   "p.beta.cos[2]", "p.beta.sin[2]"))
+
+
+```
+
+```{r}
+bayesplot::mcmc_dens(jm$samples, "sigma.N")
+
+```
+
+Posteror on log(N) for JM
+```{r}
+bayesplot::mcmc_dens(jm$samples, c("N[1,1]", "N[1,2]",
+                                   "N[1,3]", "N[1,4]",
+                                   "N[1,5]", "N[1,6]",
+                                   "N[1,7]", "N[1,8]",
+                                   "N[1,9]", "N[1,10]",
+                                   "N[1,11]", "N[1,12]",
+                                   "N[1,13]", "N[1,14]",
+                                   "N[1,15]", "N[1,16]"))
+
+
+```
+
+Posteror on log(N) for W
+```{r}
+bayesplot::mcmc_dens(jm$samples, c("N[2,1]", "N[2,2]",
+                                   "N[2,3]", "N[2,4]",
+                                   "N[2,5]", "N[2,6]",
+                                   "N[2,7]", "N[2,8]",
+                                   "N[2,9]", "N[2,10]",
+                                   "N[2,11]", "N[2,12]",
+                                   "N[2,13]", "N[2,14]",
+                                   "N[2,15]", "N[2,16]"))
+
+
+```
+
+Make some plots (need to change colors... )
+
+```{r}
+
+p.1a <- ggplot() +
+  geom_ribbon(data = Xs.stats,
+              aes(x = time, 
+                  ymin = low, 
+                  ymax = high),
+              fill = fill.color,
+              alpha = fill.alpha) + 
+  geom_point(data = Xs.stats,
+             aes(x = time, 
+                 y = median),
+             color = data.color,
+             alpha = 0.5) +
+  geom_line(data = Xs.stats,
+            aes(x = time, 
+                y = median),
+            color = line.color,
+            alpha = 0.5) +
+  geom_point(data = ys.stats,
+             aes(x = time, 
+                 y = log(obsY)),
+             color = obsd.color,
+             alpha = 0.5) + 
+  geom_ribbon(data = Ns.stats,
+              aes(x = time+0.5, 
+                  ymin = low,
+                  ymax = high),
+              color = fill.color.N1,
+              alpha = fill.alpha) + 
+  geom_line(data = Ns.stats,
+            aes(x = time+0.5, y = median),
+            color = line.color.N,
+            alpha = 0.5,
+            size = 1.5) + 
+  geom_point(data = Ns.stats,
+            aes(x = time+0.5, y = median),
+            color = "black",
+            alpha = 0.5,
+            size = 1.5) + 
+  scale_x_continuous(breaks = seq(year.begin, year.end, 5),
+                     limits = c(year.begin, year.end)) +
+  scale_y_continuous(limits = c(0, log(maxN))) + 
+  facet_grid(rows = vars(location)) + 
+  labs(x = '', y = 'log(# nests)')  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+
+p.1a
+
+
+
+```
+
+Why are Nhats are so low for JM? Sums for one year periods should be a lot higher, no?
+
+```{r}
+p.1b <- ggplot() +
+  geom_ribbon(data = Xs.stats,
+              aes(x = time, 
+                  ymin = exp(low), 
+                  ymax = exp(high)),
+              fill = fill.color,
+              alpha = fill.alpha) + 
+  geom_point(data = Xs.stats,
+             aes(x = time, 
+                 y = exp(median)),
+             color = data.color,
+             alpha = 0.5) +
+  geom_line(data = Xs.stats,
+            aes(x = time, 
+                y = exp(median)),
+            color = line.color,
+            alpha = 0.5) +
+  geom_point(data = ys.stats,
+             aes(x = time, 
+                 y = obsY),
+             color = obsd.color,
+             alpha = 0.5) + 
+  geom_ribbon(data = Ns.stats,
+              aes(x = time+0.5, 
+                  ymin = exp(low),
+                  ymax = exp(high)),
+              color = fill.color.N1,
+              alpha = fill.alpha) + 
+  geom_line(data = Ns.stats,
+            aes(x = time+0.5, 
+                y = exp(median)),
+            color = line.color.N,
+            alpha = 0.5,
+            size = 1.5) + 
+  geom_point(data = Ns.stats,
+            aes(x = time+0.5, 
+                y = exp(median)),
+            color = "black",
+            alpha = 0.5,
+            size = 1.5) + 
+  scale_x_continuous(breaks = seq(year.begin, year.end, 5),
+                     limits = c(year.begin, year.end)) +
+  scale_y_continuous(limits = c(0, 5000)) + 
+  facet_grid(rows = vars(location)) + 
+  labs(x = '', y = '# nests')  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+
+p.1b
+
+```
+
+save plots if requested
+
+```{r}
+if (save.fig){
+  # ggsave(filename = paste0("figures/", filename.root, ".png"),
+  #        plot = p.1,
+  #        dpi = 600,
+  #        device = "png")
+  
+  ggsave(filename = paste0("figures/", filename.root, ".png"),
+         plot = p.1a,
+         dpi = 600,
+         device = "png")
+
+  # ggsave(filename = paste0("figures/", filename.root,  "_pareto.png"),
+  #      plot = p.2,
+  #      dpi = 600,
+  #      device = "png")
+  
+}
+
+```
+
