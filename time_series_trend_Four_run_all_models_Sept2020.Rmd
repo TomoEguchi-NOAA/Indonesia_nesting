@@ -26,7 +26,7 @@ library(loo)
 ```{r}
 save.data <- T
 save.fig <- T
-run.date <- Sys.Date() #"2019-06-25" #
+run.date <- "2020-09-24" #Sys.Date() #"2019-06-25" #
 
 year.begin <- 2001
 year.end <- 2019
@@ -123,6 +123,7 @@ run jags on each model
 ```{r}
 c <- 1
 loo.out <- list()
+filenames <- list()
 k1 <- k2 <- 1
 for (k1 in 1:length(model.names) ){ #3:()
   model.number <- k1
@@ -168,6 +169,7 @@ for (k1 in 1:length(model.names) ){ #3:()
                             "JM", period.JM, "_W", period.W, "_",
                             year.begin, "_", year.end, "_", run.date)
     
+    filenames[[c]] <- filename.root
     # define parameters to monitor - add "df" for t distribution
     jags.params <- c('N', 'U', "p", "p.beta.cos", "p.beta.sin",
                      "sigma.N", 'sigma.Q', "sigma.R", 
@@ -271,11 +273,19 @@ for (k1 in 1:length(model.names) ){ #3:()
       } else {
         results.all <- readRDS(file = paste0("RData/", filename.root, '.rds'))
       }
-      jm <- results.all$jm
       
-      loo.out[[c]] <- compute.LOOIC(loglik = jm$sims.list$loglik, 
-                                    MCMC.params = MCMC.params, 
-                                    data.vector = as.vector(jags.data$y))
+      if (!file.exists(paste0("RData/", filename.root, "_loo.rds"))){
+        jm <- results.all$jm
+        
+        loo.out[[c]] <- compute.LOOIC(loglik = jm$sims.list$loglik, 
+                                      MCMC.params = MCMC.params, 
+                                      data.vector = as.vector(jags.data$y))
+        saveRDS(loo.out[[c]], file = paste0("RData/", filename.root, "_loo.rds"))
+      } else {
+        loo.out[[c]] <- readRDS(file = paste0("RData/", filename.root, "_loo.rds"))
+        
+      }
+      
       c <- c + 1
       
     } else {
@@ -290,5 +300,114 @@ for (k1 in 1:length(model.names) ){ #3:()
 
 ```
 
+Compare the results using LOOIC:
 
+```{r}
+
+looic.esimates <- lapply(lapply(loo.out, 
+                                FUN = function(x) x$loo.out),
+                         FUN = function(x) x$estimates)
+
+looic <- unlist(lapply(looic.esimates, 
+                       FUN = function(x) x["looic", "Estimate"]))
+
+
+best.model <- filenames[which(looic == min(looic))]
+```
+
+
+According to the LOOIC values, normal process and normal observation models with independent slope and variance terms was considered best. Pareto k values, however, were not stellar... 
+
+```{r}
+pareto.k <- lapply(loo.out, 
+                   FUN = function(x) x$loo.out)
+pareto.k.best <- pareto.k[[which(looic == min(looic))]]
+```
+
+Take a look at which data points are problematic
+
+```{r}
+
+data.jags.JM$data.1 %>% select(Frac.Year, Nests, Season) %>%
+  mutate(Loc = "JM") %>%
+  # transmute(Frac.Year = Frac.Year,
+  #           Nests.JM = Nests,
+  #           Season = Season) %>% 
+  na.omit() -> data.JM
+
+data.jags.W$data.1 %>% select(Frac.Year, Nests, Season) %>%
+  mutate(Loc = "W") %>%
+  # transmute(Frac.Year = Frac.Year, 
+  #           Nests.W = Nests) %>%
+  na.omit() -> data.W
+
+data.loo <- rbind(data.JM, data.W)
+# n.JM <- nrow(data.JM)
+# n.both <- n.JM + nrow(data.W)
+data.loo$pareto.k <- pareto.k.best$diagnostics$pareto_k
+
+ggplot(data = data.loo) + 
+  geom_point(aes(x = Frac.Year, y = pareto.k, color = Loc))
+```
+
+Not great... but should we just move forward rather than trying to see I can come up with a better model? 
+
+```{r}
+
+jags.out <- readRDS(file = paste0("RData/", best.model[[1]], ".rds"))
+jm <- jags.out$jm
+
+bayesplot::mcmc_dens(jm$samples, c("U[1]", "U[2]"))
+```
+
+```{r}
+data.frame(jm$summary) %>% rownames_to_column("Parameter") -> summary.df
+
+summary.df[grep(summary.df$Parameter, pattern = "U\\["),]
+```
+
+These are almost identical... I'm not sure why the independent U model was considered best. 
+
+```{r}
+bayesplot::mcmc_dens(jm$samples, c("sigma.Q[1]", "sigma.Q[2]"))
+```
+
+Looks a bit suspicious...
+
+```{r}
+bayesplot::mcmc_trace(jm$samples, c("sigma.Q[1]", "sigma.Q[2]"))
+```
+
+They look alright. 
+
+Let's look at single U model to see how the estimate is different - should be about the same.
+
+```{r}
+jags.out.1 <- readRDS(file = paste0("RData/", filenames[[3]], ".rds")) #"RData/SSAR1_norm_norm_trend_Four_singleU_independentQs_JM12_W6_2001-2019_2020-09-24.rds")
+
+jm.1 <- jags.out.1$jm
+data.frame(jm.1$summary) %>% rownames_to_column("Parameter") -> summary.1.df
+
+grep(summary.df$Parameter, pattern = "U", fixed = T)
+summary.1.df %>% filter(Parameter == "U")
+
+```
+
+```{r}
+bayesplot::mcmc_dens(jm.1$samples, "U")
+```
+
+So, this is pretty much identical to the previous model (independent Us). LOOIC value for this one was only 2 greater than the other model (985.89 vs. 988.08). So, it may make sense to use the simpler model.
+
+Pareto K?
+
+```{r}
+pareto.k[[3]]
+```
+
+It's about the same... 
+
+```{r}
+
+```
 
