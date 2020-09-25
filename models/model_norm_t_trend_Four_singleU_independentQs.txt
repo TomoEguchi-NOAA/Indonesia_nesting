@@ -55,7 +55,7 @@ model{
             #pred.N[j,s] <- U + N[j,s-1]    
             N[j,s] <- U + N[j,s-1]
             for (t in 1:n.months){
-                predX[s,t,j] <- log(p[j,t]) + N[s]
+                predX[s,t,j] <- log(p[j,t]) + N[j,s]
                 X[s,t,j] ~ dnorm(predX[s,t,j], tau.Q[j])
 
                 # observation - the following line is just a scalar multiplication, isn't it?

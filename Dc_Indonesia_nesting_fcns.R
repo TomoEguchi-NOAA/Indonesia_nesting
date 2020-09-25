@@ -4,9 +4,9 @@
 # TomosFunctions.R is needed also.
 
 #sysInfo <- Sys.info()
-ifelse(Sys.info()[1] == 'Linux',
-       source('~/Documents/R/tools/TomosFunctions.R'),
-       source('~/R/tools/TomosFunctions.R'))
+# ifelse(Sys.info()[1] == 'Linux',
+#        source('~/Documents/R/tools/TomosFunctions.R'),
+#        source('~/R/tools/TomosFunctions.R'))
 
 library(ggplot2)
 library(tidyverse)
@@ -15,6 +15,40 @@ library(loo)
 library(dplyr)
 
 save.fig <- F
+
+# 
+# # Extracting posterior samples of deviance or any other variable from jags output:
+# extract.samples <- function(varname, zm){
+#   dev <- unlist(lapply(zm, FUN = function(x) x[, varname]))
+#   return(dev)
+# }
+
+compute.LOOIC <- function(loglik, data.vector, MCMC.params){
+  n.per.chain <- (MCMC.params$n.samples - MCMC.params$n.burnin)/MCMC.params$n.thin
+  
+  loglik.vec <- as.vector(loglik)
+  
+  # each column corresponds to a data point and rows are MCMC samples
+  loglik.mat <- matrix(loglik.vec, nrow = n.per.chain * MCMC.params$n.chains)
+  # take out the columns that correspond to missing data points
+  loglik.mat <- loglik.mat[, !is.na(data.vector)]
+  # loglik.mat <- matrix(loglik.vec[!is.na(data.vector)], 
+  #                      nrow = MCMC.params$n.chains * n.per.chain)
+  
+  Reff <- relative_eff(exp(loglik.mat),
+                       chain_id = rep(1:MCMC.params$n.chains,
+                                      each = n.per.chain),
+                       cores = 4)
+  
+  loo.out <- rstanarm::loo(loglik.mat, 
+                           r_eff = Reff, 
+                           cores = 4, k_threshold = 0.7)
+  
+  out.list <- list(Reff = Reff,
+                   loo.out = loo.out)
+  
+  return(out.list)  
+}
 
 sum.posterior <- function(yr, months = c(1:12), Xs.stats, zm) {
   Xs.stats %>%
@@ -39,14 +73,14 @@ data.extract <- function(location, year.begin, year.end, season.begin = year.beg
   if (is.null(season.end)) season.end <- year.end
   
   if (location == "JM"){
-    data.0 <- read.csv("data/JM_nests_April2019.csv")
+    data.0 <- read.csv("data/JM_nests_Sept2020.csv")
     
     data.0 %>% 
       select(Year_begin, Month_begin, JM_Nests) %>%
       mutate(Nests = JM_Nests) -> data.0
     
   } else if (location == "W"){
-    data.0 <- read.csv("data/W_nests_April2019.csv")
+    data.0 <- read.csv("data/W_nests_Sept2020.csv")
     data.0 %>% 
       select(Year_begin, Month_begin, W_Nests) %>%
       mutate(Nests = W_Nests) -> data.0
