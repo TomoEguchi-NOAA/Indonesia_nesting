@@ -1,0 +1,87 @@
+To impute missing monthly nest counts in the leatherback data from Indonesia, we used a Bayesian hierarchical model. In the model, the natural logarithm (“natural log”) of monthly counts at a nesting beach was modeled with a discrete Fourier series. The mean of the number of nests per month was modeled as an auto-regressive model (Eq. 1):
+ 	
+u_(t,m)=s_(t,m)+X_(t-1,m-1)		Eq. 1
+
+							
+where u_(t,m) is the mean of the natural log of the true (unobserved) number of nests at time (t) of month (m), s_(t,m) is the “slope” parameter at time t, which is defined by month (m = 1-12), and X_(t-1,m) is the natural log of the true nest count at time t-1. The time index starts at the first month of the time series and increases monthly, whereas the month index (m) corresponds to sequential months within each nesting season (i.e., months 1 through 12). The nesting season starts in April (m = 1) and ends in March (m = 12) of the next calendar year. For example, the mean of the number of nests during July of the fourth season would be indexed as u_43,4 (43rd time step and fourth month of the season).
+
+The state-space (i.e., biological process of interest, which in this case is the natural log of the true number of nests (X_(t,m) ) laid per month on a beach, either Jamursba Medi or Wermon) is modeled with a normal distribution with the mean (u_(t,m) ) and standard deviation (σ_x ), which was assumed to be constant over time (Eq. 2).
+
+X_(t,m)~ N(u_(t,m),σ_Xx )		Eq. 2
+
+
+Given the state-space process for the natural log of the true number of nests (X_(t,m) ), observations (y_(t,m) ) (i.e., monthly nest counts recorded on either beach in natural log space) are modeled with another normal distribution with standard deviation (σ_y ), which also was assumed to be constant over time (Eq. 3).
+
+y_(t,m)~ N(X_(t,m),σ_y )		Eq. 3
+
+
+The slope (s_(t,m) ) parameters are modeled with the discrete Fourier series by acknowledging the periodicity of nesting (Eq. 4). For Jamursba Medi, we used 12 months as the period to capture the single summer peak in nesting, whereas for Wermon we used 6 months to capture the summer and winter peaks (Figure 5). 
+
+s_(t,m)=β_1*cos (2π(m/period))  +β_2*sin (2π(m/period))		Eq. 4
+
+
+The two coefficients (β_1 and β_2) were estimated from the data.
+
+Annual number of nests for each season (April through March; X_T) were then computed (Eq. 5) as the sum of estimated true monthly log numbers of nests (X_(t,m) ) which were derived from imputed log observed nest counts (y_(t,m) ).
+  
+X_T=∑_(m=1)^12▒〖exp⁡(X_(.,m) 〗)
+		Eq. 5
+
+
+where X_(.,m) indicates all t’s from m =1 to m = 12. 
+
+The posterior distributions for (X_(t,m) ) were used to determine the number of total nesters. The medians of the posterior distributions were used as point estimates, whereas lower and upper 95% confidence limits were used to incorporate the estimated uncertainty in the imputed numbers of nests. The model (Eq. 2) was fit to the two datasets from leatherback nesting beaches (Jamursba Medi and Wermon) using JAGS (v. 4.3.0; (Plummer 2003, 2017)) through the jagsUI package (Kellner 2018) in R (v. 3.5.3; R Development Core Team (2018) .  
+	Trend Analysis and Population Viability Analysis 
+	Estimating historical trends and current nester abundance
+Population growth rates were estimated using a stochastic density-independent exponential growth model (Eq. 6 – Eq. 8Eq. 5 – Eq. 7; Figure 3 and Figure 4) applied to nest count data (Holmes et al. 2007, Boyd et al. 2017) as follows:. 
+
+N_j=N_(j-1) e^r		Eq. 6
+
+							
+where N_j is the number of Annual Nesters in year j, r is the instantaneous population growth rate (i.e., long-term annual trend), and e^r=λ (i.e., “lambda”, the finite rate of increase for the population). 
+
+This model is commonly used for long-lived, slow-growing, late-maturing species such as sea turtles whose populations have been depleted to relatively low levels. The data forinput to the model were time series of Annual Nesters (i.e., the number of females arriving on a beach each year to nest), which were derived from observed nest counts by simply dividing nests by mean clutch frequency (4.6 for loggerheads and 5.5 for leatherbacks  ). This static conversion from nests to nesters had no bearing on the estimation process, but put the results into management-relevant terms (i.e., nester abundance). The number of Annual Nesters summed across the number of years of one remigration interval (e.g., 3.3 years for loggerheads) yields a snapshot of the Total Nesters in the population. 
+
+It is important to Nnote that the population growth rates estimated here are better interpreted as a long-term annual trends in the number of nesters rather than true population growth rates for the following reasons:  (i) the model relies exclusively on nest count data, which we assume provide an index of Annual Nester abundance, (ii) nesters represent only a small portion of the total population that also includes adult males and immature turtles of both sexes, and (iii) assuming that the growth rate for nesters  represents the growth rate for the whole population would also assume a stable age distribution, and we have no data to confirm this for either population.  
+ 
+N_j=N_(j-1) e^r		Eq. 6
+
+							
+where N_j is the number of Annual Nesters in year j and r is the instantaneous population growth rate (i.e., long-term annual trend), where exp(r)  =λ or “lambda” – the finite rate of increase. 
+ 
+The exponential growth equation (Eq. 6Eq. 5) was transformed it into natural log space (Eq. 7Eq. 6) and solved for the population growth rate (Eq. 8Eq. 7): 
+
+ln(N_j )=ln(N_(j-1) )+r		Eq. 7
+
+
+r = ln(N_j )-ln(N_(j-1) )		Eq. 8
+
+
+Following Boyd et al. (2017) and the methods outlined in their Appendix S1, we constructed a Bayesian state-space model (BSSM, Figure 3) from the natural log version of the exponential population growth equation (Eq. 7). The BSSM framework allows for estimation of both process variation (i.e., environmental and demographic variability that leads to additional changes in the number of Annual Nesters from year to year) and observation uncertainty (i.e., imperfect data collection), and provides parameter estimates with probability distributions (i.e., posterior distributions) which are useful for conveying uncertainty in management applications. Model inputs were the time series of Annual Nesters as described above.
+
+ 
+Figure 34. Schematic illustration of Bayesian state-space model based on stochastic density-independent exponential population growth. There are two major components: a process model describing the true number females nesting each year and an observation model relating the observed count data to the true number of nesting females. Three parameters are estimated: (1) r, the instantaneous population growth rate, (2) Q, process error variance, and (3) R, observation error variance. The model also provides a predicted count (number of nesting females) with a probability distribution for each year of observed data. The predicted value for the final year of observed data is then used as a starting point for future projections.		
+
+
+
+Adapting the methods in Boyd et al. (2017), the process equation of the BSSM model is written in discrete-time and log-space as:
+
+T_j=T_(j-1)+ 〖r+p〗_j	where p_j  ~ N(0,Q)           (process equation)   	    Eq. 9
+
+
+where T_j is the natural log of the true (unobserved) number of Annual Nesters in year (j), r is the instantaneous population growth rate (i.e., long-term annual population trend), p_j is the process error at year (j), and  Q is the variance of the state process (time invariant). The true state variable, T_j, is not directly measured for the NP loggerheads or WP leatherbacks . Instead, nest counts are observed on multiple beaches for each population, and the resulting time series come with various forms of observation uncertainty (i.e., missed nests or falsely identified nests). The relationship between the observed data and the corresponding true number of Annual Nesters is defined by a second equation: 
+
+B_j=T_j+ o_j	where o_j  ~ N(0,R)          (observation equation)	Eq. 10
+
+
+where B_j is the natural log of the observed Annual Nesters, o_j is the observation error at year (j), and R is the variance of the observation process (time invariant). 
+
+This basic model can be expanded to accommodate multiple state vectors, representing several populations and multiple time series (Hinrichsen and Holmes 2009):
+
+T_j=T_(j-1)+ 〖r+p〗_j	where p_j  ~ MVN(0,Q_j )      (process equation)    	Eq. 11
+
+B_j=〖Z*T〗_j+a 〖+o〗_j	where o_j  ~ MVN(0,R_j )   (observation equation)    	Eq. 12
+
+
+
+where Q_j is the process variance-covariance matrix, R_j is the observation variance-covariance matrix, Z is a matrix that maps the set of time series to the set of state vectors, and a is a vector of scaling parameters (Boyd et al. 2017). In the multivariate setting, the number of underlying population states (corresponding to the number of populations) may vary from 1, …, I, where I is the number of time series (Boyd et al. 2017). For both NP loggerheads and WP leatherbacks, we defined the model to have only one population (one state vector) with multiple time series of observations (i.e., multiple beaches), as this structure best represented the known population dynamics which include exchange of individuals and genetic similarity across the studied beaches. We assumed the observation error for each beach to be independent. These decisions simplified the distributions for the process and observation errors to normal distributions (rather than multivariate normal distributions as shown in Eq. 11Eq. 11 and Eq. 12). The annotated model code (in JAGS format) is provided in Figure 4.Figure 3 and the model structure is shown in Figure 4. 
