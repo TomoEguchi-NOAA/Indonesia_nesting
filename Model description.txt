@@ -31,6 +31,7 @@ X_T=∑_(m=1)^12▒〖exp⁡(X_(.,m) 〗)
 where X_(.,m) indicates all t’s from m =1 to m = 12. 
 
 The posterior distributions for (X_(t,m) ) were used to determine the number of total nesters. The medians of the posterior distributions were used as point estimates, whereas lower and upper 95% confidence limits were used to incorporate the estimated uncertainty in the imputed numbers of nests. The model (Eq. 2) was fit to the two datasets from leatherback nesting beaches (Jamursba Medi and Wermon) using JAGS (v. 4.3.0; (Plummer 2003, 2017)) through the jagsUI package (Kellner 2018) in R (v. 3.5.3; R Development Core Team (2018) .  
+
 	Trend Analysis and Population Viability Analysis 
 	Estimating historical trends and current nester abundance
 Population growth rates were estimated using a stochastic density-independent exponential growth model (Eq. 6 – Eq. 8Eq. 5 – Eq. 7; Figure 3 and Figure 4) applied to nest count data (Holmes et al. 2007, Boyd et al. 2017) as follows:. 

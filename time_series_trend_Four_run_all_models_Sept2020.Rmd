@@ -383,8 +383,7 @@ They look alright.
 Let's look at single U model to see how the estimate is different - should be about the same.
 
 ```{r}
-jags.out.1 <- readRDS(file = paste0("RData/", filenames[[3]], ".rds")) #"RData/SSAR1_norm_norm_trend_Four_singleU_independentQs_JM12_W6_2001-2019_2020-09-24.rds")
-
+jags.out.1 <- readRDS(file = paste0("RData/", filenames[[3]], ".rds")) 
 jm.1 <- jags.out.1$jm
 data.frame(jm.1$summary) %>% rownames_to_column("Parameter") -> summary.1.df
 
