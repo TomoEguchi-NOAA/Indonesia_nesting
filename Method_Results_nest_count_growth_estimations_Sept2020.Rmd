@@ -83,19 +83,23 @@ where B_j is the natural log of the observed annual nests, o_j is the observatio
 
 This basic model can be expanded to accommodate multiple state vectors, representing several populations and multiple time series (Hinrichsen and Holmes 2009):
 
-T_j = T_(j-1)+ r + p_j 	where p_j  ~ MVN(0,Q_j)      (process equation)    	Eq. 12
+T_j = T_(j-1) + r + p_j 	where p_j  ~ MVN(0,Q_j)      (process equation)    	Eq. 12
 
 B_j = Z * T_j + a + o_j 	where o_j  ~ MVN(0,R_j)   (observation equation)    	Eq. 13
 
-where Q_j is the process variance-covariance matrix, R_j is the observation variance-covariance matrix, Z is a matrix that maps the set of time series to the set of state vectors, and a is a vector of scaling parameters (Boyd et al. 2017). In the multivariate setting, the number of underlying population states (corresponding to the number of populations) may vary from 1, …, I, where I is the number of time series (Boyd et al. 2017). For WP leatherbacks, we considered three scenarios based on the observed nesting seasonality at the two beaches. 
+where Q_j is the process variance-covariance matrix, R_j is the observation variance-covariance matrix, Z is a matrix that maps the set of time series to the set of state vectors, and a is a vector of scaling parameters (Boyd et al. 2017). In the multivariate setting, the number of underlying population states (corresponding to the number of populations) may vary from 1, …, I, where I is the number of time series (Boyd et al. 2017). We analyzed the nest count data from Indonesia in four different ways because Jamursba Medi and Wermon have different time series duration and the observed nesting seasonality at the two locations. 
 
-1. Summer nests 1 = JM + Wermon
+1. Jamursba Medi and Wermon as two independent time series (two analyses)
 
-2. Summer nests 2 = JM and Wermon as independent beaches 
+2. Summer nests at Jamursba Medi and Wermon combined (winter nests at Wermon are treated as a separate time series using Eqs. 12 and 13)
 
-3. Winter = Wermon only
+3. Summer nests at Jamursba Medi and Wermon as separate time series (winter nests at Wermon are treated as a separate time series using Eqs. 12 and 13)
 
-We assumed the observation error for each beach to be independent. These decisions simplified the distributions for the observation errors to normal distribution (rather than multivariate normal distribution as shown in Eq. 11 and Eq. 13). 
+4. Winter nests at Wermon only
+
+For 2-4 above, we truncated the Jamursba Medi data to match with the Wermon data.
+
+We assumed the observation error for each beach to be independent. These decisions simplified the distributions for the observation errors to normal distribution (rather than multivariate normal distribution as shown in Eqs. 11 and 13). 
 
 
 ### Data
