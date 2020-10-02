@@ -311,20 +311,22 @@ looic.esimates <- lapply(lapply(loo.out,
 looic <- unlist(lapply(looic.esimates, 
                        FUN = function(x) x["looic", "Estimate"]))
 
-
-best.model <- filenames[which(looic == min(looic))]
+best.model.ID <- which(looic == min(looic))
+best.model <- filenames[best.model.ID]
 ```
 
 
-According to the LOOIC values, normal process and normal observation models with independent slope and variance terms was considered best. Pareto k values, however, were not stellar... 
+According to the LOOIC values, normal process and normal observation models with independent slope and variance terms was considered best. Pareto k values don't look good. 
 
 ```{r}
 pareto.k <- lapply(loo.out, 
                    FUN = function(x) x$loo.out)
-pareto.k.best <- pareto.k[[which(looic == min(looic))]]
+pareto.k.best <- pareto.k[[best.model.ID]]
+
+pareto.k.best
 ```
 
-Take a look at which data points are problematic
+Take a look at all data points vs. pareto k
 
 ```{r}
 
@@ -350,7 +352,7 @@ ggplot(data = data.loo) +
   geom_point(aes(x = Frac.Year, y = pareto.k, color = Loc))
 ```
 
-Not great... but should we just move forward rather than trying to see I can come up with a better model? 
+So, we'll move forward with this model. 
 
 ```{r}
 
@@ -383,7 +385,8 @@ They look alright.
 Let's look at single U model to see how the estimate is different - should be about the same.
 
 ```{r}
-jags.out.1 <- readRDS(file = paste0("RData/", filenames[[3]], ".rds")) 
+oneU.model <- 3
+jags.out.1 <- readRDS(file = paste0("RData/", filenames[[oneU.model]], ".rds")) 
 jm.1 <- jags.out.1$jm
 data.frame(jm.1$summary) %>% rownames_to_column("Parameter") -> summary.1.df
 
@@ -396,15 +399,17 @@ summary.1.df %>% filter(Parameter == "U")
 bayesplot::mcmc_dens(jm.1$samples, "U")
 ```
 
-So, this is pretty much identical to the previous model (independent Us). LOOIC value for this one was only 2 greater than the other model (985.89 vs. 988.08). So, it may make sense to use the simpler model.
+So, this is pretty much identical to the previous model (independent Us). LOOIC value for this one was only ```r looic[best.model.ID] - looic[oneU.model]``` greater than the other model (```r looic[best.model.ID]``` vs. ```r looic[oneU.model]```). So, it may make sense to use the simpler model.
 
 Pareto K?
 
 ```{r}
-pareto.k[[3]]
+pareto.k[[oneU.model]]
 ```
 
-It's about the same... 
+They are not that different... So, move on with the simpler model. 
+
+Next, data are split into summer and winter. To 
 
 ```{r}
 

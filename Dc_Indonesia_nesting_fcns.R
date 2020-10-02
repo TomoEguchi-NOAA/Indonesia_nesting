@@ -30,6 +30,7 @@ compute.LOOIC <- function(loglik, data.vector, MCMC.params){
   
   # each column corresponds to a data point and rows are MCMC samples
   loglik.mat <- matrix(loglik.vec, nrow = n.per.chain * MCMC.params$n.chains)
+  
   # take out the columns that correspond to missing data points
   loglik.mat <- loglik.mat[, !is.na(data.vector)]
   # loglik.mat <- matrix(loglik.vec[!is.na(data.vector)], 
@@ -40,9 +41,10 @@ compute.LOOIC <- function(loglik, data.vector, MCMC.params){
                                       each = n.per.chain),
                        cores = 4)
   
-  loo.out <- rstanarm::loo(loglik.mat, 
-                           r_eff = Reff, 
-                           cores = 4, k_threshold = 0.7)
+  #
+  loo.out <- loo(loglik.mat, 
+                 r_eff = Reff, 
+                 cores = 4, k_threshold = 0.7)
   
   out.list <- list(Reff = Reff,
                    loo.out = loo.out)

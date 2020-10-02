@@ -89,7 +89,7 @@ B_j = Z * T_j + a + o_j 	where o_j  ~ MVN(0,R_j)   (observation equation)    	Eq
 
 where Q_j is the process variance-covariance matrix, R_j is the observation variance-covariance matrix, Z is a matrix that maps the set of time series to the set of state vectors, and a is a vector of scaling parameters (Boyd et al. 2017). In the multivariate setting, the number of underlying population states (corresponding to the number of populations) may vary from 1, …, I, where I is the number of time series (Boyd et al. 2017). We analyzed the nest count data from Indonesia in four different ways because Jamursba Medi and Wermon have different time series duration and the observed nesting seasonality at the two locations. 
 
-1. Jamursba Medi and Wermon as two independent time series (two analyses)
+1. No separation of summer and winter nest counts. Trends are estimated for all nest counts at two locations (or one trend if one-trend model is considered better). 
 
 2. Summer nests at Jamursba Medi and Wermon combined (winter nests at Wermon are treated as a separate time series using Eqs. 12 and 13)
 
@@ -259,6 +259,9 @@ if (save.fig)
 ```{r plot_W_by_month, echo=FALSE, cache=TRUE, fig.cap = "Figure 5. Monthly nest counts at Wermon. "}
 knitr::include_graphics("figures/W_monthly.png")
 ```
+
+
+CHECK THE FOLLOWING STATEMENT - I DON'T THINK I REMOVED ANY DATA POINTS 2020-10-02
 
 Observed counts for 2004 and 2005 seem to be outliers with respect to within-year patterns. Because this analysis is to estimate missing values from observed patterns, we remove these years from the data for the following analysis.  
 
