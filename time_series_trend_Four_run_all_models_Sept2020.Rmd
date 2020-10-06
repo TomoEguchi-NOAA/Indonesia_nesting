@@ -41,7 +41,7 @@ model.names <- c("singleUQ",
                  "independentUs_singleQ")
 
 # t_loc has location (or series) specific df parameter 
-obs.models <- c("norm", "t") # 
+obs.models <- c("norm", "t", "t_locs") # 
 
 ```
 
@@ -175,7 +175,7 @@ for (k1 in 1:length(model.names) ){ #3:()
                      "sigma.N", 'sigma.Q', "sigma.R", 
                      "mu", "y", "X", "deviance", "loglik")
     
-    if (obs.model == "t"){
+    if (obs.model == "t" | obs.models == "t_locs"){
       jags.params <- c(jags.params, "df")
     }
     
