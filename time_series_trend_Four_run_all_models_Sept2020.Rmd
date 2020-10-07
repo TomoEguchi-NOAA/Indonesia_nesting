@@ -223,7 +223,7 @@ for (k1 in 1:length(model.names) ){ #3:()
                                    median = as.vector(t(jm$q50$y[,,2])),
                                    high = as.vector(t(jm$q97.5$y[,,2])))
           ys.stats.W$time <- data.jags.JM$data.1$Frac.Year
-          ys.stats.W$obsY <- c(rep(NA, 9), data.jags.W$data.1$Nests)
+          ys.stats.W$obsY <- data.jags.W$data.1$Nests #c(rep(NA, 9), data.jags.W$data.1$Nests)
           ys.stats.W$month <- data.jags.JM$data.1$Month
           ys.stats.W$year <- data.jags.JM$data.1$Year
           ys.stats.W$Season <- data.jags.JM$data.1$Season
@@ -249,7 +249,7 @@ for (k1 in 1:length(model.names) ){ #3:()
           Xs.stats.W$location <- "Wermon"
           
           Xs.stats.W$time <- data.jags.JM$data.1$Frac.Year
-          Xs.stats.W$obsY <- c(rep(NA, 9), data.jags.W$data.1$Nests)
+          Xs.stats.W$obsY <- data.jags.W$data.1$Nests #c(rep(NA, 9), data.jags.W$data.1$Nests)
           Xs.stats.W$month <- data.jags.JM$data.1$Month
           Xs.stats.W$year <- data.jags.JM$data.1$Year
           Xs.stats.W$Season <- data.jags.JM$data.1$Season
@@ -296,7 +296,7 @@ for (k1 in 1:length(model.names) ){ #3:()
         c <- c + 1
         
       } else {
-        print(paste0("Model file", model.name, " does not exist" ))
+        print(paste0("Model file ", model.name, " does not exist" ))
       }    
       
     }

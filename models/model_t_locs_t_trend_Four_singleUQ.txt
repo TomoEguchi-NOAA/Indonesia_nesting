@@ -24,48 +24,57 @@
 # and did not gain anything in return. 
 
 model{
+    # for single U model, there is one state but two time series.
     # Initial states
-    for(j in 1:n.states) {
-        U[j] ~ dnorm(u_mean, 1/(u_sd^2))
+           
+     for(i in 1:n.timeseries) {
             
-        N0[j] ~ dnorm(N0_mean[j], 1/(N0_sd[j]^2))    # prior on init state
-        #predN[j,1] <- N0[j] + U[j]  
-        #N[j,1] ~ dnorm(predN[j,1], tau.N)
-        N[j,1] <- N0[j] + U[j]
+        N0[i] ~ dnorm(N0_mean[i], 1/(N0_sd[i]^2))    # prior on init state
+        predN[i,1] <- N0[i] + U  
+        N[i,1] <- predN[i,1]
 
+    }	
+    #N0 ~ dnorm(N0_mean, 1/(N0_sd^2))    # prior on init state
+    #predN[j,1] <- N0[j] + U  
+    #N[1] ~ dnorm(N0 + U, tau.N) 
+  
+    for (j in 1:n.timeseries){
         for (t in 1:n.months){
-           predX[1,t,j] <- log(p[j, t]) + N[j,1]
-           X[1,t,j] ~ dt(predX[1,t,j], tau.Q[j], df_X)
+            # m[j,t] is the same for all rows so change array to a vector?
+            #predX[1,t,j] <- log(p[j, m[1,t]]) + N[j,1]
+            predX[1,t,j] <- log(p[j, t]) + N[j,1]
+            X[1,t,j] ~ dt(predX[1,t,j], tau.Q, df_X[j])
 
-           # observation
-           # By having the total abundance N in the model, I don't think this inproduct
-           # calculation is needed. The dependency between the timeseries, or lack thereof,
-           # is modeled by the new parameters U (one for single and two for independent)
-           #predY[1,t,j] <- inprod(Z[j, 1:n.states], X[1,t,])
-           y[1,t,j] ~  dt(X[1,t,j], tau.R[j], df)
+            # observation
+            # By having the total abundance N in the model, I don't think this inproduct
+            # calculation is needed. The dependency between the timeseries, or lack thereof,
+            # is modeled by the new parameters U (one for single and two for independent)
+            #predY[1,t,j] <- inprod(Z[j, 1:n.states], X[1,t,j])
+            y[1,t,j] ~  dt(X[1,t,j], tau.R[j], df)
                 
-           loglik[1,t,j] <- logdensity.t(y[1,t,j], X[1,t,j], tau.R[j], df)
+            loglik[1,t,j] <- logdensity.t(y[1,t,j], X[1,t,j], tau.R[j], df)
         }       
-
     }
 
     ####  End of initial states ####
     
-    for (s in 2:n.years){
-        for (j in 1:n.states){
-            #N[j, s] ~ dnorm(pred.N[j, s], tau.N)
-            #pred.N[j, s] <- U[j] + N[j, s-1]
-            N[j, s] <- U[j] + N[j, s-1]
+    for (s in 2:n.years){            
+
+        for (j in 1:n.timeseries){
+           #N[j,s] ~ dnorm(pred.N[j, s], tau.N)
+           #pred.N[j, s] <- U + N[j, s-1]
+           N[j, s] <- U + N[j, s-1]
 
             for (t in 1:n.months){
+                # N is in the log space but p is not. 
                 predX[s,t,j] <- log(p[j, t]) + N[j,s]
-                X[s,t,j] ~ dt(predX[s,t,j], tau.Q[j], df_X)
+                X[s,t,j] ~ dt(predX[s,t,j], tau.Q, df_X[j])
 
                 # observation
                 # By having the total abundance N in the model, I don't think this inproduct
                 # calculation is needed. The dependency between the timeseries, or lack thereof,
                 # is modeled by the new parameters U (one for single and two for independent)
-                #predY[s,t,j] <- inprod(Z[j, 1:n.states], X[s,t,])
+                #predY[s,t,j] <- inprod(Z[j, 1:n.states], X[s,t,j])
                 y[s,t,j] ~  dt(X[s,t,j], tau.R[j], df)
                 
                 loglik[s,t,j] <- logdensity.t(y[s,t,j], X[s,t,j], tau.R[j], df)
@@ -75,9 +84,11 @@ model{
 
     }
 
+    # monthly proportions for distributing N into 12 months are modeled discrete Fourier series with a given
+    # period
     # n.months = 12 when entire year is modeled. 
     # n.months = 6 when one season is modeled (Wermon only)
-    for (j in 1:n.states){
+    for (j in 1:n.timeseries){
         for (k in 1:n.months){
             p.const[j, k] <-  2 * pi * k / period[j]
             p[j, k] <- (C0[j] + p.beta.cos[j] * cos(p.const[j,k]) + p.beta.sin[j] * sin(p.const[j,k]))/(n.months * C0[j] + p.beta.cos[j] * C_cos[j] + p.beta.sin[j] * C_sin[j])
@@ -86,15 +97,17 @@ model{
         tau.R[j] <- 1/(sigma.R[j] * sigma.R[j])
         p.beta.cos[j] ~ dnorm(0, 1)
         p.beta.sin[j] ~ dnorm(0, 1)
+        df_X[j] ~ dgamma(5, 0.1)T(2,) 
 
-        # Q is the variance of the process (X)
-        sigma.Q[j] ~ dgamma(2, 0.5)
-        tau.Q[j] <- 1/(sigma.Q[j] * sigma.Q[j])    
-        
     }
-                          
-    df_X ~ dgamma(5, 0.1)T(2,) 
+
+    U ~ dnorm(u_mean, 1/(u_sd^2))
     df ~ dgamma(5, 0.1)T(2,) 
+    
+    # Q is the variance of the process (X)
+    sigma.Q ~ dgamma(2, 0.5)
+    tau.Q <- 1/(sigma.Q * sigma.Q)    
+                          
     sigma.N ~ dgamma(2, 0.5)
     tau.N <- 1/(sigma.N * sigma.N)
 
