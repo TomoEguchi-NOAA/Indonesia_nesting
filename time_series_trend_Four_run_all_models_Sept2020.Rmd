@@ -41,6 +41,7 @@ model.names <- c("singleUQ",
                  "independentUs_singleQ")
 
 # t_loc has location (or series) specific df parameter 
+state.models <- c("norm", "t", "t_locs")
 obs.models <- c("norm", "t", "t_locs") # 
 
 ```
@@ -162,136 +163,142 @@ for (k1 in 1:length(model.names) ){ #3:()
   jags.data$n.states <- n.states
 
   for (k2 in 1:length(obs.models)){
-    
-    obs.model <- obs.models[k2]
-    filename.root <- paste0("SSAR1_norm_", obs.models[k2], "_trend_Four_", 
-                            model.names[model.number], "_",
-                            "JM", period.JM, "_W", period.W, "_",
-                            year.begin, "_", year.end, "_", run.date)
-    
-    filenames[[c]] <- filename.root
-    # define parameters to monitor - add "df" for t distribution
-    jags.params <- c('N', 'U', "p", "p.beta.cos", "p.beta.sin",
-                     "sigma.N", 'sigma.Q', "sigma.R", 
-                     "mu", "y", "X", "deviance", "loglik")
-    
-    if (obs.model == "t" | obs.models == "t_locs"){
-      jags.params <- c(jags.params, "df")
-    }
-    
-    if (length(grep("FourQ", model.names[model.number])) != 0){
-      jags.params <- c(jags.params, c("C0_Q", "q.beta.cos", "q.beta.sin"))
-    }
-   
-    if (length(grep("constCV", model.names[model.number])) != 0)
-      jags.params <- c(jags.params, "cv.Q")
-    
-    model.name <- paste0("models/model_norm_", obs.model, "_trend_Four_", 
-                     model.names[model.number], ".txt")
-    
-    if (file.exists(model.name)){
+    for (k3 in 1:length(state.models)){
+      obs.model <- obs.models[k2]
+      state.model <- state.models[k3]
+      filename.root <- paste0("SSAR1_", state.model, "_", obs.model, "_trend_Four_", 
+                              model.names[model.number], "_",
+                              "JM", period.JM, "_W", period.W, "_",
+                              year.begin, "_", year.end, "_", run.date)
       
-      if (!file.exists(paste0("RData/", filename.root, '.rds'))){
-        jm <- jags(jags.data,
-                 inits = NULL,
-                 parameters.to.save= jags.params,
-                 model.file = model.name,
-                 n.chains = MCMC.params$n.chains,
-                 n.burnin = MCMC.params$n.burnin,
-                 n.thin = MCMC.params$n.thin,
-                 n.iter = MCMC.params$n.samples,
-                 DIC = T, parallel=T)
+      filenames[[c]] <- filename.root
+      # define parameters to monitor - add "df" for t distribution
+      jags.params <- c('N', 'U', "p", "p.beta.cos", "p.beta.sin",
+                       "sigma.N", 'sigma.Q', "sigma.R", 
+                       "mu", "y", "X", "deviance", "loglik")
       
-        ys.stats.JM <- data.frame(low = as.vector(t(jm$q2.5$y[,,1])),
-                                  median = as.vector(t(jm$q50$y[,,1])),
-                                  high = as.vector(t(jm$q97.5$y[,,1])))
-        ys.stats.JM$time <- data.jags.JM$data.1$Frac.Year
-        ys.stats.JM$obsY <- data.jags.JM$data.1$Nests
-        ys.stats.JM$month <- data.jags.JM$data.1$Month
-        ys.stats.JM$year <- data.jags.JM$data.1$Year
-        ys.stats.JM$Season <- data.jags.JM$data.1$Season
-        ys.stats.JM$location <- "Jamursba-Medi"
-        
-        ys.stats.W <- data.frame(low = as.vector(t(jm$q2.5$y[,,2])),
-                                 median = as.vector(t(jm$q50$y[,,2])),
-                                 high = as.vector(t(jm$q97.5$y[,,2])))
-        ys.stats.W$time <- data.jags.JM$data.1$Frac.Year
-        ys.stats.W$obsY <- c(rep(NA, 9), data.jags.W$data.1$Nests)
-        ys.stats.W$month <- data.jags.JM$data.1$Month
-        ys.stats.W$year <- data.jags.JM$data.1$Year
-        ys.stats.W$Season <- data.jags.JM$data.1$Season
-        ys.stats.W$location <- "Wermon"
-        
-        ys.stats <- rbind(ys.stats.JM, ys.stats.W)
-        
-        # extract Xs - the state model
-        
-        Xs.stats.JM <- data.frame(low = as.vector(t(jm$q2.5$X[,,1])),
-                                  median = as.vector(t(jm$q50$X[,,1])),
-                                  high = as.vector(t(jm$q97.5$X[,,1])))
-        Xs.stats.JM$time <- data.jags.JM$data.1$Frac.Year
-        Xs.stats.JM$obsY <- data.jags.JM$data.1$Nests
-        Xs.stats.JM$month <- data.jags.JM$data.1$Month
-        Xs.stats.JM$year <- data.jags.JM$data.1$Year
-        Xs.stats.JM$Season <- data.jags.JM$data.1$Season
-        Xs.stats.JM$location <- "Jamursba-Medi"
-        
-        Xs.stats.W <- data.frame(low = as.vector(t(jm$q2.5$X[,,2])),
-                                 median = as.vector(t(jm$q50$X[,,2])),
-                                 high = as.vector(t(jm$q97.5$X[,,2])))
-        Xs.stats.W$location <- "Wermon"
-        
-        Xs.stats.W$time <- data.jags.JM$data.1$Frac.Year
-        Xs.stats.W$obsY <- c(rep(NA, 9), data.jags.W$data.1$Nests)
-        Xs.stats.W$month <- data.jags.JM$data.1$Month
-        Xs.stats.W$year <- data.jags.JM$data.1$Year
-        Xs.stats.W$Season <- data.jags.JM$data.1$Season
-        
-        Xs.stats <- rbind(Xs.stats.JM, Xs.stats.W)
-        
-        Ns.stats.JM <- data.frame(time = year.begin:year.end,
-                                  low = as.vector(t(jm$q2.5$N[1,])),
-                                  median = as.vector(t(jm$q50$N[1,])),
-                                  high = as.vector(t(jm$q97.5$N[1,])))
-        Ns.stats.JM$location <- "Jamursba-Medi"
-        
-        Ns.stats.W <- data.frame(time = year.begin:year.end,
-                                 low = as.vector(t(jm$q2.5$N[2,])),
-                                 median = as.vector(t(jm$q50$N[2,])),
-                                 high = as.vector(t(jm$q97.5$N[2,])))
-        Ns.stats.W$location <- "Wermon"
-        
-        Ns.stats <- rbind(Ns.stats.JM, Ns.stats.W)
-        
-        results.all <- list(jm = jm,
-                            Xs.stats = Xs.stats,
-                            ys.stats = ys.stats,
-                            Ns.stats = Ns.stats)
-        
-        saveRDS(results.all,
-                file = paste0("RData/", filename.root, '.rds'))
-      } else {
-        results.all <- readRDS(file = paste0("RData/", filename.root, '.rds'))
+      if (obs.model == "t" | obs.model == "t_locs"){
+        jags.params <- c(jags.params, "df")
+      }
+    
+      if (state.model == "t" | state.model == "t_locs"){
+        jags.params <- c(jags.params, "df_X")
       }
       
-      if (!file.exists(paste0("RData/", filename.root, "_loo.rds"))){
-        jm <- results.all$jm
-        
-        loo.out[[c]] <- compute.LOOIC(loglik = jm$sims.list$loglik, 
-                                      MCMC.params = MCMC.params, 
-                                      data.vector = as.vector(jags.data$y))
-        saveRDS(loo.out[[c]], file = paste0("RData/", filename.root, "_loo.rds"))
-      } else {
-        loo.out[[c]] <- readRDS(file = paste0("RData/", filename.root, "_loo.rds"))
-        
+      if (length(grep("FourQ", model.names[model.number])) != 0){
+        jags.params <- c(jags.params, c("C0_Q", "q.beta.cos", "q.beta.sin"))
       }
       
-      c <- c + 1
+      if (length(grep("constCV", model.names[model.number])) != 0)
+        jags.params <- c(jags.params, "cv.Q")
       
-    } else {
-      print(paste0("Model file", model.name, " does not exist" ))
-    }    
-
+      model.name <- paste0("models/model_", state.model, "_", obs.model, "_trend_Four_", 
+                           model.names[model.number], ".txt")
+      
+      if (file.exists(model.name)){
+        
+        if (!file.exists(paste0("RData/", filename.root, '.rds'))){
+          jm <- jags(jags.data,
+                     inits = NULL,
+                     parameters.to.save= jags.params,
+                     model.file = model.name,
+                     n.chains = MCMC.params$n.chains,
+                     n.burnin = MCMC.params$n.burnin,
+                     n.thin = MCMC.params$n.thin,
+                     n.iter = MCMC.params$n.samples,
+                     DIC = T, parallel=T)
+          
+          ys.stats.JM <- data.frame(low = as.vector(t(jm$q2.5$y[,,1])),
+                                    median = as.vector(t(jm$q50$y[,,1])),
+                                    high = as.vector(t(jm$q97.5$y[,,1])))
+          ys.stats.JM$time <- data.jags.JM$data.1$Frac.Year
+          ys.stats.JM$obsY <- data.jags.JM$data.1$Nests
+          ys.stats.JM$month <- data.jags.JM$data.1$Month
+          ys.stats.JM$year <- data.jags.JM$data.1$Year
+          ys.stats.JM$Season <- data.jags.JM$data.1$Season
+          ys.stats.JM$location <- "Jamursba-Medi"
+          
+          ys.stats.W <- data.frame(low = as.vector(t(jm$q2.5$y[,,2])),
+                                   median = as.vector(t(jm$q50$y[,,2])),
+                                   high = as.vector(t(jm$q97.5$y[,,2])))
+          ys.stats.W$time <- data.jags.JM$data.1$Frac.Year
+          ys.stats.W$obsY <- c(rep(NA, 9), data.jags.W$data.1$Nests)
+          ys.stats.W$month <- data.jags.JM$data.1$Month
+          ys.stats.W$year <- data.jags.JM$data.1$Year
+          ys.stats.W$Season <- data.jags.JM$data.1$Season
+          ys.stats.W$location <- "Wermon"
+          
+          ys.stats <- rbind(ys.stats.JM, ys.stats.W)
+          
+          # extract Xs - the state model
+          
+          Xs.stats.JM <- data.frame(low = as.vector(t(jm$q2.5$X[,,1])),
+                                    median = as.vector(t(jm$q50$X[,,1])),
+                                    high = as.vector(t(jm$q97.5$X[,,1])))
+          Xs.stats.JM$time <- data.jags.JM$data.1$Frac.Year
+          Xs.stats.JM$obsY <- data.jags.JM$data.1$Nests
+          Xs.stats.JM$month <- data.jags.JM$data.1$Month
+          Xs.stats.JM$year <- data.jags.JM$data.1$Year
+          Xs.stats.JM$Season <- data.jags.JM$data.1$Season
+          Xs.stats.JM$location <- "Jamursba-Medi"
+          
+          Xs.stats.W <- data.frame(low = as.vector(t(jm$q2.5$X[,,2])),
+                                   median = as.vector(t(jm$q50$X[,,2])),
+                                   high = as.vector(t(jm$q97.5$X[,,2])))
+          Xs.stats.W$location <- "Wermon"
+          
+          Xs.stats.W$time <- data.jags.JM$data.1$Frac.Year
+          Xs.stats.W$obsY <- c(rep(NA, 9), data.jags.W$data.1$Nests)
+          Xs.stats.W$month <- data.jags.JM$data.1$Month
+          Xs.stats.W$year <- data.jags.JM$data.1$Year
+          Xs.stats.W$Season <- data.jags.JM$data.1$Season
+          
+          Xs.stats <- rbind(Xs.stats.JM, Xs.stats.W)
+          
+          Ns.stats.JM <- data.frame(time = year.begin:year.end,
+                                    low = as.vector(t(jm$q2.5$N[1,])),
+                                    median = as.vector(t(jm$q50$N[1,])),
+                                    high = as.vector(t(jm$q97.5$N[1,])))
+          Ns.stats.JM$location <- "Jamursba-Medi"
+          
+          Ns.stats.W <- data.frame(time = year.begin:year.end,
+                                   low = as.vector(t(jm$q2.5$N[2,])),
+                                   median = as.vector(t(jm$q50$N[2,])),
+                                   high = as.vector(t(jm$q97.5$N[2,])))
+          Ns.stats.W$location <- "Wermon"
+          
+          Ns.stats <- rbind(Ns.stats.JM, Ns.stats.W)
+          
+          results.all <- list(jm = jm,
+                              Xs.stats = Xs.stats,
+                              ys.stats = ys.stats,
+                              Ns.stats = Ns.stats)
+          
+          saveRDS(results.all,
+                  file = paste0("RData/", filename.root, '.rds'))
+        } else {
+          results.all <- readRDS(file = paste0("RData/", filename.root, '.rds'))
+        }
+        
+        if (!file.exists(paste0("RData/", filename.root, "_loo.rds"))){
+          jm <- results.all$jm
+          
+          loo.out[[c]] <- compute.LOOIC(loglik = jm$sims.list$loglik, 
+                                        MCMC.params = MCMC.params, 
+                                        data.vector = as.vector(jags.data$y))
+          saveRDS(loo.out[[c]], file = paste0("RData/", filename.root, "_loo.rds"))
+        } else {
+          loo.out[[c]] <- readRDS(file = paste0("RData/", filename.root, "_loo.rds"))
+          
+        }
+        
+        c <- c + 1
+        
+      } else {
+        print(paste0("Model file", model.name, " does not exist" ))
+      }    
+      
+    }
     
   }
   
@@ -385,7 +392,7 @@ They look alright.
 Let's look at single U model to see how the estimate is different - should be about the same.
 
 ```{r}
-oneU.model <- 3
+oneU.model <- 4
 jags.out.1 <- readRDS(file = paste0("RData/", filenames[[oneU.model]], ".rds")) 
 jm.1 <- jags.out.1$jm
 data.frame(jm.1$summary) %>% rownames_to_column("Parameter") -> summary.1.df
@@ -399,7 +406,7 @@ summary.1.df %>% filter(Parameter == "U")
 bayesplot::mcmc_dens(jm.1$samples, "U")
 ```
 
-So, this is pretty much identical to the previous model (independent Us). LOOIC value for this one was only ```r looic[best.model.ID] - looic[oneU.model]``` greater than the other model (```r looic[best.model.ID]``` vs. ```r looic[oneU.model]```). So, it may make sense to use the simpler model.
+So, this is pretty much identical to the previous model (independent Us). LOOIC value for this one was only ```r looic[oneU.model] - looic[best.model.ID] ``` greater than the other model (```r looic[best.model.ID]``` vs. ```r looic[oneU.model]```). So, it may make sense to use the simpler model.
 
 Pareto K?
 
