@@ -89,24 +89,21 @@ data.extract <- function(location, year.begin, year.end, season.begin = year.beg
   }
   
   # create regularly spaced time series:
-  data.2 <- data.frame(Year = rep(min(data.0$Year_begin,
-                                      na.rm = T):max(data.0$Year_begin,
-                                                     na.rm = T),
-                                  each = 12),
-                       Month_begin = rep(1:12,
-                                         max(data.0$Year_begin,
-                                             na.rm = T) -
-                                           min(data.0$Year_begin,
-                                               na.rm = T) + 1)) %>%
+  data.frame(Year = rep(year.begin:max(data.0$Year_begin,
+                                       na.rm = T),
+                        each = 12),
+             Month_begin = rep(1:12,
+                               max(data.0$Year_begin,
+                                   na.rm = T) -
+                                 year.begin + 1)) %>%
     mutate(begin_date = as.Date(paste(Year,
                                       Month_begin,
                                       '01', sep = "-"),
                                 format = "%Y-%m-%d"),
            Frac.Year = Year + (Month_begin-0.5)/12) %>%
-    select(Year, Month_begin, begin_date, Frac.Year)
+    select(Year, Month_begin, begin_date, Frac.Year) -> data.2
 
   # also make "nesting season" that starts April and ends March
-  
   data.0 %>% mutate(begin_date = as.Date(paste(Year_begin,
                                                Month_begin,
                                                '01', sep = "-"),

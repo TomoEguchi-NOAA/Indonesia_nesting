@@ -28,7 +28,7 @@ save.data <- T
 save.fig <- T
 run.date <- "2020-09-24" #Sys.Date() #"2019-06-25" #
 
-year.begin <- 2001
+year.begin <- 2002
 year.end <- 2019
 
 period.JM <- 12
@@ -70,6 +70,7 @@ data.jags.JM <- data.extract(location = "JM",
                              year.begin = year.begin, 
                              year.end = year.end)
 
+# Begining year for Wermon is 2002.
 data.jags.W <- data.extract(location = "W", 
                              year.begin = year.begin, 
                              year.end = year.end)
