@@ -1,0 +1,279 @@
+
+---
+title: "Combining data imputation and trend analysis using discrete Fourier series for JM"
+output: html_notebook
+---
+
+Trying to merge the data imputation process and trend analysis with one dataset.
+
+Set things up:
+
+```{r}
+rm(list=ls())
+
+# tic <- Sys.time()
+# Sys <- Sys.info()
+source('Dc_Indonesia_nesting_fcns.R')
+#library(rjags)
+
+library(jagsUI)
+library(coda)
+library(tidyverse)
+library(loo)
+```
+
+
+```{r}
+save.data <- T
+save.fig <- T
+run.date <- "2020-10-09" #Sys.Date() #"2019-06-25" #
+
+# for JM, we can start early
+year.begin <- 2002
+year.end <- 2019
+
+period.JM <- 12
+period.W <- 6
+maxN <- 10000
+
+# t_loc has location (or series) specific df parameter 
+state.models <- c("norm", "t")
+obs.models <- c("norm", "t") # 
+
+```
+
+
+Set up the MCMC parameters
+
+```{r}
+MCMC.n.chains <- 5
+MCMC.n.samples <- 50000
+MCMC.n.burnin <- 10000
+MCMC.n.thin <- 5
+
+MCMC.params <- list(n.chains = MCMC.n.chains,
+                    n.samples = MCMC.n.samples,
+                    n.burnin = MCMC.n.burnin,
+                    n.thin = MCMC.n.thin)
+```
+
+
+Bring in the data
+
+```{r}
+
+data.jags.W <- data.extract(location = "W", 
+                             year.begin = year.begin, 
+                             year.end = year.end)
+
+```
+
+Combine datasets for analysis
+
+```{r}
+jags.data <- list(y = data.jags.W$jags.data2$y,
+                  #m = data.jags.W$jags.data2$m,
+                  C0 = 15,
+                  n.months = 12,
+                  C_cos = sum(apply(matrix(1:12, nrow=1), 
+                                      MARGIN = 1, 
+                                      FUN = function(x) cos(2 * pi * x/period.JM))),
+                  C_sin = sum(apply(matrix(1:12, nrow=1), 
+                                      MARGIN = 1, 
+                                      FUN = function(x) sin(2 * pi * x/period.JM))),
+                  pi = pi,
+                  period = period.JM,
+                  N0_mean = log(sum(exp(data.jags.W$jags.data2$y[1,]), na.rm = T)),
+                  N0_sd = 10,
+                  n.years = nrow(data.jags.W$jags.data2$y))
+
+```
+
+run jags on each model
+```{r}
+c <- 1
+loo.out <- list()
+filenames <- list()
+k1 <- k2 <- 1
+
+for (k2 in 1:length(obs.models)){
+  for (k3 in 1:length(state.models)){
+    obs.model <- obs.models[k2]
+    state.model <- state.models[k3]
+    filename.root <- paste0("SSAR1_", state.model, "_", obs.model, "_trend_Four_", 
+                            "W", period.W, "_",
+                            year.begin, "_", year.end, "_", run.date)
+    
+    filenames[[c]] <- filename.root
+    # define parameters to monitor - add "df" for t distribution
+    jags.params <- c('N', 'U', "p", "p.beta.cos", "p.beta.sin",
+                     "sigma.N", 'sigma.pro', "sigma.obs", 
+                     "mu", "y", "X", "deviance", "loglik")
+    
+    if (obs.model == "t"){
+      jags.params <- c(jags.params, "df_y")
+    }
+    
+    if (state.model == "t"){
+      jags.params <- c(jags.params, "df_X")
+    }
+    
+    model.name <- paste0("models/model_", state.model, "_", 
+                         obs.model, "_trend_Four.txt")
+    
+    if (file.exists(model.name)){
+      
+      if (!file.exists(paste0("RData/", filename.root, '.rds'))){
+        jm <- jags(jags.data,
+                   inits = NULL,
+                   parameters.to.save= jags.params,
+                   model.file = model.name,
+                   n.chains = MCMC.params$n.chains,
+                   n.burnin = MCMC.params$n.burnin,
+                   n.thin = MCMC.params$n.thin,
+                   n.iter = MCMC.params$n.samples,
+                   DIC = T, parallel=T)
+        
+        ys.stats <- data.frame(low = as.vector(t(jm$q2.5$y)),
+                               median = as.vector(t(jm$q50$y)),
+                               high = as.vector(t(jm$q97.5$y)))
+        ys.stats$time <- data.jags.W$data.1$Frac.Year
+        ys.stats$obsY <- data.jags.W$data.1$Nests
+        ys.stats$month <- data.jags.W$data.1$Month
+        ys.stats$year <- data.jags.W$data.1$Year
+        ys.stats$Season <- data.jags.W$data.1$Season
+        ys.stats$location <- "Jamursba-Medi"
+        
+        # extract Xs - the state model
+        
+        Xs.stats <- data.frame(low = as.vector(t(jm$q2.5$X)),
+                               median = as.vector(t(jm$q50$X)),
+                               high = as.vector(t(jm$q97.5$X)))
+        Xs.stats$time <- data.jags.W$data.1$Frac.Year
+        Xs.stats$obsY <- data.jags.W$data.1$Nests
+        Xs.stats$month <- data.jags.W$data.1$Month
+        Xs.stats$year <- data.jags.W$data.1$Year
+        Xs.stats$Season <- data.jags.W$data.1$Season
+        Xs.stats$location <- "Jamursba-Medi"
+        
+        Ns.stats <- data.frame(time = year.begin:year.end,
+                               low = as.vector(t(jm$q2.5$N)),
+                               median = as.vector(t(jm$q50$N)),
+                               high = as.vector(t(jm$q97.5$N)))
+        Ns.stats$location <- "Jamursba-Medi"
+        
+        results.all <- list(jm = jm,
+                            Xs.stats = Xs.stats,
+                            ys.stats = ys.stats,
+                            Ns.stats = Ns.stats)
+        
+        saveRDS(results.all,
+                file = paste0("RData/", filename.root, '.rds'))
+      } else {
+        results.all <- readRDS(file = paste0("RData/", filename.root, '.rds'))
+      }
+      
+      if (!file.exists(paste0("RData/", filename.root, "_loo.rds"))){
+        jm <- results.all$jm
+        
+        loo.out[[c]] <- compute.LOOIC(loglik = jm$sims.list$loglik, 
+                                      MCMC.params = MCMC.params, 
+                                      data.vector = as.vector(jags.data$y))
+        saveRDS(loo.out[[c]], file = paste0("RData/", filename.root, "_loo.rds"))
+      } else {
+        loo.out[[c]] <- readRDS(file = paste0("RData/", filename.root, "_loo.rds"))
+        
+      }
+      
+      c <- c + 1
+      
+    } else {
+      print(paste0("Model file ", model.name, " does not exist" ))
+    }    
+    
+  }
+  
+}
+
+
+```
+
+Compare the results using LOOIC:
+
+```{r}
+
+looic.esimates <- lapply(lapply(loo.out, 
+                                FUN = function(x) x$loo.out),
+                         FUN = function(x) x$estimates)
+
+looic <- unlist(lapply(looic.esimates, 
+                       FUN = function(x) x["looic", "Estimate"]))
+
+best.model.ID <- which(looic == min(looic))
+best.model <- filenames[best.model.ID]
+```
+
+
+According to the LOOIC values, normal process and normal observation models with independent slope and variance terms was considered best. Pareto k values don't look good. 
+
+```{r}
+pareto.k <- lapply(loo.out, 
+                   FUN = function(x) x$loo.out)
+pareto.k.best <- pareto.k[[best.model.ID]]
+
+pareto.k.best
+```
+
+Pareto k values are bad. Interesting that the worst model, according to LOOIC, is the best according to Pareto k.
+
+```{r}
+pareto.k[[4]]
+```
+
+Take a look at all data points vs. pareto k
+
+```{r}
+
+data.jags.W$data.1 %>% select(Frac.Year, Nests, Season) %>%
+  mutate(Loc = "W") %>%
+  # transmute(Frac.Year = Frac.Year, 
+  #           Nests.W = Nests) %>%
+  na.omit() -> data.W
+
+data.W$pareto.k <- pareto.k.best$diagnostics$pareto_k
+
+ggplot(data = data.W) + 
+  geom_point(aes(x = Frac.Year, y = pareto.k))
+```
+
+
+
+```{r}
+
+jags.out <- readRDS(file = paste0("RData/", best.model[[1]], ".rds"))
+jm <- jags.out$jm
+
+bayesplot::mcmc_dens(jm$samples, c("U"))
+```
+
+```{r}
+data.frame(jm$summary) %>% rownames_to_column("Parameter") -> summary.df
+
+#summary.df[grep(summary.df$Parameter, pattern = "U\\["),]
+summary.df[grep(summary.df$Parameter, pattern = "U"),]
+```
+
+
+```{r}
+bayesplot::mcmc_dens(jm$samples, c("sigma.Q[1]", "sigma.Q[2]"))
+```
+
+Looks a bit suspicious...
+
+```{r}
+bayesplot::mcmc_trace(jm$samples, c("sigma.Q[1]", "sigma.Q[2]"))
+```
+
+See site-specific analyses next. 
+
+

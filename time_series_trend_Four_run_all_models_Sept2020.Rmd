@@ -360,23 +360,24 @@ ggplot(data = data.loo) +
   geom_point(aes(x = Frac.Year, y = pareto.k, color = Loc))
 ```
 
-So, we'll move forward with this model. 
+Pareto k values are worse for the Wermon dataset than for the JM dataset. I wonder if two separate models need to be fit for the two datasets... 
+
 
 ```{r}
 
 jags.out <- readRDS(file = paste0("RData/", best.model[[1]], ".rds"))
 jm <- jags.out$jm
 
-bayesplot::mcmc_dens(jm$samples, c("U[1]", "U[2]"))
+bayesplot::mcmc_dens(jm$samples, c("U"))
 ```
 
 ```{r}
 data.frame(jm$summary) %>% rownames_to_column("Parameter") -> summary.df
 
-summary.df[grep(summary.df$Parameter, pattern = "U\\["),]
+#summary.df[grep(summary.df$Parameter, pattern = "U\\["),]
+summary.df[grep(summary.df$Parameter, pattern = "U"),]
 ```
 
-These are almost identical... I'm not sure why the independent U model was considered best. 
 
 ```{r}
 bayesplot::mcmc_dens(jm$samples, c("sigma.Q[1]", "sigma.Q[2]"))
@@ -388,38 +389,6 @@ Looks a bit suspicious...
 bayesplot::mcmc_trace(jm$samples, c("sigma.Q[1]", "sigma.Q[2]"))
 ```
 
-They look alright. 
+See site-specific analyses next. 
 
-Let's look at single U model to see how the estimate is different - should be about the same.
-
-```{r}
-oneU.model <- 4
-jags.out.1 <- readRDS(file = paste0("RData/", filenames[[oneU.model]], ".rds")) 
-jm.1 <- jags.out.1$jm
-data.frame(jm.1$summary) %>% rownames_to_column("Parameter") -> summary.1.df
-
-grep(summary.df$Parameter, pattern = "U", fixed = T)
-summary.1.df %>% filter(Parameter == "U")
-
-```
-
-```{r}
-bayesplot::mcmc_dens(jm.1$samples, "U")
-```
-
-So, this is pretty much identical to the previous model (independent Us). LOOIC value for this one was only ```r looic[oneU.model] - looic[best.model.ID] ``` greater than the other model (```r looic[best.model.ID]``` vs. ```r looic[oneU.model]```). So, it may make sense to use the simpler model.
-
-Pareto K?
-
-```{r}
-pareto.k[[oneU.model]]
-```
-
-They are not that different... So, move on with the simpler model. 
-
-Next, data are split into summer and winter. To 
-
-```{r}
-
-```
 

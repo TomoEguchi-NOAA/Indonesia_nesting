@@ -31,19 +31,20 @@ model{
 
         for (t in 1:n.months){
             predX[s,t] <- log(p[t]) + N[s]
-            X[s,t] ~ dnorm(predX[s,t], tau.pro)
+            #X[s,t] ~ dnorm(predX[s,t], tau.pro)
+            X[s,t] ~ dt(predX[s,t], tau.pro, df_X)
 
             # observation
-            y[s,t] ~ dnorm(X[s,t], tau.obs)
+            #y[s,t] ~ dnorm(X[s,t], tau.obs)
+            y[s,t] ~ dt(X[s,t], tau.obs, df_y)
         
-            loglik[s, t] <- logdensity.norm(y[s,t], X[s,t], tau.obs)
+            loglik[s, t] <- logdensity.t(y[s,t], X[s,t], tau.obs, df_y)
         }
     }
 	
     # n.months = 12 when entire year is modeled. 
     # n.months = 6 when one season is modeled (Wermon only)
     for (k in 1:n.months){
-
         p.const[k] <-  2 * pi * k / period
         p[k] <- (C0 + p.beta.cos * cos(p.const[k]) + p.beta.sin * sin(p.const[k]))/(n.months * C0 + p.beta.cos * C_cos + p.beta.sin * C_sin)
     }
@@ -52,15 +53,21 @@ model{
     
     for (t in 1:n.months){
         predX[1,t] <- log(p[t]) + N[1]
-        X[1,t] ~ dnorm(predX[1,t], tau.pro)
+        #X[1,t] ~ dnorm(predX[1,t], tau.pro)
+        X[1,t] ~ dt(predX[1,t], tau.pro, df_X)
 
         # observation
-        y[1,t] ~ dnorm(X[1,t], tau.obs)
+        #y[1,t] ~ dnorm(X[1,t], tau.obs)
+        y[1,t] ~ dt(X[1,t], tau.obs, df_y)
         
-        loglik[1, t] <- logdensity.norm(y[1,t], X[1,t], tau.obs)
+        loglik[1, t] <- logdensity.t(y[1,t], X[1,t], tau.obs, df_y)
     }
     
     #pi <- 3.14159
+
+    # t distribution has no moments when df <= 1 and the variance is infinite when 1 < df <= 2
+    df_X ~ dgamma(5, 0.1)T(2,)  # this eliminates df <= 2 without affecting the entire distribution. 
+    df_y ~ dgamma(5, 0.1)T(2,)
 
     sigma.pro ~ dgamma(2, 0.5)
     tau.pro <- 1/(sigma.pro * sigma.pro)
