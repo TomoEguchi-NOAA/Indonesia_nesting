@@ -30,7 +30,9 @@ save.data <- T
 save.fig <- T
 run.date <- "2020-10-14" #Sys.Date() #"2019-06-25" #
 
-year.begin <- 2002
+year.begin.JM <- 2001
+year.begin.W <- 2006
+#year.begin <- 2002
 year.end <- 2019
 
 period.JM <- 12
@@ -68,14 +70,14 @@ MCMC.params <- list(n.chains = MCMC.n.chains,
 Bring in the data
 
 ```{r}
-
+# Beginning year for JM is 2001
 data.jags.JM <- data.extract(location = "JM", 
-                             year.begin = year.begin, 
+                             year.begin = year.begin.JM, 
                              year.end = year.end)
 
-# Begining year for Wermon is 2002.
+# Begining year for Wermon is 2006.
 data.jags.W <- data.extract(location = "W", 
-                             year.begin = year.begin, 
+                             year.begin = year.begin.W, 
                              year.end = year.end)
 
 ```
@@ -145,7 +147,7 @@ for (k1 in 1:length(UQ.models) ){ #3:()
                                 UQ.model, "_",
                                 "JM", period.JM, 
                                 "_W", period.W, "_",
-                                year.begin, "_", 
+                                year.begin.JM, "_", 
                                 year.end, "_", run.date)
         
         filenames[[c]] <- filename.root
@@ -223,14 +225,17 @@ First look at the Pareto k diagnostics first to see how the models fit.
 pareto.k <- lapply(loo.out, 
                    FUN = function(x) x$loo.out)
 
-# find maximum pareto k values
+# These have been saved so commenting out 2020-10-15
+#saveRDS(loo.out, file = "RData/loo_all_Oct2020.rds")
+#saveRDS(filenames, file = "RData/filenames_Oct2020.rds")
 
+# find maximum pareto k values
 max.pareto.k <- unlist(lapply(pareto.k,
        FUN = function(x) max(x$diagnostics$pareto_k)))
 
 # find the models that have max(pareto k) < 0.7
 good.models <- filenames[which(max.pareto.k < 0.7)]
-
+good.models.pareto.k <- pareto.k[which(max.pareto.k < 0.7)]
 ```
 
 
@@ -245,11 +250,10 @@ looic <- unlist(lapply(looic.esimates,
                        FUN = function(x) x["looic", "Estimate"]))
 
 best.model <- good.models[which(looic == min(looic))]
+pareto.k.best <- good.models.pareto.k[[which(looic == min(looic))]]
 ```
 
-START HERE. 2020-10-14
-
-According to the LOOIC values, normal process and t observation models with independent slope and variance terms was considered best. 
+According to the LOOIC values, normal process and t observation models with N as the random variable, a common slope and independent variance terms (norm_t_trend_DFS_v2_1U_2Q) was considered best. 
 
 Take a look at all data points vs. pareto k
 
@@ -277,16 +281,25 @@ ggplot(data = data.loo) +
   geom_point(aes(x = Frac.Year, y = pareto.k, color = Loc))
 ```
 
-Pareto k values are worse for the Wermon dataset than for the JM dataset. I wonder if two separate models need to be fit for the two datasets... 
+Pareto k values are worse for the Wermon dataset than for the JM dataset. But, they are fine. 
 
+Look at the convergence:
+```{r}
+jm <- readRDS(file = paste0("RData/", best.model[[1]], ".rds"))
+max(unlist(lapply(jm$Rhat, FUN = max, na.rm = T)))
+
+```
+
+
+Let's look at the posteriors of parameters.
 
 ```{r}
-# Look at another model (model 1)
-jags.out <- readRDS(file = paste0("RData/", best.model[[1]], ".rds"))
-jm <- jags.out$jm
+# p.post.U <- bayesplot::mcmc_dens(jm$samples, c("U")) + 
+#   xlab("Annual growth rate") + ylab("Density")
 
 bayesplot::mcmc_dens(jm$samples, c("U"))
 ```
+
 
 ```{r}
 data.frame(jm$summary) %>% rownames_to_column("Parameter") -> summary.df
@@ -300,12 +313,80 @@ summary.df[grep(summary.df$Parameter, pattern = "U"),]
 bayesplot::mcmc_dens(jm$samples, c("sigma.Q[1]", "sigma.Q[2]"))
 ```
 
-Looks a bit suspicious...
 
 ```{r}
-bayesplot::mcmc_trace(jm$samples, c("sigma.Q[1]", "sigma.Q[2]"))
+summary.df[grep(summary.df$Parameter, pattern = "sigma.Q"),]
+
 ```
 
-See site-specific analyses next. 
 
+Get posterior summary out.
+
+```{r}
+ys.stats.JM <- data.frame(low = as.vector(t(jm$q2.5$y[,,1])),
+                          median = as.vector(t(jm$q50$y[,,1])),
+                          high = as.vector(t(jm$q97.5$y[,,1])))
+ys.stats.JM$time <- data.jags.JM$data.1$Frac.Year
+ys.stats.JM$obsY <- data.jags.JM$data.1$Nests
+ys.stats.JM$month <- data.jags.JM$data.1$Month
+ys.stats.JM$year <- data.jags.JM$data.1$Year
+ys.stats.JM$Season <- data.jags.JM$data.1$Season
+ys.stats.JM$location <- "Jamursba-Medi"
+
+ys.stats.W <- data.frame(low = as.vector(t(jm$q2.5$y[,,2])),
+                         median = as.vector(t(jm$q50$y[,,2])),
+                         high = as.vector(t(jm$q97.5$y[,,2])))
+ys.stats.W$time <- data.jags.JM$data.1$Frac.Year
+ys.stats.W$obsY <- data.jags.W$data.1$Nests #c(rep(NA, 9), data.jags.W$data.1$Nests)
+ys.stats.W$month <- data.jags.JM$data.1$Month
+ys.stats.W$year <- data.jags.JM$data.1$Year
+ys.stats.W$Season <- data.jags.JM$data.1$Season
+ys.stats.W$location <- "Wermon"
+          
+ys.stats <- rbind(ys.stats.JM, ys.stats.W)
+          
+Ns.stats.JM <- data.frame(time = year.begin:year.end,
+                          low = as.vector(t(jm$q2.5$N[1,])),
+                          median = as.vector(t(jm$q50$N[1,])),
+                          high = as.vector(t(jm$q97.5$N[1,])))
+Ns.stats.JM$location <- "Jamursba-Medi"
+          
+Ns.stats.W <- data.frame(time = year.begin:year.end,
+                         low = as.vector(t(jm$q2.5$N[2,])),
+                         median = as.vector(t(jm$q50$N[2,])),
+                         high = as.vector(t(jm$q97.5$N[2,])))
+Ns.stats.W$location <- "Wermon"
+          
+Ns.stats <- rbind(Ns.stats.JM, Ns.stats.W)
+
+ggplot() + 
+  geom_ribbon(data = ys.stats,
+              aes(x = time, ymin = low, ymax = high),
+              alpha = 0.4)+
+  geom_path(data = ys.stats,
+             aes(x = time, y = median)) + 
+  geom_point(data = ys.stats,
+             aes(x = time, y = median),
+             color = "yellow") + 
+  geom_point(data = ys.stats,
+             aes(x = time, y = log(obsY)),
+             color = "red") + 
+  geom_ribbon(data = Ns.stats,
+              aes(x = time+0.5, ymin = low, ymax = high),
+              alpha = 0.4) +
+  geom_path(data = Ns.stats,
+            aes(x = time+0.5, y = median)) +
+  geom_point(data = Ns.stats,
+             aes(x = time+0.5, y = median),
+             color = "yellow") +
+  facet_grid(vars(location))
+
+```
+
+Total abundance
+
+```{r}
+
+
+```
 

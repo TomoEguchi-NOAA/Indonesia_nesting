@@ -16,6 +16,35 @@ library(dplyr)
 
 save.fig <- F
 
+mmm2month <- function(x){
+  if (tolower(x) == "jan") {
+    out <- 1
+  } else if (tolower(x) == "feb"){
+    out <- 2
+  } else if (tolower(x) == "mar"){
+    out <- 3
+  } else if (tolower(x) == "apr"){
+    out <- 4
+  } else if (tolower(x) == "may"){
+    out <- 5
+  } else if (tolower(x) == "jun"){
+    out <- 6
+  } else if (tolower(x) == "jul"){
+    out <- 7
+  } else if (tolower(x) == "aug"){
+    out <- 8
+  } else if (tolower(x) == "sep"){
+    out <- 9
+  } else if (tolower(x) == "oct"){
+    out <- 10
+  } else if (tolower(x) == "nov"){
+    out <- 11
+  } else if (tolower(x) == "dec"){
+    out <- 12
+  }
+  return(out)
+}
+
 # 
 # # Extracting posterior samples of deviance or any other variable from jags output:
 # extract.samples <- function(varname, zm){
