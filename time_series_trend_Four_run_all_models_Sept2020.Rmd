@@ -43,6 +43,7 @@ model.names <- c("singleUQ",
 # t_loc has location (or series) specific df parameter 
 state.models <- c("norm", "t", "t_locs")
 obs.models <- c("norm", "t", "t_locs") # 
+v2.models <- c("Four", "Four_v2")  # v2 models have no Xs - Ns are the state
 
 ```
 
@@ -364,7 +365,7 @@ Pareto k values are worse for the Wermon dataset than for the JM dataset. I wond
 
 
 ```{r}
-
+# Look at another model (model 1)
 jags.out <- readRDS(file = paste0("RData/", best.model[[1]], ".rds"))
 jm <- jags.out$jm
 

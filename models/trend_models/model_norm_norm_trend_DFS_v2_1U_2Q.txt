@@ -1,0 +1,87 @@
+# simple state space AR1 model for turtle nesting 
+# original code from Lab 7, Introduction to Bayesian Time-Series
+# analysis using Jags. Univ Washington: 
+# https://www.scribd.com/document/373707632/Lab-7-Fitting-models-with-JAGS-pdf
+
+# Also can be found here:
+# https://nwfsc-timeseries.github.io/atsa-labs/sec-jags-uss.html
+#
+# For this model, the natural log of raw counts were used as data (y). The state model
+# is normal and the observation model is norm. The probability of nesting in a month
+# is modeled with a discrete Fourier series - p[month] sums to 1.0 over each 12 month period.
+# To normalize the monthly probability (i.e., they have to sum to 1.0 over 12 months), each
+# monthly value has to be divided by the sum.  Constant parts (sum(cos(2*pi*m/P)) and sum(sin(2*pi*m/P),
+# where sum is over all m (months) and P is period (6 months for Wermon and 12 months for JM)),
+# need to be supplied as data as C_cos and C_sin. Also, C0 is a constant to make all Fourier 
+# series values to be > 0.  I think C0 >= 2 should do... (not really... 10 did the trick)
+#
+# I used quite informative prior for X[1] ~ dnorm(5, 0.1) although variance of 10 should 
+# be wide enough in the log scale.  I used similar priors for the slopes: dnorm(0, 0.1).
+# For all standard deviations (process and observation), I used uniform between 0 and 20, 
+# which should be wide enough in the log scale. 
+#
+# I didn't see any reason to make the priors flatter because that would make convergence difficult
+# and did not gain anything in return. 
+
+# In the v2 models, I removed the state level (Xs) and treated Ns as the state level.
+
+model{
+    # Initial states
+    for(j in 1:n.states) {
+        N0[j] ~ dnorm(N0_mean[j], 1/(N0_sd[j]^2))    # prior on init state
+        pred.N[j,1] <- N0[j] + U
+        N[j,1] ~ dnorm(pred.N[j,1], tau.Q[j]) 
+            
+        for (t in 1:n.months){
+           pred.X[1,t,j] <- log(p[j, t]) + N[j,1]
+           
+           # observation
+           y[1,t,j] ~  dnorm(pred.X[1,t,j], tau.R[j])
+                
+           loglik[1,t,j] <- logdensity.norm(y[1,t,j], pred.X[1,t,j], tau.R[j])
+        }       
+
+    }
+
+    ####  End of initial states ####
+    
+    for (s in 2:n.years){
+            
+        for (j in 1:n.states){
+            N[j,s] ~ dnorm(pred.N[j,s], tau.Q[j])
+            pred.N[j,s] <- U + N[j,s-1]
+            
+            for (t in 1:n.months){
+                pred.X[s,t,j] <- log(p[j, t]) + N[j,s]
+
+                # observation
+                y[s,t,j] ~  dnorm(pred.X[s,t,j], tau.R[j])
+                
+                loglik[s,t,j] <- logdensity.norm(y[s,t,j], pred.X[s,t,j], tau.R[j])
+            }       
+
+        }
+
+    }
+
+    for (j in 1:n.timeseries){
+        for (k in 1:n.months){
+            p.const[j, k] <-  2 * pi * k / period[j]
+            p[j, k] <- (C0[j] + p.beta.cos[j] * cos(p.const[j,k]) + p.beta.sin[j] * sin(p.const[j,k]))/(n.months * C0[j] + p.beta.cos[j] * C_cos[j] + p.beta.sin[j] * C_sin[j])
+        }
+        sigma.R[j] ~ dgamma(2, 0.5)
+        tau.R[j] <- 1/(sigma.R[j] * sigma.R[j])
+        p.beta.cos[j] ~ dnorm(0, 1)
+        p.beta.sin[j] ~ dnorm(0, 1)
+
+        # Q is the variance of the process (N)
+        sigma.Q[j] ~ dgamma(2, 0.5)
+        tau.Q[j] <- 1/(sigma.Q[j] * sigma.Q[j])    
+    }
+
+    U ~ dnorm(u_mean, 1/(u_sd^2))
+                          
+    u_mean <- 0
+    u_sd <- 1 
+    
+}
