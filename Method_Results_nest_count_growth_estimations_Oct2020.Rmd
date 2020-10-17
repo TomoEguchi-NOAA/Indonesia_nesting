@@ -6,17 +6,27 @@ output: word_document
 ---
 
 ```{r setup, include=FALSE}
+rm(list=ls())
 knitr::opts_chunk$set(echo = TRUE)
 source('Dc_Indonesia_nesting_fcns.R')
-library(lme4)
-library(mgcv)
-library(rjags)
+# library(lme4)
+# library(mgcv)
+
+library(jagsUI)
 library(loo)
 library(ggridges)
 base_theme <- ggplot2::theme_get()
 library(bayesplot)
 
 save.fig <- T
+
+run.date <- "2020-10-14" #Sys.Date() #"2019-06-25" #
+
+year.begin.JM <- 2001
+year.begin.W <- 2006
+#year.begin <- 2002
+year.end <- 2019
+
 ```
 
 ## Methods
@@ -140,7 +150,7 @@ At Jamursba-Medi, some data have been collected since ```r min(data.1.JM$Year_be
 knitr::include_graphics("figures/JM_all.png")
 ```
 
-No data were collected in 1998. Since then at least some data were collected within each year. After analyzing datasets with different starting years, we found that starting at 1999 resulted in the longest dataset and good convergence of MCMC.  Consequently, we decided to use data since 1999. The cyclical nature or seaonal fluctuations of counts is obvious in the raw counts (Figure 2).
+No data were collected in 1998. Since then at least some data were collected within each year. After analyzing datasets with different starting years, we found that starting at 1999 resulted in the longest dataset and good convergence of MCMC.  Consequently, we decided to use data since 1999. The cyclical nature or seasonal fluctuations of counts is obvious in the raw counts (Figure 2).
 
 ```{r JM_raw_since_1999, echo=FALSE, cache=TRUE, warning=FALSE}
 data.1.JM.1999 <- filter(data.1.JM, Year_begin > 1998)
@@ -207,7 +217,7 @@ data.0.W %>% mutate(f.month = as.factor(Month_begin),
 
 p.W.all <- ggplot(data.1.W) + 
   geom_point(aes(x = Frac.Year, y = Nest.count)) + 
-  geom_line(aes(x = Frac.Year, y = Nest.count)) + 
+  geom_path(aes(x = Frac.Year, y = Nest.count)) + 
   labs(title = 'Wermon', x = '', 
        y = "Nest counts")
 
@@ -252,7 +262,29 @@ knitr::include_graphics("figures/W_monthly.png")
 ```
 
 
-The two datasets (nest counts since 2002 to 2019) were used in the following analysis for estimating missing counts. 
+Observed counts for 2004 and 2005 seem to be outliers with respect to within-year patterns. Because this analysis is to estimate missing values from observed patterns, we remove these years from the data for the following analysis.  
+
+```{r W_by_month_since_2006, echo=FALSE, cache = TRUE, warning=FALSE}
+data.1.W %>% filter(Year_begin > 2005) -> data.1.W.2006
+
+p.W.monthly.2006 <- ggplot(data.1.W.2006) + 
+  geom_point(aes(x = Month_begin, y = Nest.count, color = f.year)) + 
+  geom_line(aes(x = Month_begin, y = Nest.count, color = f.year)) +
+  scale_x_continuous(breaks = seq(1, 12, 1)) +
+  labs(x = 'Month', y = '# nests', title = "Wermon",
+       color = "Year")  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+
+if (save.fig)
+  ggsave(filename = 'figures/W_monthly_2006.png', 
+         plot = p.W.monthly.2006,
+         dpi = 600, height = 6, 
+         width = 8, units = "in")
+```
+
+
+The two datasets (counts since 1999 for Jamursba-Medi and since 2006 for Wermon) are used in the following analysis for estimating missing counts. 
 
 # Results
 
@@ -318,11 +350,14 @@ ys.stats.JM$year <- data.jags.JM$data.1$Year
 ys.stats.JM$Season <- data.jags.JM$data.1$Season
 ys.stats.JM$location <- "Jamursba-Medi"
 
+# Wermon has shorter time series so obsY need NAs and other
+# variables taken from JM datasets
 ys.stats.W <- data.frame(low = as.vector(t(jm$q2.5$y[,,2])),
                          median = as.vector(t(jm$q50$y[,,2])),
                          high = as.vector(t(jm$q97.5$y[,,2])))
 ys.stats.W$time <- data.jags.JM$data.1$Frac.Year
-ys.stats.W$obsY <- data.jags.W$data.1$Nests #c(rep(NA, 9), data.jags.W$data.1$Nests)
+ys.stats.W$obsY <- c(rep(NA, nrow(data.jags.JM$data.1) - nrow(data.jags.W$data.1)), 
+                     data.jags.W$data.1$Nests) #data.jags.W$data.1$Nests #
 ys.stats.W$month <- data.jags.JM$data.1$Month
 ys.stats.W$year <- data.jags.JM$data.1$Year
 ys.stats.W$Season <- data.jags.JM$data.1$Season
@@ -330,14 +365,13 @@ ys.stats.W$location <- "Wermon"
           
 ys.stats <- rbind(ys.stats.JM, ys.stats.W)
 
-        
-Ns.stats.JM <- data.frame(time = year.begin:year.end,
+Ns.stats.JM <- data.frame(time = year.begin.JM:year.end,
                           low = as.vector(t(jm$q2.5$N[1,])),
                           median = as.vector(t(jm$q50$N[1,])),
                           high = as.vector(t(jm$q97.5$N[1,])))
 Ns.stats.JM$location <- "Jamursba-Medi"
           
-Ns.stats.W <- data.frame(time = year.begin:year.end,
+Ns.stats.W <- data.frame(time = year.begin.JM:year.end,
                          low = as.vector(t(jm$q2.5$N[2,])),
                          median = as.vector(t(jm$q50$N[2,])),
                          high = as.vector(t(jm$q97.5$N[2,])))

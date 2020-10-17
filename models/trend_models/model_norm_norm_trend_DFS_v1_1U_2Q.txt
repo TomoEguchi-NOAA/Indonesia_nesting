@@ -46,7 +46,7 @@ model{
     
     for (s in 2:n.years){
             
-        for (j in 1:n.timeseries){
+        for (j in 1:n.states){
             N[j,s] <- U + N[j,s-1]
 
             for (t in 1:n.months){
@@ -63,7 +63,7 @@ model{
 
     }
 
-    for (j in 1:n.timeseries){
+    for (j in 1:n.states){
         for (k in 1:n.months){
             p.const[j, k] <-  2 * pi * k / period[j]
             p[j, k] <- (C0[j] + p.beta.cos[j] * cos(p.const[j,k]) + p.beta.sin[j] * sin(p.const[j,k]))/(n.months * C0[j] + p.beta.cos[j] * C_cos[j] + p.beta.sin[j] * C_sin[j])
