@@ -16,6 +16,75 @@ library(dplyr)
 
 save.fig <- F
 
+plot.results <- function(jm, data.jags.JM, data.jags.W){
+  ys.stats.JM <- data.frame(low = as.vector(t(jm$q2.5$y[,,1])),
+                            median = as.vector(t(jm$q50$y[,,1])),
+                            high = as.vector(t(jm$q97.5$y[,,1])))
+  ys.stats.JM$time <- data.jags.JM$data.1$Frac.Year
+  ys.stats.JM$obsY <- data.jags.JM$data.1$Nests
+  ys.stats.JM$month <- data.jags.JM$data.1$Month
+  ys.stats.JM$year <- data.jags.JM$data.1$Year
+  ys.stats.JM$Season <- data.jags.JM$data.1$Season
+  ys.stats.JM$location <- "Jamursba-Medi"
+  
+  # Wermon has shorter time series so obsY need NAs and other
+  # variables taken from JM datasets
+  ys.stats.W <- data.frame(low = as.vector(t(jm$q2.5$y[,,2])),
+                           median = as.vector(t(jm$q50$y[,,2])),
+                           high = as.vector(t(jm$q97.5$y[,,2])))
+  ys.stats.W$time <- data.jags.JM$data.1$Frac.Year
+  ys.stats.W$obsY <- c(rep(NA, nrow(data.jags.JM$data.1) - nrow(data.jags.W$data.1)), 
+                       data.jags.W$data.1$Nests) #data.jags.W$data.1$Nests #
+  ys.stats.W$month <- data.jags.JM$data.1$Month
+  ys.stats.W$year <- data.jags.JM$data.1$Year
+  ys.stats.W$Season <- data.jags.JM$data.1$Season
+  ys.stats.W$location <- "Wermon"
+  
+  ys.stats <- rbind(ys.stats.JM, ys.stats.W)
+  
+  Ns.stats.JM <- data.frame(time = year.begin.JM:year.end,
+                            low = as.vector(t(jm$q2.5$N[1,])),
+                            median = as.vector(t(jm$q50$N[1,])),
+                            high = as.vector(t(jm$q97.5$N[1,])))
+  Ns.stats.JM$location <- "Jamursba-Medi"
+  
+  Ns.stats.W <- data.frame(time = year.begin.JM:year.end,
+                           low = as.vector(t(jm$q2.5$N[2,])),
+                           median = as.vector(t(jm$q50$N[2,])),
+                           high = as.vector(t(jm$q97.5$N[2,])))
+  Ns.stats.W$location <- "Wermon"
+  
+  Ns.stats <- rbind(Ns.stats.JM, Ns.stats.W)
+  
+  p.results <- ggplot() + 
+    geom_ribbon(data = ys.stats,
+                aes(x = time, ymin = low, ymax = high),
+                alpha = 0.4)+
+    geom_path(data = ys.stats,
+              aes(x = time, y = median)) + 
+    geom_point(data = ys.stats,
+               aes(x = time, y = median),
+               color = "yellow") + 
+    geom_point(data = ys.stats,
+               aes(x = time, y = log(obsY)),
+               color = "red") + 
+    geom_ribbon(data = Ns.stats,
+                aes(x = time+0.5, ymin = low, ymax = high),
+                alpha = 0.4) +
+    geom_path(data = Ns.stats,
+              aes(x = time+0.5, y = median)) +
+    geom_point(data = Ns.stats,
+               aes(x = time+0.5, y = median),
+               color = "yellow") +
+    facet_grid(vars(location))
+  
+  out.list <- list(ys.stats = ys.stats,
+                   Ns.stats = Ns.stats,
+                   p.results = p.results)
+  return(out.list)
+}
+
+
 mmm2month <- function(x){
   if (tolower(x) == "jan") {
     out <- 1
