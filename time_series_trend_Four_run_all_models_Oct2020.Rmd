@@ -226,7 +226,7 @@ First look at the Pareto k diagnostics first to see how the models fit.
 pareto.k <- lapply(loo.out, 
                    FUN = function(x) x$loo.out)
 
-# These have been saved so commenting out 2020-10-15
+# These have been saved so commenting out 2020-10-23
 #saveRDS(loo.out, file = "RData/loo_all_Oct2020.rds")
 #saveRDS(filenames, file = "RData/filenames_Oct2020.rds")
 
@@ -275,232 +275,742 @@ pareto.k.best <- good.models.pareto.k[[which(looic == min(looic))]]
 
 
 
-
-Below, I look at less preferred models - not much difference for some and some difference in some... 
-
 ```{r}
-okay.models <- good.models[which(looic < (min(looic) + 3))]
-```
-
-
-According to the LOOIC values, normal process and t observation models with N as the random variable, a common slope and independent variance terms (norm_t_trend_DFS_v2_1U_2Q) was considered best. 
-
-Take a look at all data points vs. pareto k
-
-```{r}
-
-data.jags.JM$data.1 %>% select(Frac.Year, Nests, Season) %>%
-  mutate(Loc = "JM") %>%
-  # transmute(Frac.Year = Frac.Year,
-  #           Nests.JM = Nests,
-  #           Season = Season) %>% 
-  na.omit() -> data.JM
-
-data.jags.W$data.1 %>% select(Frac.Year, Nests, Season) %>%
-  mutate(Loc = "W") %>%
-  # transmute(Frac.Year = Frac.Year, 
-  #           Nests.W = Nests) %>%
-  na.omit() -> data.W
-
-data.loo <- rbind(data.JM, data.W)
-# n.JM <- nrow(data.JM)
-# n.both <- n.JM + nrow(data.W)
-data.loo$pareto.k <- pareto.k.best$diagnostics$pareto_k
-
-ggplot(data = data.loo) + 
-  geom_point(aes(x = Frac.Year, y = pareto.k, color = Loc))
-```
-
-Pareto k values are worse for the Wermon dataset than for the JM dataset. But, they are fine. 
-
-Look at the convergence:
-```{r}
+# two U model:
 jm <- readRDS(file = paste0("RData/", best.model[[1]], ".rds"))
-max(unlist(lapply(jm$Rhat, FUN = max, na.rm = T)))
-
-```
-
-
-Let's look at the posteriors of parameters.
-
-```{r}
-# p.post.U <- bayesplot::mcmc_dens(jm$samples, c("U")) + 
-#   xlab("Annual growth rate") + ylab("Density")
-
-bayesplot::mcmc_dens(jm$samples, c("U[1]", "U[2]"))
-```
-
-
-```{r}
+#max(unlist(lapply(jm$Rhat, FUN = max, na.rm = T)))
 data.frame(jm$summary) %>% rownames_to_column("Parameter") -> summary.df
 
-#summary.df[grep(summary.df$Parameter, pattern = "U\\["),]
-summary.df[grep(summary.df$Parameter, pattern = "U"),]
+# check convergence 
+rhat.max <- max(unlist(lapply(jm$Rhat, FUN = max, na.rm = T)))
+
+# look at some posteriors
+U.stats <- summary.df[grep(summary.df$Parameter, pattern = "U"),]
+p.post.U <- bayesplot::mcmc_dens(jm$samples, c("U[1]", "U[2]")) + 
+  xlab("Annual growth rate") + ylab("Density")
+
+if (save.fig)
+  ggsave(filename = 'figures/U_posterior_2Us.png', 
+         plot = p.post.U,
+         dpi = 600, height = 6, 
+         width = 8, units = "in")
 ```
 
 
 ```{r}
-bayesplot::mcmc_dens(jm$samples, c("sigma.Q[1]", "sigma.Q[2]"))
+ys.stats.JM <- data.frame(low = as.vector(t(jm$q2.5$y[,,1])),
+                          median = as.vector(t(jm$q50$y[,,1])),
+                          high = as.vector(t(jm$q97.5$y[,,1])))
+
+ys.stats.JM$time <- data.jags.JM$data.1$Frac.Year
+ys.stats.JM$obsY <- data.jags.JM$data.1$Nests
+ys.stats.JM$month <- data.jags.JM$data.1$Month
+ys.stats.JM$year <- data.jags.JM$data.1$Year
+ys.stats.JM$Season <- data.jags.JM$data.1$Season
+ys.stats.JM$location <- "Jamursba-Medi"
+
+# Wermon has shorter time series so obsY need NAs and other
+# variables taken from JM datasets
+ys.stats.W <- data.frame(low = as.vector(t(jm$q2.5$y[,,2])),
+                         median = as.vector(t(jm$q50$y[,,2])),
+                         high = as.vector(t(jm$q97.5$y[,,2])))
+ys.stats.W$time <- data.jags.JM$data.1$Frac.Year
+ys.stats.W$obsY <- c(rep(NA, nrow(data.jags.JM$data.1) - nrow(data.jags.W$data.1)), 
+                     data.jags.W$data.1$Nests) #data.jags.W$data.1$Nests #
+ys.stats.W$month <- data.jags.JM$data.1$Month
+ys.stats.W$year <- data.jags.JM$data.1$Year
+ys.stats.W$Season <- data.jags.JM$data.1$Season
+ys.stats.W$location <- "Wermon"
+          
+ys.stats <- rbind(ys.stats.JM, ys.stats.W)
+
+Ns.stats.JM <- data.frame(time = year.begin.JM:year.end,
+                          low = as.vector(t(jm$q2.5$N[1,])),
+                          median = as.vector(t(jm$q50$N[1,])),
+                          high = as.vector(t(jm$q97.5$N[1,])))
+Ns.stats.JM$location <- "Jamursba-Medi"
+          
+Ns.stats.W <- data.frame(time = year.begin.JM:year.end,
+                         low = as.vector(t(jm$q2.5$N[2,])),
+                         median = as.vector(t(jm$q50$N[2,])),
+                         high = as.vector(t(jm$q97.5$N[2,])))
+Ns.stats.W$location <- "Wermon"
+          
+Ns.stats <- rbind(Ns.stats.JM, Ns.stats.W)
+
+p.estimated_y_N <- ggplot() + 
+  geom_ribbon(data = ys.stats,
+              aes(x = time, ymin = low, ymax = high),
+              alpha = 0.4)+
+  geom_path(data = ys.stats,
+             aes(x = time, y = median)) + 
+  geom_point(data = ys.stats,
+             aes(x = time, y = median),
+             color = "yellow") + 
+  geom_point(data = ys.stats,
+             aes(x = time, y = log(obsY)),
+             color = "red") + 
+  geom_ribbon(data = Ns.stats,
+              aes(x = time+0.5, ymin = low, ymax = high),
+              alpha = 0.4) +
+  geom_path(data = Ns.stats,
+            aes(x = time+0.5, y = median)) +
+  geom_point(data = Ns.stats,
+             aes(x = time+0.5, y = median),
+             color = "yellow") +
+  facet_grid(vars(location))
+
+if (save.fig)
+  ggsave(filename = 'figures/estimated_y_N_2Us.png', 
+         plot = p.estimated_y_N,
+         dpi = 600, height = 6, 
+         width = 8, units = "in")
 ```
 
 
-```{r}
-summary.df[grep(summary.df$Parameter, pattern = "sigma.Q"),]
+# Season specific analyses
 
+Enter NAs in Wermon winter data and run the models using period = 12 to see summer only analysis.
+
+Do the same with winter only by NA in summer data... 
+
+The imputation will be different... will that be a problem? 
+
+I already have season-specific data. Using 6 months as the period, try running the same models to see what happens...
+
+Summer only
+
+```{r}
+y <- array(data= NA, 
+           dim = c(nrow(data.jags.JM$jags.data.summer$y),
+                   ncol(data.jags.JM$jags.data.summer$y), 2))
+
+y[,,1] <- data.jags.JM$jags.data.summer$y
+y[,,2] <- rbind(matrix(NA, nrow = nrow(data.jags.JM$jags.data.summer$y) - 
+                         nrow(data.jags.W$jags.data.summer$y), ncol = 6),
+                data.jags.W$jags.data.summer$y)
+
+period.JM <- period.W <- 6
+
+jags.data.summer <- list(y = y,
+                  #m = data.jags.JM$jags.data2$m,
+                  C0 = c(15, 15),
+                  n.months = 6,
+                  C_cos = c(sum(apply(matrix(1:6, nrow=1), 
+                                      MARGIN = 1, 
+                                      FUN = function(x) cos(2 * pi * x/period.JM))), 
+                            sum(apply(matrix(1:6, nrow=1), 
+                                      MARGIN = 1, 
+                                      FUN = function(x) cos(2 * pi * x/period.W)))),
+                  C_sin = c(sum(apply(matrix(1:6, nrow=1), 
+                                      MARGIN = 1, 
+                                      FUN = function(x) sin(2 * pi * x/period.JM))),
+                            sum(apply(matrix(1:6, nrow=1), 
+                                      MARGIN = 1, 
+                                      FUN = function(x) sin(2 * pi * x/period.W)))),
+                  pi = pi,
+                  period = c(period.JM, period.W),
+                  N0_mean = c(8,8),   # this is 2980.958. Should be close enough
+                  N0_sd = c(10, 10),
+                  n.states = 2)
+
+#n.timeseries <- dim(y)[3]
+
+#jags.data$n.timeseries <- n.timeseries
+jags.data.summer$n.years <- dim(y)[1]
 ```
 
 
-Get posterior summary out.
-
+run jags on each model
 ```{r}
-
-out.best.model <- plot.results(jm, data.jags.JM = data.jags.JM, data.jags.W = data.jags.W)
-
-out.best.model$p.results
-```
-
-Take a look at okay models. 
-
-```{r}
-jm <- readRDS(file = paste0("RData/", okay.models[[1]], ".rds"))
-max(unlist(lapply(jm$Rhat, FUN = max, na.rm = T)))
-
-```
-
-```{r}
-data.frame(jm$summary) %>% rownames_to_column("Parameter") -> summary.df
-
-#summary.df[grep(summary.df$Parameter, pattern = "U\\["),]
-summary.df[grep(summary.df$Parameter, pattern = "U"),]
-
-```
-
-```{r}
-out.okay.model.1 <- plot.results(jm, data.jags.JM = data.jags.JM, data.jags.W = data.jags.W)
-
-out.okay.model.1$p.results
-
-```
-
-#5 okay model:
-
-```{r}
-jm <- readRDS(file = paste0("RData/", okay.models[[5]], ".rds"))
-max(unlist(lapply(jm$Rhat, FUN = max, na.rm = T)))
-
-```
-
-```{r}
-data.frame(jm$summary) %>% rownames_to_column("Parameter") -> summary.df
-
-#summary.df[grep(summary.df$Parameter, pattern = "U\\["),]
-summary.df[grep(summary.df$Parameter, pattern = "U"),]
-
-```
-
-This is a little different. A positive growth rate for Wermon. 
-
-```{r}
-bayesplot::mcmc_dens(jm$samples, c("U[1]", "U[2]"))
-
-```
-
-
-```{r}
-out.okay.model.5 <- plot.results(jm, data.jags.JM = data.jags.JM, data.jags.W = data.jags.W)
-
-out.okay.model.5$p.results
-
-```
-
-
-
-#8 okay model:
-
-```{r}
-jm <- readRDS(file = paste0("RData/", okay.models[[8]], ".rds"))
-max(unlist(lapply(jm$Rhat, FUN = max, na.rm = T)))
-
-```
-
-```{r}
-data.frame(jm$summary) %>% rownames_to_column("Parameter") -> summary.df
-
-#summary.df[grep(summary.df$Parameter, pattern = "U\\["),]
-summary.df[grep(summary.df$Parameter, pattern = "U"),]
-
-```
-
-
-
-```{r}
-bayesplot::mcmc_dens(jm$samples, c("U[1]", "U[2]"))
-
-```
-
-
-```{r}
-out.okay.model.8 <- plot.results(jm, data.jags.JM = data.jags.JM, data.jags.W = data.jags.W)
-
-out.okay.model.8$p.results
+c <- 1
+loo.out.summer <- list()
+filenames.summer <- list()
+k1 <- k2 <- 1
+for (k1 in 1:length(UQ.models) ){ #3:()
+  UQ.model <- UQ.models[k1]
+  for (k2 in 1:length(obs.models)){
+    obs.model <- obs.models[k2]
+    for (k3 in 1:length(state.models)){
+      state.model <- state.models[k3]
+      for (k4 in 1:length(v.models)){
+        v.model <- v.models[k4]
+        filename.root <- paste0("SSAR1_summer_", state.model, "_", 
+                                obs.model, "_trend_", 
+                                v.model, "_",
+                                UQ.model, "_",
+                                "JM", period.JM, 
+                                "_W", period.W, "_",
+                                year.begin.JM, "_", 
+                                year.end, "_", run.date)
+        
+        filenames.summer[[c]] <- filename.root
+        # define parameters to monitor - add "df" for t distribution
+        jags.params <- c('N', 'U', "p", "p.beta.cos", "p.beta.sin",
+                         "sigma.Q", "sigma.R", 
+                         "mu", "y", "deviance", "loglik")
+        
+        if (v.model == "DFS_v1"){
+          jags.params <- c(jags.params, "X")
+        }
+        
+        if (obs.model == "t"){
+          jags.params <- c(jags.params, "df.y")
+        }
+        
+        if (state.model == "t"){
+          jags.params <- c(jags.params, "df.X")
+        }
+        
+        model.name <- paste0("models/trend_models/model_", 
+                             state.model, "_", obs.model, 
+                             "_trend_", v.model, "_", 
+                             UQ.model, ".txt")
+        
+        if (file.exists(model.name)){
+          
+          print(paste0("Running: ", model.name))
+          
+          if (!file.exists(paste0("RData/", filename.root, '.rds'))){
+            jm <- jags(jags.data.summer,
+                       inits = NULL,
+                       parameters.to.save= jags.params,
+                       model.file = model.name,
+                       n.chains = MCMC.params$n.chains,
+                       n.burnin = MCMC.params$n.burnin,
+                       n.thin = MCMC.params$n.thin,
+                       n.iter = MCMC.params$n.samples,
+                       DIC = T, parallel=T)
+            
+            saveRDS(jm,
+                    file = paste0("RData/", filename.root, '.rds'))
+          } else {
+            jm <- readRDS(file = paste0("RData/", filename.root, '.rds'))
+          }
+          
+          if (!file.exists(paste0("RData/", filename.root, "_loo.rds"))){
+            loo.out.summer[[c]] <- compute.LOOIC(loglik = jm$sims.list$loglik, 
+                                                 MCMC.params = MCMC.params, 
+                                                 data.vector = as.vector(jags.data.summer$y))
+            saveRDS(loo.out.summer[[c]], file = paste0("RData/", filename.root, "_loo.rds"))
+          } else {
+            loo.out.summer[[c]] <- readRDS(file = paste0("RData/", filename.root, "_loo.rds"))
+            
+          }
+          
+          c <- c + 1
+          
+        } else {
+          print(paste0("Model file ", model.name, " does not exist" ))
+        }    
+        
+      }
+      
+    }
+    
+  }
+}
 
 ```
 
-
-
-
-Look at how the "bad" models performed
+First look at the Pareto k diagnostics first to see how the models fit.
 
 ```{r}
+pareto.k.summer <- lapply(loo.out.summer, 
+                   FUN = function(x) x$loo.out)
 
-bad.models <- filenames[which(max.pareto.k >= 0.7)]
-bad.models.pareto.k <- pareto.k[which(max.pareto.k >= 0.7)]
+# These have been saved so commenting out 2020-10-23
+#saveRDS(loo.out.summer, file = "RData/loo_summer_Oct2020.rds")
+#saveRDS(filenames.summer, file = "RData/filenames_summer_Oct2020.rds")
+
+# find maximum pareto k values
+max.pareto.k.summer <- unlist(lapply(pareto.k.summer,
+       FUN = function(x) max(x$diagnostics$pareto_k)))
+
+# find the models that have max(pareto k) < 0.7
+good.models.summer <- filenames.summer[which(max.pareto.k.summer < 0.7)]
+good.models.pareto.k.summer <- pareto.k.summer[which(max.pareto.k.summer < 0.7)]
 ```
 
 
 Compare the results using LOOIC:
 
 ```{r}
-bad.looic.esimates <- lapply(lapply(loo.out[which(max.pareto.k >= 0.7)], 
+looic.esimates.summer <- lapply(lapply(loo.out.summer[which(max.pareto.k.summer < 0.7)], 
                                 FUN = function(x) x$loo.out),
                          FUN = function(x) x$estimates)
 
-bad.looic <- unlist(lapply(bad.looic.esimates, 
+looic.summer <- unlist(lapply(looic.esimates.summer, 
                        FUN = function(x) x["looic", "Estimate"]))
 
-best.bad.model <- bad.models[which(looic == min(looic))]
-pareto.k.best.bad <- bad.models.pareto.k[[which(looic == min(looic))]]
+loo.out.list.summer <- lapply(loo.out.summer[which(max.pareto.k.summer < 0.7)], 
+                       FUN = function(x) x$loo.out)
 
+# calculate model weights
+model.weights.summer <- loo_model_weights(loo.out.list.summer)
+
+model.names.abb.summer <- lapply(good.models.summer, 
+                          FUN = function(x) strsplit(x, split = "SSAR1_")[[1]][2]) %>%  
+  lapply(FUN = function(x) strsplit(x, split = "_JM6")[[1]][1]) %>% unlist() 
+
+options(scipen = 999)
+
+looic.table.summer <- data.frame(model = model.names.abb.summer,
+                          looic = looic.summer,
+                          weights = as.vector(model.weights.summer)) %>% 
+  mutate(delta.looic = looic.summer - min(looic.summer)) %>%
+  arrange(by = desc(weights)) %>%
+  mutate_if(is.numeric, round, digits = 4)
+
+best.model.summer <- good.models.summer[which(looic.summer == min(looic.summer))]
+pareto.k.best.summer <- good.models.pareto.k.summer[[which(looic.summer == min(looic.summer))]]
 ```
 
 
+Check posteriors
+According to LOOIC, t_t_v2_1U_2Q is the best but t_t_v2_2U_2Q is best when using model weights. 
 ```{r}
-jm <- readRDS(file = paste0("RData/", best.bad.model[[1]], ".rds"))
-max(unlist(lapply(jm$Rhat, FUN = max, na.rm = T)))
-
-```
-
-Convergence was not a problem.
-
-```{r}
+# One U model:
+jm <- readRDS(file = paste0("RData/", best.model.summer[[1]], ".rds"))
+#max(unlist(lapply(jm$Rhat, FUN = max, na.rm = T)))
 data.frame(jm$summary) %>% rownames_to_column("Parameter") -> summary.df
 
-#summary.df[grep(summary.df$Parameter, pattern = "U\\["),]
-summary.df[grep(summary.df$Parameter, pattern = "U"),]
+# check convergence 
+rhat.max <- max(unlist(lapply(jm$Rhat, FUN = max, na.rm = T)))
 
+# look at some posteriors
+U.stats <- summary.df[grep(summary.df$Parameter, pattern = "U"),]
+p.post.U <- bayesplot::mcmc_dens(jm$samples, c("U")) + 
+  xlab("Annual growth rate") + ylab("Density")
+
+if (save.fig)
+  ggsave(filename = 'figures/U_posterior_summer_1U.png', 
+         plot = p.post.U,
+         dpi = 600, height = 6, 
+         width = 8, units = "in")
 ```
+
 
 ```{r}
-summary.df[grep(summary.df$Parameter, pattern = "sigma.Q"),]
+ys.stats.JM <- data.frame(low = as.vector(t(jm$q2.5$y[,,1])),
+                          median = as.vector(t(jm$q50$y[,,1])),
+                          high = as.vector(t(jm$q97.5$y[,,1])))
+
+ys.stats.JM$time <- data.jags.JM$data.summer$Frac.Year
+ys.stats.JM$obsY <- data.jags.JM$data.summer$Nests
+ys.stats.JM$month <- data.jags.JM$data.summer$Month
+ys.stats.JM$year <- data.jags.JM$data.summer$Year
+ys.stats.JM$Season <- data.jags.JM$data.summer$Season
+ys.stats.JM$location <- "Jamursba-Medi"
+
+# Wermon has shorter time series so obsY need NAs and other
+# variables taken from JM datasets
+ys.stats.W <- data.frame(low = as.vector(t(jm$q2.5$y[,,2])),
+                         median = as.vector(t(jm$q50$y[,,2])),
+                         high = as.vector(t(jm$q97.5$y[,,2])))
+ys.stats.W$time <- data.jags.JM$data.summer$Frac.Year
+ys.stats.W$obsY <- c(rep(NA, nrow(data.jags.JM$data.summer) - nrow(data.jags.W$data.summer)), 
+                     data.jags.W$data.summer$Nests) #data.jags.W$data.1$Nests #
+ys.stats.W$month <- data.jags.JM$data.summer$Month
+ys.stats.W$year <- data.jags.JM$data.summer$Year
+ys.stats.W$Season <- data.jags.JM$data.summer$Season
+ys.stats.W$location <- "Wermon"
+          
+ys.stats <- rbind(ys.stats.JM, ys.stats.W)
+
+Ns.stats.JM <- data.frame(time = year.begin.JM:year.end,
+                          low = as.vector(t(jm$q2.5$N[1,])),
+                          median = as.vector(t(jm$q50$N[1,])),
+                          high = as.vector(t(jm$q97.5$N[1,])))
+Ns.stats.JM$location <- "Jamursba-Medi"
+          
+Ns.stats.W <- data.frame(time = year.begin.JM:year.end,
+                         low = as.vector(t(jm$q2.5$N[2,])),
+                         median = as.vector(t(jm$q50$N[2,])),
+                         high = as.vector(t(jm$q97.5$N[2,])))
+Ns.stats.W$location <- "Wermon"
+          
+Ns.stats <- rbind(Ns.stats.JM, Ns.stats.W)
+
+p.estimated_y_N <- ggplot() + 
+  geom_ribbon(data = ys.stats,
+              aes(x = time, ymin = low, ymax = high),
+              alpha = 0.4)+
+  geom_path(data = ys.stats,
+             aes(x = time, y = median)) + 
+  geom_point(data = ys.stats,
+             aes(x = time, y = median),
+             color = "yellow") + 
+  geom_point(data = ys.stats,
+             aes(x = time, y = log(obsY)),
+             color = "red") + 
+  geom_ribbon(data = Ns.stats,
+              aes(x = time+0.5, ymin = low, ymax = high),
+              alpha = 0.4) +
+  geom_path(data = Ns.stats,
+            aes(x = time+0.5, y = median)) +
+  geom_point(data = Ns.stats,
+             aes(x = time+0.5, y = median),
+             color = "yellow") +
+  facet_grid(vars(location))
+
+if (save.fig)
+  ggsave(filename = 'figures/estimated_y_N_summer_1U.png', 
+         plot = p.estimated_y_N,
+         dpi = 600, height = 6, 
+         width = 8, units = "in")
+```
+
+
+2 U model
+```{r}
+# Two U model:
+jm <- readRDS(file = paste0("RData/SSAR1_", looic.table.summer[1,"model"], 
+                            "_JM6_W6_1999_2019_2020-10-14.rds"))
+#max(unlist(lapply(jm$Rhat, FUN = max, na.rm = T)))
+data.frame(jm$summary) %>% rownames_to_column("Parameter") -> summary.df
+
+# check convergence 
+rhat.max <- max(unlist(lapply(jm$Rhat, FUN = max, na.rm = T)))
+
+# look at some posteriors
+U.stats <- summary.df[grep(summary.df$Parameter, pattern = "U"),]
+p.post.U <- bayesplot::mcmc_dens(jm$samples, c("U[1]", "U[2]")) + 
+  xlab("Annual growth rate") + ylab("Density")
+
+if (save.fig)
+  ggsave(filename = 'figures/U_posterior_summer_2Us.png', 
+         plot = p.post.U,
+         dpi = 600, height = 6, 
+         width = 8, units = "in")
 ```
 
 
 ```{r}
-out.bad.model <- plot.results(jm, data.jags.JM = data.jags.JM, data.jags.W = data.jags.W)
+ys.stats.JM <- data.frame(low = as.vector(t(jm$q2.5$y[,,1])),
+                          median = as.vector(t(jm$q50$y[,,1])),
+                          high = as.vector(t(jm$q97.5$y[,,1])))
 
-out.bad.model$p.results
+ys.stats.JM$time <- data.jags.JM$data.summer$Frac.Year
+ys.stats.JM$obsY <- data.jags.JM$data.summer$Nests
+ys.stats.JM$month <- data.jags.JM$data.summer$Month
+ys.stats.JM$year <- data.jags.JM$data.summer$Year
+ys.stats.JM$Season <- data.jags.JM$data.summer$Season
+ys.stats.JM$location <- "Jamursba-Medi"
 
+# Wermon has shorter time series so obsY need NAs and other
+# variables taken from JM datasets
+ys.stats.W <- data.frame(low = as.vector(t(jm$q2.5$y[,,2])),
+                         median = as.vector(t(jm$q50$y[,,2])),
+                         high = as.vector(t(jm$q97.5$y[,,2])))
+ys.stats.W$time <- data.jags.JM$data.summer$Frac.Year
+ys.stats.W$obsY <- c(rep(NA, nrow(data.jags.JM$data.summer) - nrow(data.jags.W$data.summer)), 
+                     data.jags.W$data.summer$Nests) #data.jags.W$data.1$Nests #
+ys.stats.W$month <- data.jags.JM$data.summer$Month
+ys.stats.W$year <- data.jags.JM$data.summer$Year
+ys.stats.W$Season <- data.jags.JM$data.summer$Season
+ys.stats.W$location <- "Wermon"
+          
+ys.stats <- rbind(ys.stats.JM, ys.stats.W)
+
+Ns.stats.JM <- data.frame(time = year.begin.JM:year.end,
+                          low = as.vector(t(jm$q2.5$N[1,])),
+                          median = as.vector(t(jm$q50$N[1,])),
+                          high = as.vector(t(jm$q97.5$N[1,])))
+Ns.stats.JM$location <- "Jamursba-Medi"
+          
+Ns.stats.W <- data.frame(time = year.begin.JM:year.end,
+                         low = as.vector(t(jm$q2.5$N[2,])),
+                         median = as.vector(t(jm$q50$N[2,])),
+                         high = as.vector(t(jm$q97.5$N[2,])))
+Ns.stats.W$location <- "Wermon"
+          
+Ns.stats <- rbind(Ns.stats.JM, Ns.stats.W)
+
+p.estimated_y_N <- ggplot() + 
+  geom_ribbon(data = ys.stats,
+              aes(x = time, ymin = low, ymax = high),
+              alpha = 0.4)+
+  geom_path(data = ys.stats,
+             aes(x = time, y = median)) + 
+  geom_point(data = ys.stats,
+             aes(x = time, y = median),
+             color = "yellow") + 
+  geom_point(data = ys.stats,
+             aes(x = time, y = log(obsY)),
+             color = "red") + 
+  geom_ribbon(data = Ns.stats,
+              aes(x = time+0.5, ymin = low, ymax = high),
+              alpha = 0.4) +
+  geom_path(data = Ns.stats,
+            aes(x = time+0.5, y = median)) +
+  geom_point(data = Ns.stats,
+             aes(x = time+0.5, y = median),
+             color = "yellow") +
+  facet_grid(vars(location))
+
+if (save.fig)
+  ggsave(filename = 'figures/estimated_y_N_summer_2Us.png', 
+         plot = p.estimated_y_N,
+         dpi = 600, height = 6, 
+         width = 8, units = "in")
+```
+
+Wermon winter
+
+Only one U models are needed.
+
+```{r}
+UQ.models <- c("1U_1Q", 
+               "1U_2Q")
 ```
 
 
-This does look worse than the results from the "good" models above. I guess I feel better about selecting the "best" model. 
+```{r}
+y <- array(data= NA, dim = c(nrow(data.jags.W$jags.data.winter$y),
+                             ncol(data.jags.W$jags.data.winter$y), 1))
+y[,,1] <- data.jags.W$jags.data.winter$y
+
+period.W <- 6
+
+jags.data.winter <- list(y = y,
+                         #m = data.jags.JM$jags.data2$m,
+                         C0 = c(15, 15),
+                         n.months = 6,
+                         C_cos = sum(apply(matrix(1:6, nrow=1), 
+                                           MARGIN = 1, 
+                                           FUN = function(x) cos(2 * pi * x/period.W))),
+                         C_sin = sum(apply(matrix(1:6, nrow=1), 
+                                           MARGIN = 1, 
+                                           FUN = function(x) sin(2 * pi * x/period.W))),
+                         pi = pi,
+                         period = 6,
+                         N0_mean = c(8,8),   # this is 2980.958. Should be close enough
+                         N0_sd = c(10, 10),
+                         n.states = 1)
+
+#n.timeseries <- dim(y)[3]
+
+#jags.data$n.timeseries <- n.timeseries
+jags.data.winter$n.years <- dim(y)[1]
+```
+
+
+run jags on each model
+```{r}
+c <- 1
+loo.out.winter <- list()
+filenames.winter <- list()
+k1 <- k2 <- k3 <- k4 <- 1
+for (k1 in 1:length(UQ.models) ){ #3:()
+  UQ.model <- UQ.models[k1]
+  for (k2 in 1:length(obs.models)){
+    obs.model <- obs.models[k2]
+    for (k3 in 1:length(state.models)){
+      state.model <- state.models[k3]
+      for (k4 in 1:length(v.models)){
+        v.model <- v.models[k4]
+        filename.root <- paste0("SSAR1_winter_", state.model, "_", 
+                                obs.model, "_trend_", 
+                                v.model, "_",
+                                UQ.model, "_",
+                                "W", period.W, "_",
+                                year.begin.W, "_", 
+                                year.end, "_", run.date)
+        
+        filenames.winter[[c]] <- filename.root
+        # define parameters to monitor - add "df" for t distribution
+        jags.params <- c('N', 'U', "p", "p.beta.cos", "p.beta.sin",
+                         "sigma.Q", "sigma.R", 
+                         "mu", "y", "deviance", "loglik")
+        
+        if (v.model == "DFS_v1"){
+          jags.params <- c(jags.params, "X")
+        }
+        
+        if (obs.model == "t"){
+          jags.params <- c(jags.params, "df.y")
+        }
+        
+        if (state.model == "t"){
+          jags.params <- c(jags.params, "df.X")
+        }
+        
+        model.name <- paste0("models/trend_models/model_", 
+                             state.model, "_", obs.model, 
+                             "_trend_", v.model, "_", 
+                             UQ.model, ".txt")
+        
+        if (file.exists(model.name)){
+          
+          print(paste0("Running: ", model.name))
+          
+          if (!file.exists(paste0("RData/", filename.root, '.rds'))){
+            jm <- jags(data = jags.data.winter,
+                       inits = NULL,
+                       parameters.to.save= jags.params,
+                       model.file = model.name,
+                       n.chains = MCMC.params$n.chains,
+                       n.burnin = MCMC.params$n.burnin,
+                       n.thin = MCMC.params$n.thin,
+                       n.iter = MCMC.params$n.samples,
+                       DIC = T, parallel=T)
+            
+            saveRDS(jm,
+                    file = paste0("RData/", filename.root, '.rds'))
+          } else {
+            jm <- readRDS(file = paste0("RData/", filename.root, '.rds'))
+          }
+          
+          if (!file.exists(paste0("RData/", filename.root, "_loo.rds"))){
+            loo.out.winter[[c]] <- compute.LOOIC(loglik = jm$sims.list$loglik, 
+                                                 MCMC.params = MCMC.params, 
+                                                 data.vector = as.vector(jags.data.winter$y))
+            saveRDS(loo.out.winter[[c]], file = paste0("RData/", filename.root, "_loo.rds"))
+          } else {
+            loo.out.winter[[c]] <- readRDS(file = paste0("RData/", filename.root, "_loo.rds"))
+            
+          }
+          
+          c <- c + 1
+          
+        } else {
+          print(paste0("Model file ", model.name, " does not exist" ))
+        }    
+        
+      }
+      
+    }
+    
+  }
+}
+
+```
+
+First look at the Pareto k diagnostics first to see how the models fit.
+
+```{r}
+pareto.k.winter <- lapply(loo.out.winter, 
+                   FUN = function(x) x$loo.out)
+
+# These have been saved so commenting out 2020-10-23
+#saveRDS(loo.out.winter, file = "RData/loo_winter_Oct2020.rds")
+#saveRDS(filenames.winter, file = "RData/filenames_winter_Oct2020.rds")
+
+# find maximum pareto k values
+max.pareto.k.winter <- unlist(lapply(pareto.k.winter,
+       FUN = function(x) max(x$diagnostics$pareto_k)))
+
+# find the models that have max(pareto k) < 0.7
+good.models.winter <- filenames.winter[which(max.pareto.k.winter < 0.7)]
+good.models.pareto.k.winter <- pareto.k.winter[which(max.pareto.k.winter < 0.7)]
+
+best.model.winter <- good.models.winter
+pareto.k.best.winter <- good.models.pareto.k.winter
+
+```
+
+Only one model fitted okay... So, no need to compare models.
+
+<!-- Compare the results using LOOIC: -->
+
+<!-- ```{r} -->
+<!-- looic.esimates.summer <- lapply(lapply(loo.out.summer[which(max.pareto.k.summer < 0.7)],  -->
+<!--                                 FUN = function(x) x$loo.out), -->
+<!--                          FUN = function(x) x$estimates) -->
+
+<!-- looic.summer <- unlist(lapply(looic.esimates.summer,  -->
+<!--                        FUN = function(x) x["looic", "Estimate"])) -->
+
+<!-- loo.out.list.summer <- lapply(loo.out.summer[which(max.pareto.k.summer < 0.7)],  -->
+<!--                        FUN = function(x) x$loo.out) -->
+
+<!-- # calculate model weights -->
+<!-- model.weights.summer <- loo_model_weights(loo.out.list.summer) -->
+
+<!-- model.names.abb.summer <- lapply(good.models.summer,  -->
+<!--                           FUN = function(x) strsplit(x, split = "SSAR1_")[[1]][2]) %>%   -->
+<!--   lapply(FUN = function(x) strsplit(x, split = "_JM6")[[1]][1]) %>% unlist()  -->
+
+<!-- options(scipen = 999) -->
+
+<!-- looic.table.summer <- data.frame(model = model.names.abb.summer, -->
+<!--                           looic = looic.summer, -->
+<!--                           weights = as.vector(model.weights.summer)) %>%  -->
+<!--   arrange(by = desc(weights)) %>% -->
+<!--   mutate(delta.looic = looic.summer - min(looic.summer)) %>% -->
+<!--   mutate_if(is.numeric, round, digits = 4) -->
+
+<!-- best.model.summer <- good.models.summer[which(looic.summer == min(looic.summer))] -->
+<!-- pareto.k.best.summer <- good.models.pareto.k.summer[[which(looic.summer == min(looic.summer))]] -->
+<!-- ``` -->
+
+
+Check posteriors
+
+```{r}
+jm <- readRDS(file = paste0("RData/", best.model.winter[[1]], ".rds"))
+data.frame(jm$summary) %>% rownames_to_column("Parameter") -> summary.df
+
+# check convergence 
+rhat.max <- max(unlist(lapply(jm$Rhat, FUN = max, na.rm = T)))
+
+# look at some posteriors
+U.stats <- summary.df[grep(summary.df$Parameter, pattern = "U"),]
+p.post.U <- bayesplot::mcmc_dens(jm$samples, c("U")) + 
+  xlab("Annual growth rate") + ylab("Density")
+
+if (save.fig)
+  ggsave(filename = 'figures/U_posterior_winter.png', 
+         plot = p.post.U,
+         dpi = 600, height = 6, 
+         width = 8, units = "in")
+```
+
+
+```{r}
+
+ys.stats <- data.frame(low = as.vector(t(jm$q2.5$y[,,1])),
+                         median = as.vector(t(jm$q50$y[,,1])),
+                         high = as.vector(t(jm$q97.5$y[,,1])))
+ys.stats$time <- data.jags.W$data.winter$Frac.Year
+ys.stats$obsY <- data.jags.W$data.winter$Nests
+ys.stats$month <- data.jags.W$data.winter$Month
+ys.stats$year <- data.jags.W$data.winter$Year
+ys.stats$Season <- data.jags.W$data.winter$Season
+ys.stats$location <- "Wermon"
+          
+Ns.stats <- data.frame(time = year.begin.W:year.end,
+                         low = as.vector(t(jm$q2.5$N[1,])),
+                         median = as.vector(t(jm$q50$N[1,])),
+                         high = as.vector(t(jm$q97.5$N[1,])))
+Ns.stats$location <- "Wermon"
+          
+p.estimated_y_N <- ggplot() + 
+  geom_ribbon(data = ys.stats,
+              aes(x = time, ymin = low, ymax = high),
+              alpha = 0.4)+
+  geom_path(data = ys.stats,
+             aes(x = time, y = median)) + 
+  geom_point(data = ys.stats,
+             aes(x = time, y = median),
+             color = "yellow") + 
+  geom_point(data = ys.stats,
+             aes(x = time, y = log(obsY)),
+             color = "red") + 
+  geom_ribbon(data = Ns.stats,
+              aes(x = time+0.5, ymin = low, ymax = high),
+              alpha = 0.4) +
+  geom_path(data = Ns.stats,
+            aes(x = time+0.5, y = median)) +
+  geom_point(data = Ns.stats,
+             aes(x = time+0.5, y = median),
+             color = "yellow") 
+
+if (save.fig)
+  ggsave(filename = 'figures/estimated_y_N_winter.png', 
+         plot = p.estimated_y_N,
+         dpi = 600, height = 6, 
+         width = 8, units = "in")
+```
+

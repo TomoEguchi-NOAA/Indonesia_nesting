@@ -177,13 +177,15 @@ data.extract <- function(location, year.begin, year.end, season.begin = year.beg
     
     data.0 %>% 
       select(Year_begin, Month_begin, JM_Nests) %>%
-      mutate(Nests = JM_Nests) -> data.0
+      mutate(Nests = JM_Nests,
+             Frac.Year = Year_begin + (Month_begin-0.5)/12) -> data.0
     
   } else if (location == "W"){
     data.0 <- read.csv("data/W_nests_Sept2020.csv")
     data.0 %>% 
       select(Year_begin, Month_begin, W_Nests) %>%
-      mutate(Nests = W_Nests) -> data.0
+      mutate(Nests = W_Nests,
+             Frac.Year = Year_begin + (Month_begin-0.5)/12) -> data.0
   }
   
   # create regularly spaced time series:
@@ -260,7 +262,8 @@ data.extract <- function(location, year.begin, year.end, season.begin = year.beg
               jags.data.winter = jags.data2.winter,
               data.1 = data.1,
               data.summer = data.summer,
-              data.winter = data.winter)
+              data.winter = data.winter,
+              data.0 = data.0)
   return(out)
 }
 
