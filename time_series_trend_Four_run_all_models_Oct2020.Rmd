@@ -220,7 +220,7 @@ for (k1 in 1:length(UQ.models) ){ #3:()
 
 ```
 
-First look at the Pareto k diagnostics first to see how the models fit.
+First look at the Pareto k diagnostics to see how the models fit.
 
 ```{r}
 pareto.k <- lapply(loo.out, 
