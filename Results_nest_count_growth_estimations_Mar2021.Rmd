@@ -473,8 +473,10 @@ Tapilatu.JM.data <- data.frame(Year = c(1984, 1985, 1993:1997, 1999:2011),
                                          3597, 2626, 2674, 2107, 2077, 2055, 
                                          1720, 1596))
 
-Tapilatu.JM.data %>% mutate(Year.Centered = Year - min(Year)) -> Tapilatu.JM.data
+# They also looked at pop growth rate from 1993.
+Tapilatu.JM.1993.data <- filter(Tapilatu.JM.data, Year > 1992)
 
+# New data 
 data.jags.JM$data.0 %>% 
   mutate(Season = ifelse(Month_begin < 4, Year_begin-1, Year_begin),
          Season.f = as.factor(Season)) %>%
@@ -482,12 +484,16 @@ data.jags.JM$data.0 %>%
   group_by(Season) %>%
   summarize(Nests = sum(Nests, na.rm = T)) -> JM.data.year
 
+# Take just the new part - since 2012
 JM.data.year.2012 <- filter(JM.data.year, Season > 2011) %>%
   transmute(Year = Season,
-            Nests = Nests) %>%
-  mutate(Year.Centered = Year - min(Tapilatu.JM.data$Year))
+            Nests = Nests) 
+#  mutate(Year.shifted = Year - min(Tapilatu.JM.1993.data$Year))
 
-Tapilatu.JM.data.2 <- rbind(Tapilatu.JM.data, JM.data.year.2012)
+Tapilatu.JM.data.2 <- rbind(Tapilatu.JM.data, JM.data.year.2012) %>%
+  mutate(Year.shifted = Year - min(Tapilatu.JM.data$Year))
+Tapilatu.JM.1993.data.2 <- rbind(Tapilatu.JM.1993.data, JM.data.year.2012) %>%
+  mutate(Year.shifted = Year - min(Tapilatu.JM.1993.data$Year))
 
 # ggplot() +
 #   geom_point(data = Tapilatu.JM.data,
@@ -495,20 +501,34 @@ Tapilatu.JM.data.2 <- rbind(Tapilatu.JM.data, JM.data.year.2012)
 #   geom_point(data = JM.data.year,
 #              aes(x = Season, y = Nests), color = "blue")
 
-Tapilatu.fit <- lm(log(Nests) ~ Year.Centered, data = Tapilatu.JM.data)
+# Move the year so the first year is zero.
+Tapilatu.JM.data %>% mutate(Year.shifted = Year - min(Year)) -> Tapilatu.JM.data
+Tapilatu.JM.1993.data %>% mutate(Year.shifted = Year - min(Year)) -> Tapilatu.JM.1993.data
+
+Tapilatu.fit <- lm(log(Nests) ~ Year.shifted, data = Tapilatu.JM.data)
 Tapilatu.JM.data$fitted <- Tapilatu.fit$fitted.values
+
+Tapilatu.1993.fit <- lm(log(Nests) ~ Year.shifted, data = Tapilatu.JM.1993.data)
+Tapilatu.JM.1993.data$fitted <- Tapilatu.1993.fit$fitted.values
 #summary(Tapilatu.fit)
 ```
 
 Tapilatu et al. stated that "Trend analysis for nest count estimates between 1984 and 2011 at Jamursba Medi indicates an overall significant decline of 78.3% over the 27 year period (r2 = 0.65)." This meant that estimated r was ```r log(1-0.783)/27```, which is a bit off from what I found here. If they used R2, rather than adjusted R2, the R2 values match fairly well. From our estimate (r = ```r signif(Tapilatu.fit$coefficients[2], 3)```, SE = ```r signif(summary(Tapilatu.fit)$coefficients[2,2], 3)```), the overall decline was ```r signif(1 - exp(Tapilatu.fit$coefficients[2] * 27), 3) * 100``` %. 
 
 ```{r Tapilatu_fit_2012, echo=FALSE}
-Tapilatu.fit.2 <- lm(log(Nests) ~ Year.Centered, data = Tapilatu.JM.data.2)
-summary(Tapilatu.fit.2)
+Tapilatu.fit.2 <- lm(log(Nests) ~ Year.shifted, data = Tapilatu.JM.data.2)
+#summary(Tapilatu.fit.2)
 Tapilatu.JM.data.2$fitted <- Tapilatu.fit.2$fitted.values
+
+Tapilatu.fit.1993.2 <- lm(log(Nests) ~ Year.shifted, data = Tapilatu.JM.1993.data.2)
+#summary(Tapilatu.fit.2)
+Tapilatu.JM.1993.data.2$fitted <- Tapilatu.fit.1993.2$fitted.values
+
 ```
 
-When eight more years of data were added (2012-2019) to the dataset in Tapilatu et al. (2013), estimated growth rate decreased by 2% per year (r = ```r signif(Tapilatu.fit.2$coefficients[2], 3)```, SE = ```r signif(summary(Tapilatu.fit.2)$coefficients[2,2], 3)```. This is equivalent of ```r signif(1 - exp(Tapilatu.fit.2$coefficients[2] * 35), 3) * 100``` % decline over the 35 years.
+When eight more years of data were added (2012-2019) to the dataset in Tapilatu et al. (2013), estimated growth rate decreased by ```r signif(abs(Tapilatu.fit.2$coefficients[2] - Tapilatu.fit$coefficients[2]), 2) * 100``` % per year (r = ```r signif(Tapilatu.fit.2$coefficients[2], 3)```, SE = ```r signif(summary(Tapilatu.fit.2)$coefficients[2,2], 3)```. This is equivalent of ```r signif(1 - exp(Tapilatu.fit.2$coefficients[2] * 35), 3) * 100``` % decline over the 35 years.
+
+When the first value (```r Tapilatu.JM.data[1, "Nests"]``` in ```r Tapilatu.JM.data[1, "Year"]```), which was greater than twice the next largest count (```r arrange(Tapilatu.JM.data, by = desc(Nests))[2, "Nests"]```), was removed, the estimated growth rate was ```r signif(Tapilatu.1993.fit$coefficients[2], 3)```, SE = ```r signif(summary(Tapilatu.1993.fit)$coefficients[2,2], 3)```. 
 
 ```{r Tapilatu_new_regression, echo=FALSE}
 p.GLM <- ggplot() + 
@@ -523,19 +543,22 @@ p.GLM <- ggplot() +
              color = "blue") +
   geom_line(data = Tapilatu.JM.data.2,
             aes(x = Year, y = exp(fitted)),
-            color = "blue")
+            color = "blue") +
+  geom_line(data = Tapilatu.JM.1993.data.2,
+            aes(x = Year, y = exp(fitted)),
+            color = "red")
 
 
 if (save.fig)
   ggsave(filename = 'figures/GLM_fit.png', 
-         plot = p.post.U,
+         plot = p.GLM,
          dpi = 600, height = 6, 
          width = 8, units = "in")
 
 ```
 
 
-```{r plot_GLM, echo=FALSE, cache=TRUE, fig.cap = "Figure 11. Fitted general linear models to the data in Tapilatu et al. 2013 (orange) and with new data (blue)."}
+```{r plot_GLM, echo=FALSE, cache=TRUE, fig.cap = "Figure 11. Fitted general linear models to the data in Tapilatu et al. 2013 (orange), with new data (blue), starting from 1993 with new data (red)."}
 knitr::include_graphics("figures/GLM_fit.png")
 ```
 
@@ -606,7 +629,7 @@ if (save.fig)
          dpi = 600, height = 6, 
          width = 8, units = "in")
 
-
+# Second best model:
 jm <- readRDS(file = paste0("RData/", second.best.model.JM[[1]], ".rds"))
 #max(unlist(lapply(jm$Rhat, FUN = max, na.rm = T)))
 data.frame(jm$summary) %>% rownames_to_column("Parameter") -> summary.df
