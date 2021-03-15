@@ -1,8 +1,8 @@
 ---
 title: "Method and Results of nest count estimation"
 author: "Tomo Eguchi"
-date: "October 2020"
-output: word_document
+date: "March 2021"
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
@@ -14,7 +14,7 @@ library(loo)
 #base_theme <- ggplot2::theme_get()
 library(bayesplot)
 
-save.fig <- F
+save.fig <- T
 
 run.date <- "2020-10-14" #Sys.Date() #"2019-06-25" #
 run.date.JM.only <- "2021-03-08"
@@ -68,7 +68,7 @@ At Jamursba-Medi, no data were collected in many years between the mid 1980s and
 knitr::include_graphics("figures/JM_all.png")
 ```
 
-Since 1999 at least some data were collected within each year. After analyzing datasets with different starting years, we found that starting at 1999 resulted in the longest dataset and good fit of statistical models. Consequently, we decided to use data since 1999. The cyclical nature or seasonal fluctuations of counts is obvious in the raw counts (Figure 2).
+Since 1999 at least some data were collected within each nesting season. After analyzing datasets with different starting years, we found that starting at 1999 resulted in the longest dataset and good fit of statistical models. Consequently, we decided to use data since 1999. The cyclical nature or seasonal fluctuations of counts is obvious in the raw counts (Figure 2).
 
 ```{r JM_raw_since_1999, echo=FALSE, cache=TRUE, warning=FALSE}
 p.JM.1999 <- ggplot(data.jags.JM$data.1) + 
@@ -564,7 +564,7 @@ knitr::include_graphics("figures/GLM_fit.png")
 
 I also fitted Bayesian hierarchical models to the nest counts data from the Jamursba Medi nesting beach only. The set of models are similar to the ones above but restricted to one slope (U) and one variance (Q).
 
-```{r}
+```{r BayesianRegression, echo=F}
 # Use JM data only and run the models
 loo.out.JM <- readRDS(file = "RData/loo_all_JM_only_Mar2021.rds")
 filenames.JM <- readRDS(file = "RData/filenames_JM_only_Mar2021.rds")
@@ -649,6 +649,10 @@ if (save.fig)
 ```
 
 
+
+```{r plot_posterior_JM_1U, echo=FALSE, cache=TRUE, fig.cap = "Figure 12. The posterior distribution of the growth rate (U) from the best model based on LOOIC. "}
+knitr::include_graphics("figures/JM_posterior_1U.png")
+```
 
 # Appendix
 
