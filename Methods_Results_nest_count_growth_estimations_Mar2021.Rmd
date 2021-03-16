@@ -1,8 +1,8 @@
 ---
-title: "Method and Results of nest count estimation"
+title: "Method and Results of Nest Count Imputation and Populatoin Growth Rate Estimation"
 author: "Tomo Eguchi"
 date: "March 2021"
-output: pdf_document
+output: word_document
 ---
 
 ```{r setup, include=FALSE}
@@ -29,8 +29,67 @@ year.end <- 2019
 
 ```
 
-# Results
+## Methods
+### Models
 
+To estimate the growth rates of nest abundance over time, the discrete geometric growth model was fitted to the annual nest counts ($N_{t,j}$ at the two nesting beaches (Wermon, Jamursba Medi). 
+
+$N_{t+1, j} = \lambda N_{t,j}$,
+
+where t indicates nesting season and j indicates nesting beach. 
+
+Analyses were conducted in the natural log scale:
+
+$ln(N_{t+1, j}) = ln(\lambda) + ln(N_{t,j}) = U + ln(N_{t,j})$
+
+Annual nest abundance for the t-th nesting season at the j-th nesting beach ($N_{t, j}$) was obtained from monthly (m) nest abundance ($X_{t,m,j}$) at the two nesting beaches, where the observed data are denoted as ($y_{t,m,j}$). For some years, not all monthly counts ($y_{t,m,j}$) were available. We imputed missing monthly abundances using the observed cyclical nature of nesting activities and a Bayesian hierarchical modeling approach. Various models with differing assumptions were developed and fitted to the datasets from the two nesting beaches. We developed two groups of statistical models, where one treated the total annual abundance of nests ($N_{t,j}$) as a non-stochastic variable whereas the other treated it as a stochastic variable.
+
+#### Model Set 1
+The observed monthly nest count during the t-th season of the m-th month at beach j ($y_{t,m,j}$) was modeled as a random variable from a distribution function (g()).
+
+$y_{t,m,j} \sim g(X_{t,m,j}, \theta_{y})$
+
+where m is a sequential month within each nesting season, which starts on April and ends in March in the subsequent calendar year. Nesting beach (j) is either Jamursba-Medi (1) or Wermon (2). $X_{t,m,j}$ is the mean of the distribution ($g()$) and $\theta_{y}$ indicates other parameters that are necessary for the distribution function ($g()$). The mean ($X_{t,m,j}$) also was treated as a random variable.
+
+$X_{t,m,j} \sim f(\mu_{X(t,m,j)}, \theta_{X})$,
+
+Where $f()$ indicates a distribution function, $\mu_{X(t,m,j)}$ indicates the mean, and $\theta_{X}$ indicates the other parameters that are necessary for the distribution function.
+
+The mean of the function ($\mu_{X(t,m,j)}$) was expressed as the proportion of the total abundance of nests for year t.
+
+$\mu_{X(t,m,j)} = p_{m,j} N_{t,j}$,
+
+where $\sum_{m = 1}^{12} p_{m,j} = 1$.
+
+The proportion of nest abundance during the m-th month ($p_{m,j}$) was modeled using the discrete Fourier series and assumed constant over years. 
+
+$p{m,j}= (\beta_{0,j} + \beta_{1,j} cos(2m/L) + \beta_{2,j} sin(2m/L))/(12\beta_{0,j}+ \beta_{1,j}cos(2m/L) + \beta_{2,j} sin(2m/L))$
+
+Where $\beta$s are coefficients that are estimated from the data and L is period, where it was 12 for Jamursba-Medi and 6 for Wermon.  
+
+#### Model Set 2
+In the second group of models, the total abundance was treated as a random variable. 
+
+$N_{t,j} \sim h(\mu_{N(t,j)}, \theta_{N})$
+
+The state variables for monthly counts were treated as fixed.
+
+$X_{t,m,j} = p_{m,j} N_{t,j}$ 
+
+Where p and the observation (y) are defined as in Model Set 1.
+
+$y_{t,m,j} \sim g(X_{t,m,j}, \theta_{y})$
+
+For the distribution functions $f()$, $g()$, and $h()$, we considered the normal and Student’s t distributions. A total of 32 models were available for the complete dataset.
+
+We assumed the observation error for each beach to be independent (i.e., $cov(y_{m,j=1}, y_{m,j=2}) = 0$). This decision simplified the distributions for the observation errors to be univariate distribution (rather than multivariate distribution). 
+
+Goodness of fit of each model to the data was assessed using Pareto k diagnostic statistics (Vehtari et al. 2018). Models that were deemed appropriate for the data (maximum Pareto k statistic < 0.7) were compared using the LOOIC (Vehtari et al. 2018).
+
+To determine if there was a difference in population growth rates between summer and winter nest abundances, we fit the models to different sets of data. The first set contained all available data (complete dataset). In the second dataset (summer dataset), all data between October and March were removed. In the third dataset (winter dataset), all data between April and September were removed. The winter dataset was for Wermon only because no winter nesting occurred at Jamursba Medi. Consequently, there was only one growth rate for the winter dataset. Finally, data for Jamursba Medi were analyzed separately. 
+
+
+# Results
 ## Data
 
 ```{r get_data, cache=T, echo=F, message=F, warning=F}
@@ -46,7 +105,7 @@ data.jags.W <- data.extract(location = "W",
                              year.end = year.end)
 ```
 
-Data for this analysis came from two leatherback nesting beaches in Indonesia  (Jamursba-Medi and Wermon) where the number of nests was counted monthly. No data were collected in several years due to various logistical and other reasons. At Jamursba Medi nesting beach, data collection started in ```r min(data.jags.JM$data.0$Year_begin)```, whereas at Wermon it started in ```r min(data.jags.W$data.0$Year_begin)```. At these nesting beaches, a nesting season starts in April and ends in March of the following year. In the following analyses, the nesting season is defined as the beginning of each nesting season. For example, the 2005 nesting season starts on 2005-04-01 and ends on 2006-03-31. 
+Data for this analysis came from two leatherback nesting beaches in Indonesia  (Jamursba-Medi and Wermon) where the number of nests was counted monthly. No data were collected in several years due to various logistical and other reasons. At Jamursba Medi nesting beach, data collection started in ```r min(data.jags.JM$data.0$Year_begin)```, whereas at Wermon it started in ```r min(data.jags.W$data.0$Year_begin)```. In the following analyses, the nesting season is defined as the beginning of each nesting season. For example, the 2005 nesting season starts on 2005-04-01 and ends on 2006-03-31. 
 
 ### Jamursba-Medi
 ```{r JM_data, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
@@ -69,11 +128,11 @@ if (save.fig)
 
 At Jamursba-Medi, no data were collected in many years between the mid 1980s and late 1990s (Figure 1). A somewhat consistent effort starts in early 2000s and continue to the recent years, where the most recent data are from the ```r max(data.jags.JM$data.1$Season)``` nesting season (Figure 1). The observed nest count in ```r filter(data.jags.JM$data.0, Nests == max(data.jags.JM$data.0$Nests, na.rm = T))$Year_begin``` was ```r max(data.jags.JM$data.0$Nests, na.rm = T)``` and declined to less than 1000 since 2000. 
 
-```{r plot_JM_raw_data, echo=FALSE, cache=TRUE, fig.cap = "Figure 1. Nest counts at Jamursba-Medi"}
+```{r plot_JM_raw_data, echo=FALSE, cache=TRUE, fig.cap = "Nest counts at Jamursba-Medi"}
 knitr::include_graphics("figures/JM_all.png")
 ```
 
-Since 1999 at least some data were collected within each nesting season. After analyzing datasets with different starting years, we found that starting at 1999 resulted in the longest dataset and good fit of statistical models. Consequently, we decided to use data since 1999. The cyclical nature or seasonal fluctuations of counts is obvious in the raw counts (Figure 2).
+Since 1999 at least some data were collected within each nesting season. After analyzing datasets with different starting years, we found that starting at 1999 resulted in the longest dataset and good fit of statistical models. Consequently, we decided to use the data since 1999. The cyclical nature or seasonal fluctuations of counts is obvious in the raw data (Figure 2).
 
 ```{r JM_raw_since_1999, echo=FALSE, cache=TRUE, warning=FALSE}
 p.JM.1999 <- ggplot(data.jags.JM$data.1) + 
@@ -91,20 +150,13 @@ if (save.fig)
          plot = p.JM.1999,
          dpi = 600, height = fig.height, 
          width = fig.width, units = "in")
-```
 
-```{r plot_JM_raw_since_1999, echo=FALSE, cache=TRUE, fig.cap = "Figure 2. Nest counts at Jamursba-Medi since 1999"}
-knitr::include_graphics("figures/JM_1999.png")
-```
-
-
-```{r JM_raw_by_month, echo=FALSE, cache = TRUE, warning=FALSE}
 p.JM.monthly.1999 <- ggplot(data.jags.JM$data.1) + 
-  geom_point(aes(x = Month, y = Nests, color = as.factor(Year))) + 
-  geom_line(aes(x = Month, y = Nests, color = as.factor(Year))) +
+  geom_point(aes(x = Seq.Month, y = Nests, color = as.factor(Season))) + 
+  geom_line(aes(x = Seq.Month, y = Nests, color = as.factor(Season))) +
   scale_x_continuous(breaks = seq(1, 12, 1)) +
-  labs(x = "Month", y = '# nests', 
-       title = "Jamursba-Medi", color = "Year")  +
+  labs(x = "Sequential Month (1 = April)", y = '# nests', 
+       title = "Jamursba-Medi", color = "Season")  +
   theme(axis.text = element_text(size = 12),
         text = element_text(size = 12))
 #        legend.position = c(0.9, 0.6))
@@ -116,9 +168,14 @@ if (save.fig)
          width = fig.width, units = "in")
 ```
 
+```{r plot_JM_raw_since_1999, echo=FALSE, cache=TRUE, fig.cap = "Nest counts at Jamursba-Medi since 1999"}
+knitr::include_graphics("figures/JM_1999.png")
+```
+
+
 When the number of nests is plotted by month, the seasonal fluctuations become more obvious (Figure 3). In general, high counts within a year are seen during summer months (approximately from April to September), whereas low counts are found during winter months (October through March).   
 
-```{r plot_JM_by_month, echo=FALSE, cache=TRUE, fig.cap = "Figure 3. Monthly nest counts at Jamursba-Medi"}
+```{r plot_JM_by_month, echo=FALSE, cache=TRUE, fig.cap = "Monthly nest counts at Jamursba-Medi"}
 knitr::include_graphics("figures/JM_monthly_1999.png")
 ```
 
@@ -139,22 +196,28 @@ if (save.fig)
 
 At Wermon, no data were collected between July 2013 and December 2015. The largest nest count was ```r max(data.jags.W$data.0$Nests, na.rm=T)``` in ```r filter(data.jags.W$data.0, Nests == max(data.jags.W$data.0$Nests, na.rm = T))$Year_begin``` (Figure 4).   
 
-```{r plot_W_all, echo=FALSE, cache=TRUE, fig.cap = "Figure 4. Nest counts at Wermon. "}
+```{r plot_W_all, echo=FALSE, cache=TRUE, fig.cap = "Nest counts at Wermon. "}
 knitr::include_graphics("figures/W_all.png")
 ```
 
 
-The temporal nest count pattern at Wermon is different from that at Jamursba-Medi (Figure 3 vs. Figure 5). At Wermon, there are two peaks annually: higher values are found between May and September and between October and April.  
+The temporal nest count pattern at Wermon is different from that at Jamursba-Medi (Figure 3 vs. Figure 5). At Wermon, there are two peaks within each nesting season: higher values are found between May and September and between October and April.  
 
 ```{r W_raw_by_month, echo=FALSE, cache = TRUE, warning=FALSE}
-data.jags.W$data.0 %>% filter(Nests < 1500) -> data.2.W
+data.jags.W$data.0 %>% filter(Nests < 1500) %>%
+  mutate(Season = ifelse(Month_begin < 4, Year_begin-1, Year_begin),
+         Seq.Month = ifelse(Month_begin < 4, Month_begin + 9, Month_begin - 3)) -> data.2.W
 
 p.W.monthly <- ggplot(data.2.W) + 
-  geom_point(aes(x = Month_begin, y = Nests, color = as.factor(Year_begin))) + 
-  geom_line(aes(x = Month_begin, y = Nests, color = as.factor(Year_begin))) +
+  geom_point(aes(x = Seq.Month, 
+                 y = Nests, 
+                 color = as.factor(Season))) + 
+  geom_line(aes(x = Seq.Month, 
+                y = Nests, 
+                color = as.factor(Season))) +
   scale_x_continuous(breaks = seq(1, 12, 1)) +
-  labs(x = 'Month', y = '# nests', title = "Wermon",
-       color = "Year")  +
+  labs(x = 'Sequential Month (1 = April)', y = '# nests', title = "Wermon",
+       color = "Season")  +
   theme(axis.text = element_text(size = 12),
         text = element_text(size = 12))
 
@@ -169,19 +232,20 @@ if (save.fig)
 ```
 
 
-```{r plot_W_by_month, echo=FALSE, cache=TRUE, fig.cap = "Figure 5. Monthly nest counts at Wermon. A large large count (>1500) was removed. "}
+```{r plot_W_by_month, echo=FALSE, cache=TRUE, fig.cap = "Monthly nest counts at Wermon. A large large count (>1500) was removed. "}
 knitr::include_graphics("figures/W_monthly.png")
 ```
 
-Observed counts for 2004 and 2005 seem to be outliers with respect to within-year patterns. Because this analysis used observed patterns to impute missing values, we removed these years from the data for the following analysis (Figure 6).  
+Observed counts before the 2006 season seem to be outliers with respect to within-year patterns. Because this analysis used observed patterns to impute missing values, we removed these years from the data for the following analysis (Figure 6).  
 
 ```{r W_by_month_since_2006, echo=FALSE, cache = TRUE, warning=FALSE}
 p.W.monthly.2006 <- ggplot(data.jags.W$data.1) + 
-  geom_point(aes(x = Month, y = Nests, color = as.factor(Year))) + 
-  geom_line(aes(x = Month, y = Nests, color = as.factor(Year))) +
+  geom_point(aes(x = Seq.Month, y = Nests, color = as.factor(Season))) + 
+  geom_line(aes(x = Seq.Month, y = Nests, color = as.factor(Season))) +
   scale_x_continuous(breaks = seq(1, 12, 1)) +
-  labs(x = 'Month', y = '# nests', title = "Wermon",
-       color = "Year")  +
+  labs(x = 'Sequential Month (1 = April)', 
+       y = '# nests', title = "Wermon",
+       color = "Season")  +
   theme(axis.text = element_text(size = 12),
         text = element_text(size = 12))
 
@@ -194,13 +258,13 @@ if (save.fig)
 ```
 
 
-```{r plot_W_by_month_2006, echo=FALSE, cache=TRUE, fig.cap = "Figure 6. Monthly nest counts at Wermon. A large count (>1500) and counts for 2003 and 2004 were removed. "}
+```{r plot_W_by_month_2006, echo=FALSE, cache=TRUE, fig.cap = "Monthly nest counts at Wermon. A large count (>1500) and counts for 2003 and 2004 were removed. "}
 knitr::include_graphics("figures/W_monthly_2006.png")
 ```
 
-The two datasets (counts since ```r year.begin.JM``` for Jamursba-Medi and since ```r year.begin.W``` for Wermon) were used in the following analysis for estimating missing counts. 
+The two datasets (counts since ```r year.begin.JM``` for Jamursba-Medi and since ```r year.begin.W``` for Wermon) were used in the following analysis for imputing missing counts. 
 
-### Two beaches in one analysis (summer and winter together)
+### Two beaches in one analysis (summer and winter together; complete dataset)
 
 ```{r load_results_complete, echo=F, cache=T}
 loo.out <- readRDS(file = "RData/loo_all_Oct2020.rds")
@@ -216,7 +280,9 @@ max.pareto.k <- unlist(lapply(pareto.k,
 # find the models that have max(pareto k) < 0.7
 good.models <- filenames[which(max.pareto.k < 0.7)]
 good.models.pareto.k <- pareto.k[which(max.pareto.k < 0.7)]
+good.models.max.pareto.k <- max.pareto.k[which(max.pareto.k < 0.7)]
 
+# pick the models that maximum pareto_k < 0.7
 looic.esimates <- lapply(lapply(loo.out[which(max.pareto.k < 0.7)], 
                                 FUN = function(x) x$loo.out),
                          FUN = function(x) x$estimates)
@@ -232,18 +298,21 @@ model.weights <- loo_model_weights(loo.out.list)
 
 model.names.abb <- lapply(good.models, 
                           FUN = function(x) strsplit(x, split = "SSAR1_")[[1]][2]) %>%  
-  lapply(FUN = function(x) strsplit(x, split = "_JM12")[[1]][1]) %>% unlist() 
+  lapply(FUN = function(x) strsplit(x, split = "_JM12")[[1]][1]) %>%
+  lapply(FUN = function(x) strsplit(x, split = "trend_DFS_")) %>%
+  lapply(FUN = function(x) paste(unlist(x), collapse = "")) %>% unlist() 
 
 options(scipen = 999)
 
 #                          weights = as.vector(model.weights
 
-looic.table <- data.frame(model = model.names.abb,
-                          looic = looic) %>% 
+looic.table <- data.frame(Model = model.names.abb,
+                          Max.Pareto = good.models.max.pareto.k,
+                          LOOIC = looic) %>% 
   #arrange(by = desc(weights)) %>%
-  mutate(delta.looic = looic - min(looic)) %>%
-  arrange(by = delta.looic) %>%
-  select(-looic) %>%
+  mutate(delta.LOOIC = LOOIC - min(LOOIC)) %>%
+  arrange(by = delta.LOOIC) %>%
+  select(-LOOIC) %>%
   mutate_if(is.numeric, round, digits = 4)
 
 best.model <- good.models[which(looic == min(looic))]
@@ -272,16 +341,16 @@ if (save.fig)
          units = "in")
 ```
 
-According to Pareto k diagnostic statistics, Model set 2 (annual nest abundance as a random variable) was better than Model set 1 (annual nest abundance as a non-random variable; Supplementary material). Among the 16 models within Model Set 2, the lowest LOOIC value was found for the model with Student's t distribution for abundance (N) with location specific variance (Qs), Student's t distribution for observations (y), and location-specific growth parameter (U). Gelman-Rubin Rhat statistics indicated successful convergence of all parameters (maximum Rhat = ```r signif(rhat.max, digits=3)```). We use the joint posterior distribution from this model for the inference.  
+According to Pareto k diagnostic statistics, Model set 2 (v2: annual nest abundance as a random variable) was better than Model set 1 (v1: annual nest abundance as a non-random variable). Sixteen models were considered acceptable according to Pareto-k diagnostics (max(Pareto-k) < 0.7; Table 1). Among the 16 models within Model Set 2, the lowest LOOIC value was found for the model with Student's t distribution for abundance (N) with location specific variance (Qs), Student's t distribution for observations (y), and location-specific growth parameter (U). Gelman-Rubin Rhat statistics indicated successful convergence of all parameters (maximum Rhat = ```r signif(rhat.max, digits=3)```). We use the joint posterior distribution from this model for the inference.  
 
 ```{r looic_table_1, echo=F}
 knitr::kable(looic.table, digits = 2,
-             caption = "Table 1. A comparison of models that were fit to the complete dataset and passed the goodness-of-fit test using Pareto k statistics.")
+             caption = "A comparison of models that were fit to the complete dataset and passed the LOOIC goodness-of-fit test using Pareto k statistics. In the Model column, model names were defined as [observation  function] _ [state function] _ [model set] _ [# U parameters] _ [# Q parameters]. Max.Pareto indicates the maximum Pareto k statistics value for each model. delta.looic indicates the difference in LOOIC values from the smallest LOOIC value.")
 ```
 
 The estimated mean growth rates at two beaches were ```r signif(U.stats[1,"mean"], digits = 2)``` (SE = ```r signif(U.stats[1, "sd"], digits = 2)```, p(U < 0.0) = ```r signif(U.stats[1, "f"], digits = 2)```) for Jamursba Medi and ```r signif(U.stats[2,"mean"], digits = 2)``` (SE = ```r signif(U.stats[2, "sd"], digits = 2)```, p(U < 0.0) = ```r signif(U.stats[2, "f"], digits = 2)```) for Wermon (Figure 7). 
 
-```{r plot_complete_Us, echo=FALSE, cache=TRUE, fig.cap = "Figure 7. The posteior distributions of the geometric growth rates for Jamursba Medi (U[1]) and Wermon (U[2]) when the complete dataset was used. "}
+```{r plot_complete_Us, echo=FALSE, cache=TRUE, fig.cap = "The posteior distributions of the geometric growth rates for Jamursba Medi (U[1]) and Wermon (U[2]) when the complete dataset was used. "}
 knitr::include_graphics("figures/complete_posterior_2Us.png")
 ```
 
@@ -301,6 +370,7 @@ max.pareto.k.summer <- unlist(lapply(pareto.k.summer,
 # find the models that have max(pareto k) < 0.7
 good.models.summer <- filenames.summer[which(max.pareto.k.summer < 0.7)]
 good.models.pareto.k.summer <- pareto.k.summer[which(max.pareto.k.summer < 0.7)]
+good.models.max.pareto.k.summer <- max.pareto.k.summer[which(max.pareto.k.summer < 0.7)]
 
 looic.esimates.summer <- lapply(lapply(loo.out.summer[which(max.pareto.k.summer < 0.7)], 
                                 FUN = function(x) x$loo.out),
@@ -317,15 +387,18 @@ model.weights.summer <- loo_model_weights(loo.out.list.summer)
 
 model.names.abb.summer <- lapply(good.models.summer, 
                           FUN = function(x) strsplit(x, split = "SSAR1_")[[1]][2]) %>%  
-  lapply(FUN = function(x) strsplit(x, split = "_JM6")[[1]][1]) %>% unlist() 
+  lapply(FUN = function(x) strsplit(x, split = "_JM6")[[1]][1]) %>% 
+  lapply(FUN = function(x) strsplit(x, split = "trend_DFS_")) %>%
+  lapply(FUN = function(x) paste(unlist(x), collapse = "")) %>% unlist() 
 
 options(scipen = 999)
 
 looic.table.summer <- data.frame(model = model.names.abb.summer,
-                          looic = looic.summer) %>% 
-  mutate(delta.looic = looic.summer - min(looic.summer)) %>%
-  arrange(by = delta.looic) %>%
-  select(-looic) %>%
+                                 Max.Pareto = good.models.max.pareto.k.summer,
+                                 LOOIC = looic.summer) %>% 
+  mutate(delta.LOOIC = looic.summer - min(looic.summer)) %>%
+  arrange(by = delta.LOOIC) %>%
+  select(-LOOIC) %>%
   mutate_if(is.numeric, round, digits = 4)
 
 best.model.summer <- good.models.summer[which(looic.summer == min(looic.summer))]
@@ -373,25 +446,25 @@ if (save.fig)
 
 ```
 
-As it was the case with the complete dataset, Model Set 2 (annual nest abundance as a random variable) fit better than Model set 1 (annual nest abundance as a non-random variable; Supplementary material) according to the Pareto k statistics. Among the 16 models within Model Set 2, the lowest LOOIC value was found for the model with Student's t distribution for abundance (N) with location specific variance (Qs), Student's t distribution for observations (y), and a common growth parameter (U) between the two locations. The second best model ($\Delta$ LOOIC = ```r signif(looic.table.summer[2, "delta.looic"], 2)```) was the same model with location specific growth parameters (Table 2).  Gelman-Rubin Rhat statistics indicated successful convergence of all parameters (maximum Rhat = ```r signif(rhat.max.summer.1, digits=3)``` and ```r signif(rhat.max.summer.2, digits=3)```). We use the joint posterior distributions from these two models for the inference.  
+As it was the case with the complete dataset, Model Set 2 (v2: annual nest abundance as a random variable) fit better than Model Set 1 (v1: annual nest abundance as a non-random variable) according to the Pareto k statistics. Among the 16 models within Model Set 2, the lowest LOOIC value was found for the model with Student's t distribution for abundance (N) with location specific variance (2 Qs), Student's t distribution for observations (y), and a common growth parameter (1 U) between the two locations. The second best model ($\Delta$ LOOIC = ```r signif(looic.table.summer[2, "delta.LOOIC"], 2)```) was the same model with location specific growth parameters (Table 2).  Gelman-Rubin Rhat statistics indicated successful convergence of all parameters (maximum Rhat = ```r signif(rhat.max.summer.1, digits=5)``` and ```r signif(rhat.max.summer.2, digits=5)```). We use the joint posterior distributions from these two models for the inference.  
 
 ```{r looic_table_summer, echo=F}
 knitr::kable(looic.table.summer, 
              digits = 2,
-             caption = "Table 2. A comparison of models that were fit to the summer dataset and passed the goodness-of-fit test using Pareto k statistics.")
+             caption = "A comparison of models that were fit to the summer dataset and passed the goodness-of-fit test using Pareto k statistics.")
 ```
 
 For the one growth rate model, the estimated mean growth rates at two beaches were ```r signif(U.stats.summer.1[1,"mean"], digits = 2)``` (SE = ```r signif(U.stats.summer.1[1, "sd"], digits = 2)```, p(U < 0.0) = ```r signif(U.stats.summer.1[1, "f"], digits = 2)```, Figure 8)
 
-For the two growth rate model, the estimated mean growth rates at two beaches were ```r signif(U.stats.summer.2[1,"mean"], digits = 2)``` (SE = ```r signif(U.stats.summer.2[1, "sd"], digits = 2)```, p(U < 0.0) = ```r signif(U.stats.summer.2[1, "f"], digits = 2)```) for Jamursba Medi and ```r signif(U.stats.summer.2[2,"mean"], digits = 2)``` (SE = ```r signif(U.stats.summer.2[2, "sd"], digits = 2)```, p(U < 0.0) = ```r signif(U.stats.summer.2[2, "f"], digits = 2)```) for Wermon (Figure 9). 
+For the two growth rate model, the estimated mean growth rates at two beaches were ```r signif(U.stats.summer.2[1,"mean"], digits = 3)``` (SE = ```r signif(U.stats.summer.2[1, "sd"], digits = 3)```, p(U < 0.0) = ```r signif(U.stats.summer.2[1, "f"], digits = 3)```) for Jamursba Medi and ```r signif(U.stats.summer.2[2,"mean"], digits = 3)``` (SE = ```r signif(U.stats.summer.2[2, "sd"], digits = 3)```, p(U < 0.0) = ```r signif(U.stats.summer.2[2, "f"], digits = 3)```) for Wermon (Figure 9). 
 
 
-```{r plot_summer_1U, echo=FALSE, cache=TRUE, fig.cap = "Figure 8. The posteior distribution of the geometric growth rate when the summer dataset was used. "}
+```{r plot_summer_1U, echo=FALSE, cache=TRUE, fig.cap = "The posteior distribution of the geometric growth rate when the summer dataset was used. "}
 knitr::include_graphics("figures/summer_posterior_1U.png")
 ```
 
 
-```{r plot_summer_2Us, echo=FALSE, cache=TRUE, fig.cap = "Figure 9. The posteior distributions of the geometric growth rates (U[1] = Jamursba Medi and U[2] = Wermon) when the summer dataset was used. "}
+```{r plot_summer_2Us, echo=FALSE, cache=TRUE, fig.cap = "The posteior distributions of the geometric growth rates (U[1] = Jamursba Medi and U[2] = Wermon) when the summer dataset was used. "}
 knitr::include_graphics("figures/summer_posterior_2Us.png")
 ```
 
@@ -411,6 +484,7 @@ max.pareto.k.winter <- unlist(lapply(pareto.k.winter,
 # find the models that have max(pareto k) < 0.7
 good.models.winter <- filenames.winter[which(max.pareto.k.winter < 0.7)]
 good.models.pareto.k.winter <- pareto.k.winter[which(max.pareto.k.winter < 0.7)]
+good.models.max.pareto.k.winter <- max.pareto.k.winter[which(max.pareto.k.winter < 0.7)]
 
 looic.esimates.winter <- lapply(lapply(loo.out.winter[which(max.pareto.k.winter < 0.7)], 
                                 FUN = function(x) x$loo.out),
@@ -456,27 +530,19 @@ if (save.fig)
 
 ```
 
-Among the 16 models fit to the winter dataset, only one model was found appropriate based on the Pareto k statistic (Model Set 2 with Student's t distribution for abundance (N) with a common variance (Q), and Student's t distribution for observations (y). Gelman-Rubin Rhat statistics indicated successful convergence of all parameters (maximum Rhat = ```r signif(rhat.max.winter, digits = 5)```). We use the joint posterior distributions from this model for the inference.
-
-
-<!-- ```{r looic_table_winter, echo=F} -->
-<!-- knitr::kable(looic.table.winter,  -->
-<!--              digits = 2, -->
-<!--              caption = "Table 3. A comparison of models that were fit to the winter dataset from Wermon and passed the goodness-of-fit test using Pareto k statistics.") -->
-<!-- ``` -->
-
+Among the 16 models fit to the winter dataset, only one model was found appropriate based on the Pareto k statistic (Model Set 2 with Student's t distribution for abundance (N) with a common variance (1 Q), and Student's t distribution for observations (y). Gelman-Rubin Rhat statistics indicated successful convergence of all parameters (maximum Rhat = ```r signif(rhat.max.winter, digits = 5)```). We use the joint posterior distributions from this model for the inference.
 
 The estimated mean growth rate at Wermon ```r signif(U.stats.winter[1,"mean"], digits = 2)``` (SE = ```r signif(U.stats.winter[1, "sd"], digits = 2)```, p(U < 0.0) = ```r signif(U.stats.winter[1, "f"], digits = 2)```, Figure 10)
 
 
-```{r plot_winter_U, echo=FALSE, cache=TRUE, fig.cap = "Figure 10. The posteior distribution of the geometric growth rate when the winter dataset was used. "}
+```{r plot_winter_U, echo=FALSE, cache=TRUE, fig.cap = "The posteior distribution of the geometric growth rate when the winter dataset was used. "}
 knitr::include_graphics("figures/winter_posterior_U.png")
 ```
 
 
 ### Comparing Jamursba-Medi results to Tapilatu et al. 
 
-Tapilatu et al. (YR) published the declining trend of leatherback turtle nests at the Jamiursba-Medi nesting beach. We used additional data since the publication to estimate new trend for the same nesting beach. 
+Tapilatu et al. (2013) published the declining trend of leatherback turtle nests at the Jamiursba-Medi nesting beach. We used additional data since the publication to estimate new trend for the same nesting beach. 
 
 ```{r compare_Tapilatu, echo=FALSE}
 Tapilatu.JM.data <- data.frame(Year = c(1984, 1985, 1993:1997, 1999:2011),
@@ -525,7 +591,7 @@ Tapilatu.JM.1993.data$fitted <- Tapilatu.1993.fit$fitted.values
 #summary(Tapilatu.fit)
 ```
 
-Tapilatu et al. stated that "Trend analysis for nest count estimates between 1984 and 2011 at Jamursba Medi indicates an overall significant decline of 78.3% over the 27 year period (r2 = 0.65)." This meant that estimated r was ```r log(1-0.783)/27```, which is a bit off from what I found here. If they used R2, rather than adjusted R2, the R2 values match fairly well. From our estimate (r = ```r signif(Tapilatu.fit$coefficients[2], 3)```, SE = ```r signif(summary(Tapilatu.fit)$coefficients[2,2], 3)```), the overall decline was ```r signif(1 - exp(Tapilatu.fit$coefficients[2] * 27), 3) * 100``` %. 
+Tapilatu et al. stated that "Trend analysis for nest count estimates between 1984 and 2011 at Jamursba Medi indicates an overall significant decline of 78.3% over the 27 year period ($R^2$ = 0.65)." This meant that estimated U was ```r signif(log(1-0.783)/27, 3)```, which is a bit off from what I found here (estimated U = ```r signif(Tapilatu.fit$coefficients[2], 3)``` and $R^2$ = ```r signif(summary(Tapilatu.fit)$adj.r.squared, 3)```). If they used $R^2$, rather than adjusted $R^2$, the $R^2$ values match well. From our estimate (U = ```signif(Tapilatu.fit$coefficients[2], 3)```, SE = ```r signif(summary(Tapilatu.fit)$coefficients[2,2], 3)```), the overall decline was ```r signif(((1 - exp(Tapilatu.fit$coefficients[2] * 27)) * 100), 3)``` % (off by 1%). 
 
 ```{r Tapilatu_fit_2012, echo=FALSE}
 Tapilatu.fit.2 <- lm(log(Nests) ~ Year.shifted, data = Tapilatu.JM.data.2)
@@ -538,9 +604,9 @@ Tapilatu.JM.1993.data.2$fitted <- Tapilatu.fit.1993.2$fitted.values
 
 ```
 
-When eight more years of data were added (2012-2019) to the dataset in Tapilatu et al. (2013), estimated growth rate decreased by ```r signif(abs(Tapilatu.fit.2$coefficients[2] - Tapilatu.fit$coefficients[2]), 2) * 100``` % per year (r = ```r signif(Tapilatu.fit.2$coefficients[2], 3)```, SE = ```r signif(summary(Tapilatu.fit.2)$coefficients[2,2], 3)```. This is equivalent of ```r signif(1 - exp(Tapilatu.fit.2$coefficients[2] * 35), 3) * 100``` % decline over the 35 years.
+When eight more years of data were added (2012-2019) to the dataset in Tapilatu et al. (2013), estimated growth rate decreased by ```r signif(abs(Tapilatu.fit.2$coefficients[2] - Tapilatu.fit$coefficients[2]) * 100, 3)``` % per year (r = ```r signif(Tapilatu.fit.2$coefficients[2], 3)```, SE = ```r signif(summary(Tapilatu.fit.2)$coefficients[2,2], 3)```. This is equivalent of ```r signif(((1 - exp(Tapilatu.fit.2$coefficients[2] * 27)) * 100), 3)``` % decline over the 35 years.
 
-When the first value (```r Tapilatu.JM.data[1, "Nests"]``` in ```r Tapilatu.JM.data[1, "Year"]```), which was greater than twice the next largest count (```r arrange(Tapilatu.JM.data, by = desc(Nests))[2, "Nests"]```), was removed, the estimated growth rate was ```r signif(Tapilatu.1993.fit$coefficients[2], 3)```, SE = ```r signif(summary(Tapilatu.1993.fit)$coefficients[2,2], 3)```. 
+When the first value (```r format(Tapilatu.JM.data[1, "Nests"], big.mark = ",")``` in ```r Tapilatu.JM.data[1, "Year"]```), which was greater than twice the next largest count (```r arrange(Tapilatu.JM.data, by = desc(Nests))[2, "Nests"]```), was removed, the estimated growth rate (U) was ```r signif(Tapilatu.1993.fit$coefficients[2], 3)```, SE = ```r signif(summary(Tapilatu.1993.fit)$coefficients[2,2], 3)```. 
 
 ```{r Tapilatu_new_regression, echo=FALSE}
 p.GLM <- ggplot() + 
@@ -571,11 +637,11 @@ if (save.fig)
 ```
 
 
-```{r plot_GLM, echo=FALSE, cache=TRUE, fig.cap = "Figure 11. Fitted general linear models to the data in Tapilatu et al. 2013 (orange), with new data (blue), starting from 1993 with new data (red)."}
+```{r plot_GLM, echo=FALSE, cache=TRUE, fig.cap = "Fitted general linear models to the data in Tapilatu et al. 2013 (orange), with new data (blue), starting from 1993 with new data (red)."}
 knitr::include_graphics("figures/GLM_fit.png")
 ```
 
-I also fitted Bayesian hierarchical models to the nest counts data from the Jamursba Medi nesting beach only. The set of models are similar to the ones above but restricted to one slope (U) and one variance (Q).
+I also fitted Bayesian hierarchical models to the nest counts data from the Jamursba Medi nesting beach only. The set of models are similar to the ones above but restricted to one slope (1 U) and one variance (1 Q) models.
 
 ```{r BayesianRegression, echo=F}
 # Use JM data only and run the models
@@ -592,6 +658,7 @@ max.pareto.k.JM <- unlist(lapply(pareto.k.JM,
 # find the models that have max(pareto k) < 0.7
 good.models.JM <- filenames.JM[which(max.pareto.k.JM < 0.7)]
 good.models.pareto.k.JM <- pareto.k.JM[which(max.pareto.k.JM < 0.7)]
+good.models.max.pareto.k.JM <- max.pareto.k.JM[which(max.pareto.k.JM < 0.7)]
 
 looic.esimates.JM <- lapply(lapply(loo.out.JM[which(max.pareto.k.JM < 0.7)], 
                                 FUN = function(x) x$loo.out),
@@ -608,16 +675,20 @@ model.weights.JM <- loo_model_weights(loo.out.list.JM)
 
 model.names.abb.JM <- lapply(good.models.JM, 
                           FUN = function(x) strsplit(x, split = "SSAR1_")[[1]][2]) %>%  
-  lapply(FUN = function(x) strsplit(x, split = "_JM12")[[1]][1]) %>% unlist() 
+  lapply(FUN = function(x) strsplit(x, split = "_JM12")[[1]][1]) %>% 
+  lapply(FUN = function(x) strsplit(x, split = "trend_DFS_")) %>%
+  lapply(FUN = function(x) paste(unlist(x), collapse = "")) %>% unlist() 
 
 options(scipen = 999)
 
 looic.table.JM <- data.frame(model = model.names.abb.JM,
-                          looic = looic.JM) %>% 
-  mutate(delta.looic = looic.JM - min(looic.JM)) %>%
-  arrange(by = delta.looic) %>%
-  select(-looic) %>%
+                                 Max.Pareto = good.models.max.pareto.k.JM,
+                                 LOOIC = looic.JM) %>% 
+  mutate(delta.LOOIC = looic.JM - min(looic.JM)) %>%
+  arrange(by = delta.LOOIC) %>%
+  select(-LOOIC) %>%
   mutate_if(is.numeric, round, digits = 4)
+
 
 best.model.JM <- good.models.JM[which(looic.JM == min(looic.JM))]
 pareto.k.best.JM <- good.models.pareto.k.JM[[which(looic.JM == min(looic.JM))]]
@@ -663,30 +734,21 @@ if (save.fig)
          units = "in")
 ```
 
+Among the 16 models fit to the Jamursba-Medi dataset, only four model was found appropriate based on the Pareto k statistic (Table x) (maximum Rhat = ```r signif(rhat.max.JM.1, digits = 5)```). We use the joint posterior distributions from this model for the inference.
 
 
-```{r plot_posterior_JM_1U, echo=FALSE, cache=TRUE, fig.cap = "Figure 12. The posterior distribution of the growth rate (U) from the best model based on LOOIC. "}
+```{r looic_table_JM, echo=F}
+knitr::kable(looic.table.JM, 
+             digits = 2,
+             caption = "A comparison of models that were fit to the Jamursba Medi dataset and passed the goodness-of-fit test using Pareto k statistics.")
+```
+
+The estimated mean growth rate at Jamursba Medi ```r signif(U.stats.JM.1[1,"mean"], digits = 2)``` (SE = ```r signif(U.stats.JM.1[1, "sd"], digits = 2)```, p(U < 0.0) = ```r signif(U.stats.JM.1[1, "f"], digits = 2)```, Figure 12)
+
+
+```{r plot_posterior_JM_1U, echo=FALSE, cache=TRUE, fig.cap = "The posterior distribution of the growth rate (U) from the best model based on LOOIC. "}
 knitr::include_graphics("figures/JM_posterior_1U.png")
 ```
-
-# Appendix
-
-## Observed and imputed (with 95% CI) data
-
-```{r plot_X_y_complete, echo=FALSE, cache=TRUE, fig.cap = "Figure A1. Observed and imputed (95% CI) when using the complete dataset. "}
-knitr::include_graphics("figures/estimated_y_N_2Us.png")
-```
-
-
-```{r plot_X_y_summer, echo=FALSE, cache=TRUE, fig.cap = "Figure A2. Observed and imputed (95% CI) when using the summer dataset. "}
-knitr::include_graphics("figures/estimated_y_N_summer_2Us.png")
-```
-
-
-```{r plot_X_y_winter, echo=FALSE, cache=TRUE, fig.cap = "Figure A3. Observed and imputed (95% CI) when using the winter dataset. "}
-knitr::include_graphics("figures/estimated_y_N_winter.png")
-```
-
 
 
 
