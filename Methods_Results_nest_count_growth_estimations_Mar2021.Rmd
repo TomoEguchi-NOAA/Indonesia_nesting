@@ -754,3 +754,63 @@ knitr::include_graphics("figures/JM_posterior_1U.png")
 ONE LAST THING TO DO:
 1. USE MODELS WITHOUT POPULATION GROWTH PART AND JUST IMPUTE MISSING MONTHLY COUNTS
 2. PUT BACK THE DISCARDED MONTHLY COUNTS, THEN COMPUTE GROWTH RATES
+
+Rather than running the models with no growth rates, I decided to extract the imputed y's and combine them with the observed ys. 
+```{r}
+jm.best.model <- readRDS(file = paste0("RData/", best.model[[1]], ".rds"))
+
+# get all data
+stats.JM <- data.frame(time = data.jags.JM$data.0$Frac.Year,
+                       obsY = data.jags.JM$data.0$Nests,
+                       month = data.jags.JM$data.0$Month,
+                       year = data.jags.JM$data.0$Year) %>%
+  mutate(year_month = paste(year, month, sep = "_"),
+         Season = ifelse(month < 4, year-1, year)) %>%
+  select(!c(month, year))
+
+# imputed and observed in one dataframe
+data.frame(low = as.vector(t(jm.best.model$q2.5$y[,,1])),
+           median = as.vector(t(jm.best.model$q50$y[,,1])),
+           high = as.vector(t(jm.best.model$q97.5$y[,,1])),
+           year = data.jags.JM$data.1$Year,
+           month = data.jags.JM$data.1$Month) %>%
+  mutate(year_month = paste(year, month, sep = "_")) %>%
+  right_join(., stats.JM, by = "year_month") %>%
+  arrange(time) -> ys.stats.JM
+ys.stats.JM$location <- "Jamursba-Medi"
+
+# Wermon has a shorter time series so we set things up with available data
+stats.W <- data.frame(time = data.jags.W$data.0$Frac.Year,
+                       obsY = data.jags.W$data.0$Nests,
+                       month = data.jags.W$data.0$Month,
+                       year = data.jags.W$data.0$Year) %>%
+  mutate(year_month = paste(year, month, sep = "_"),
+         Season = ifelse(month < 4, year-1, year)) %>%
+  select(!c(month, year))
+
+data.frame(low = as.vector(t(jm.best.model$q2.5$y[,,2])),
+           median = as.vector(t(jm.best.model$q50$y[,,2])),
+           high = as.vector(t(jm.best.model$q97.5$y[,,2])),
+           year = data.jags.JM$data.1$Year,
+           month = data.jags.JM$data.1$Month) %>%
+  mutate(year_month = paste(year, month, sep = "_")) %>%
+  right_join(., stats.W, by = "year_month") %>%
+  arrange(time) -> ys.stats.W
+ys.stats.W$location <- "Wermon"
+
+ys.stats <- rbind(ys.stats.JM, ys.stats.W)
+
+ggplot(data = ys.stats) + 
+  geom_point(aes(x = time, y = log(obsY), color = location),
+             alpha = 0.5) + 
+  geom_point(aes(x = time, y = median, color = location),
+             alpha = 0.5, shape = 5)  
+  
+  geom_errorbar(aes(x = time, 
+                    ymin = (low), 
+                    ymax = (high),
+                    color = location))
+
+```
+
+
