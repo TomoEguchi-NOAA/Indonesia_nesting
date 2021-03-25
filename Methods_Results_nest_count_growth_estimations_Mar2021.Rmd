@@ -751,6 +751,209 @@ knitr::include_graphics("figures/JM_posterior_1U.png")
 ```
 
 
+
+### Comparing Wermon results to Tapilatu et al. 
+
+Tapilatu et al. (2013) published the declining trend of leatherback turtle nests at the Wermon nesting beach. We used additional data since the publication to estimate new trend for the same nesting beach. 
+
+```{r compare_Tapilatu_W, echo=FALSE}
+Tapilatu.W.data <- data.frame(Year = c(2002:2011),
+                              Nests = c(2994, 2786, 2805, 1497, 1335,
+                                        1483, 1287, 1080, 1354, 1096))
+
+# New data 
+data.jags.W$data.0 %>% 
+  mutate(Season = ifelse(Month_begin < 4, Year_begin-1, Year_begin),
+         Season.f = as.factor(Season)) %>%
+  select(Season, Nests) %>%
+  group_by(Season) %>%
+  summarize(Nests = sum(Nests, na.rm = T)) -> W.data.year
+
+# Take just the new part - since 2012
+W.data.year.2012 <- filter(W.data.year, Season > 2011) %>%
+  transmute(Year = Season,
+            Nests = Nests) 
+
+Tapilatu.W.data.2 <- rbind(Tapilatu.W.data, W.data.year.2012) %>%
+  mutate(Year.shifted = Year - min(Tapilatu.W.data$Year))
+
+# ggplot() +
+#   geom_point(data = Tapilatu.JM.data,
+#              aes(x = Year, y = Nests), color = "orange") + 
+#   geom_point(data = JM.data.year,
+#              aes(x = Season, y = Nests), color = "blue")
+
+# Move the year so the first year is zero.
+Tapilatu.W.data %>% mutate(Year.shifted = Year - min(Year)) -> Tapilatu.W.data
+
+Tapilatu.W.fit <- lm(log(Nests) ~ Year.shifted, data = Tapilatu.W.data)
+Tapilatu.W.data$fitted <- Tapilatu.W.fit$fitted.values
+
+#summary(Tapilatu.fit)
+```
+
+# THIS PARAGRAPH NEEDS TO BE REWRITTEN WITH WERMON RESULTS.
+Tapilatu et al. stated that "Trend analysis for nest count estimates between 1984 and 2011 at Jamursba Medi indicates an overall significant decline of 78.3% over the 27 year period ($R^2$ = 0.65)." This meant that estimated U was ```r signif(log(1-0.783)/27, 3)```, which is a bit off from what I found here (estimated U = ```r signif(Tapilatu.fit$coefficients[2], 3)``` and $R^2$ = ```r signif(summary(Tapilatu.fit)$adj.r.squared, 3)```). If they used $R^2$, rather than adjusted $R^2$, the $R^2$ values match well. From our estimate (U = ```signif(Tapilatu.fit$coefficients[2], 3)```, SE = ```r signif(summary(Tapilatu.fit)$coefficients[2,2], 3)```), the overall decline was ```r signif(((1 - exp(Tapilatu.fit$coefficients[2] * 27)) * 100), 3)``` % (off by 1%). 
+
+```{r Tapilatu_fit_W_2012, echo=FALSE}
+Tapilatu.W.fit.2 <- lm(log(Nests) ~ Year.shifted, data = Tapilatu.W.data.2)
+#summary(Tapilatu.fit.2)
+Tapilatu.W.data.2$fitted <- Tapilatu.W.fit.2$fitted.values
+
+```
+
+# THIS PARAGRAPH NEEDS TO BE REWRITTEN WITH WERMON RESULTS
+When eight more years of data were added (2012-2019) to the dataset in Tapilatu et al. (2013), estimated growth rate decreased by ```r signif(abs(Tapilatu.fit.2$coefficients[2] - Tapilatu.fit$coefficients[2]) * 100, 3)``` % per year (r = ```r signif(Tapilatu.fit.2$coefficients[2], 3)```, SE = ```r signif(summary(Tapilatu.fit.2)$coefficients[2,2], 3)```. This is equivalent of ```r signif(((1 - exp(Tapilatu.fit.2$coefficients[2] * 27)) * 100), 3)``` % decline over the 35 years.
+
+# THIS PARAGRAPH NEEDS TO BE REWRITTEN WITH WERMON RESULTS
+When the first value (```r format(Tapilatu.JM.data[1, "Nests"], big.mark = ",")``` in ```r Tapilatu.JM.data[1, "Year"]```), which was greater than twice the next largest count (```r arrange(Tapilatu.JM.data, by = desc(Nests))[2, "Nests"]```), was removed, the estimated growth rate (U) was ```r signif(Tapilatu.1993.fit$coefficients[2], 3)```, SE = ```r signif(summary(Tapilatu.1993.fit)$coefficients[2,2], 3)```. 
+
+```{r Tapilatu_new_regression_W, echo=FALSE}
+p.GLM.W <- ggplot() + 
+  geom_point(data = Tapilatu.W.data,
+             aes(x = Year, y = Nests),
+             color = "orange") + 
+  geom_line(data = Tapilatu.W.data,
+            aes(x = Year, y = exp(fitted)),
+            color = "orange") +
+  geom_point(data = Tapilatu.W.data.2 %>% filter(Year > 2011),
+             aes(Year, y = Nests),
+             color = "blue") +
+  geom_line(data = Tapilatu.W.data.2,
+            aes(x = Year, y = exp(fitted)),
+            color = "blue") 
+
+if (save.fig)
+  ggsave(filename = 'figures/GLM_fit_W.png', 
+         plot = p.GLM.W,
+         dpi = 600, height = fig.height, 
+         width = fig.width, 
+         units = "in")
+
+```
+
+
+```{r plot_GLM_W, echo=FALSE, cache=TRUE, fig.cap = "Fitted general linear models to the Wermon data in Tapilatu et al. 2013 (orange), with new data (blue)."}
+knitr::include_graphics("figures/GLM_fit.png")
+```
+
+I also fitted Bayesian hierarchical models to the nest counts data from the Jamursba Medi nesting beach only. The set of models are similar to the ones above but restricted to one slope (1 U) and one variance (1 Q) models.
+
+```{r BayesianRegression, echo=F}
+# Use JM data only and run the models
+loo.out.JM <- readRDS(file = "RData/loo_all_W_only_Mar2021.rds")
+filenames.JM <- readRDS(file = "RData/filenames_W_only_Mar2021.rds")
+
+pareto.k.W <- lapply(loo.out.W, 
+                   FUN = function(x) x$loo.out)
+
+# find maximum pareto k values
+max.pareto.k.W <- unlist(lapply(pareto.k.W,
+       FUN = function(x) max(x$diagnostics$pareto_k)))
+
+# find the models that have max(pareto k) < 0.7
+good.models.W <- filenames.W[which(max.pareto.k.W < 0.7)]
+good.models.pareto.k.JM <- pareto.k.JM[which(max.pareto.k.JM < 0.7)]
+good.models.max.pareto.k.W <- max.pareto.k.W[which(max.pareto.k.W < 0.7)]
+
+looic.esimates.W <- lapply(lapply(loo.out.W[which(max.pareto.k.W < 0.7)], 
+                                FUN = function(x) x$loo.out),
+                         FUN = function(x) x$estimates)
+
+looic.W <- unlist(lapply(looic.esimates.W, 
+                       FUN = function(x) x["looic", "Estimate"]))
+
+loo.out.list.W <- lapply(loo.out.W[which(max.pareto.k.W < 0.7)], 
+                       FUN = function(x) x$loo.out)
+
+# calculate model weights
+model.weights.W <- loo_model_weights(loo.out.list.W)
+
+model.names.abb.W <- lapply(good.models.W, 
+                          FUN = function(x) strsplit(x, split = "SSAR1_")[[1]][2]) %>%  
+  lapply(FUN = function(x) strsplit(x, split = "_W6")[[1]][1]) %>% 
+  lapply(FUN = function(x) strsplit(x, split = "trend_DFS_")) %>%
+  lapply(FUN = function(x) paste(unlist(x), collapse = "")) %>% unlist() 
+
+options(scipen = 999)
+
+looic.table.W <- data.frame(model = model.names.abb.W,
+                                 Max.Pareto = good.models.max.pareto.k.W,
+                                 LOOIC = looic.W) %>% 
+  mutate(delta.LOOIC = looic.W - min(looic.W)) %>%
+  arrange(by = delta.LOOIC) %>%
+  select(-LOOIC) %>%
+  mutate_if(is.numeric, round, digits = 4)
+
+
+best.model.W <- good.models.W[which(looic.W == min(looic.W))]
+pareto.k.best.W <- good.models.pareto.k.W[[which(looic.W == min(looic.W))]]
+
+second.best.model.W <- good.models.W[order(looic.W)[2]]
+
+jm <- readRDS(file = paste0("RData/", best.model.W[[1]], ".rds"))
+#max(unlist(lapply(jm$Rhat, FUN = max, na.rm = T)))
+data.frame(jm$summary) %>% rownames_to_column("Parameter") -> summary.df
+
+# check convergence 
+rhat.max.W.1 <- max(unlist(lapply(jm$Rhat, FUN = max, na.rm = T)))
+
+# look at some posteriors
+U.stats.W.1 <- summary.df[grep(summary.df$Parameter, pattern = "U"),]
+p.post.U.W.1 <- bayesplot::mcmc_dens(jm$samples, c("U")) + 
+  xlab("Annual growth rate") + ylab("Density")
+
+if (save.fig)
+  ggsave(filename = 'figures/W_posterior_1U.png', 
+         plot = p.post.U.W.1,
+         dpi = 600, height = fig.height, 
+         width = fig.width, 
+         units = "in")
+
+# Second best model:
+jm <- readRDS(file = paste0("RData/", second.best.model.W[[1]], ".rds"))
+#max(unlist(lapply(jm$Rhat, FUN = max, na.rm = T)))
+data.frame(jm$summary) %>% rownames_to_column("Parameter") -> summary.df
+
+# check convergence 
+rhat.max.W.2 <- max(unlist(lapply(jm$Rhat, FUN = max, na.rm = T)))
+
+U.stats.W.2 <- summary.df[grep(summary.df$Parameter, pattern = "U"),]
+p.post.U.W.2 <- bayesplot::mcmc_dens(jm$samples, c("U")) + 
+  xlab("Annual growth rate") + ylab("Density")
+
+if (save.fig)
+  ggsave(filename = 'figures/W_posterior_1U_2.png', 
+         plot = p.post.U.W.2,
+         dpi = 600, height = fig.height, 
+         width = fig.width, 
+         units = "in")
+```
+
+NEED TO FIX THIS PARAGRAPH AFTER WERMON ANALYSIS IS DONE
+Among the 16 models fit to the Jamursba-Medi dataset, only four model was found appropriate based on the Pareto k statistic (Table x) (maximum Rhat = ```r signif(rhat.max.JM.1, digits = 5)```). We use the joint posterior distributions from this model for the inference.
+
+
+```{r looic_table_W, echo=F}
+knitr::kable(looic.table.W, 
+             digits = 2,
+             caption = "A comparison of models that were fit to the Jamursba Medi dataset and passed the goodness-of-fit test using Pareto k statistics.")
+```
+
+FIX THIS PARAGRAPH
+The estimated mean growth rate at Jamursba Medi ```r signif(U.stats.JM.1[1,"mean"], digits = 2)``` (SE = ```r signif(U.stats.JM.1[1, "sd"], digits = 2)```, p(U < 0.0) = ```r signif(U.stats.JM.1[1, "f"], digits = 2)```, Figure 12)
+
+
+```{r plot_posterior_W_1U, echo=FALSE, cache=TRUE, fig.cap = "The posterior distribution of the growth rate (U) from the best model based on LOOIC. "}
+knitr::include_graphics("figures/W_posterior_1U.png")
+```
+
+
+
+
+
+
+######################################3
 ONE LAST THING TO DO:
 1. USE MODELS WITHOUT POPULATION GROWTH PART AND JUST IMPUTE MISSING MONTHLY COUNTS
 2. PUT BACK THE DISCARDED MONTHLY COUNTS, THEN COMPUTE GROWTH RATES
