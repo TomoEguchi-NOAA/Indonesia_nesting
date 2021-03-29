@@ -1,0 +1,232 @@
+---
+title: "Location specific (just W) analysis"
+output: html_notebook
+---
+
+Set things up:
+
+```{r}
+rm(list=ls())
+
+# tic <- Sys.time()
+# Sys <- Sys.info()
+source('Dc_Indonesia_nesting_fcns.R')
+#library(rjags)
+
+library(jagsUI)
+library(coda)
+library(tidyverse)
+library(loo)
+```
+
+
+```{r}
+save.data <- T
+save.fig <- T
+run.date <-  Sys.Date() #"2019-06-25" #
+
+#year.begin.JM <- 1999
+year.begin.W <- 2006
+#year.begin <- 2002
+year.end <- 2019
+
+#period.JM <- 12
+period.W <- 6
+maxN <- 10000
+
+UQ.models <- "1U_1Q"
+
+# t_loc has location (or series) specific df parameter 
+state.models <- c("norm", "t")
+obs.models <- c("norm", "t") # 
+v.models <- c("DFS_v1", "DFS_v2")  # v2 models have no Xs - Ns are the state
+
+```
+
+
+Set up the MCMC parameters
+
+```{r}
+MCMC.n.chains <- 5
+MCMC.n.samples <- 50000
+MCMC.n.burnin <- 10000
+MCMC.n.thin <- 5
+
+MCMC.params <- list(n.chains = MCMC.n.chains,
+                    n.samples = MCMC.n.samples,
+                    n.burnin = MCMC.n.burnin,
+                    n.thin = MCMC.n.thin)
+```
+
+
+Bring in the data
+
+```{r}
+# Begining year for Wermon is 2006.
+data.jags.W <- data.extract(location = "W", 
+                             year.begin = year.begin.W, 
+                             year.end = year.end)
+
+y <- array(data= NA, dim = c(nrow(data.jags.W$jags.data2$y),
+                             ncol(data.jags.W$jags.data2$y), 1))
+y[,,1] <- data.jags.W$jags.data2$y
+
+jags.data <- list(y = y,
+                  m = data.jags.W$jags.data2$m,
+                  C0 = 15,
+                  n.months = 12,
+                  C_cos = c(sum(apply(matrix(1:12, nrow=1), 
+                                      MARGIN = 1, 
+                                      FUN = function(x) cos(2 * pi * x/period.W)))),
+                  C_sin = c(sum(apply(matrix(1:12, nrow=1), 
+                                      MARGIN = 1, 
+                                      FUN = function(x) sin(2 * pi * x/period.W)))),
+                  pi = pi,
+                  period = period.W,
+                  N0_mean = 8,   # this is 2980.958. Should be close enough
+                  N0_sd = 10,
+                  n.years = data.jags.W$jags.data2$n.years,
+                  n.states = 1)
+
+```
+
+
+run jags on each model
+
+```{r}
+c <- 1
+loo.out <- list()
+filenames <- list()
+k1 <- k2 <- 1
+for (k2 in 1:length(obs.models)){
+  obs.model <- obs.models[k2]
+  for (k3 in 1:length(state.models)){
+    state.model <- state.models[k3]
+    for (k4 in 1:length(v.models)){
+      v.model <- v.models[k4]
+      filename.root <- paste0("SSAR1_", state.model, "_", 
+                              obs.model, "_trend_", 
+                              v.model, "_1U_1Q_W", 
+                              period.W, "_",
+                              year.begin.W, "_", 
+                              year.end, "_", run.date)
+      
+      filenames[[c]] <- filename.root
+      # define parameters to monitor - add "df" for t distribution
+      jags.params <- c('N', 'U', "p", "p.beta.cos", "p.beta.sin",
+                       "sigma.Q", "sigma.R", 
+                       "mu", "y", "deviance", "loglik")
+      
+      if (v.model == "DFS_v1"){
+        jags.params <- c(jags.params, "X")
+      }
+      
+      if (obs.model == "t"){
+        jags.params <- c(jags.params, "df.y")
+      }
+      
+      if (state.model == "t"){
+        jags.params <- c(jags.params, "df.X")
+      }
+      
+      model.name <- paste0("models/trend_models/model_", 
+                           state.model, "_", obs.model, 
+                           "_trend_", v.model, "_1U_1Q.txt")
+      
+      if (file.exists(model.name)){
+        
+        print(paste0("Running: ", model.name))
+        
+        if (!file.exists(paste0("RData/", filename.root, '.rds'))){
+          jm <- jags(jags.data,
+                     inits = NULL,
+                     parameters.to.save= jags.params,
+                     model.file = model.name,
+                     n.chains = MCMC.params$n.chains,
+                     n.burnin = MCMC.params$n.burnin,
+                     n.thin = MCMC.params$n.thin,
+                     n.iter = MCMC.params$n.samples,
+                     DIC = T, parallel=T)
+          
+          saveRDS(jm,
+                  file = paste0("RData/", filename.root, '.rds'))
+        } else {
+          jm <- readRDS(file = paste0("RData/", filename.root, '.rds'))
+        }
+        
+        if (!file.exists(paste0("RData/", filename.root, "_loo.rds"))){
+          loo.out[[c]] <- compute.LOOIC(loglik = jm$sims.list$loglik, 
+                                        MCMC.params = MCMC.params, 
+                                        data.vector = as.vector(jags.data$y))
+          saveRDS(loo.out[[c]], file = paste0("RData/", filename.root, "_loo.rds"))
+        } else {
+          loo.out[[c]] <- readRDS(file = paste0("RData/", filename.root, "_loo.rds"))
+          
+        }
+        
+        c <- c + 1
+        
+      } else {
+        print(paste0("Model file ", model.name, " does not exist" ))
+      }    
+      
+    }
+    
+  }
+  
+}
+```
+
+First look at the Pareto k diagnostics to see how the models fit.
+
+```{r}
+pareto.k <- lapply(loo.out, 
+                   FUN = function(x) x$loo.out)
+
+# These have been saved so commenting out 2021-03-25
+#saveRDS(loo.out, file = "RData/loo_all_W_only_Mar2021.rds")
+#saveRDS(filenames, file = "RData/filenames_W_only_Mar2021.rds")
+
+# find maximum pareto k values
+max.pareto.k <- unlist(lapply(pareto.k,
+       FUN = function(x) max(x$diagnostics$pareto_k)))
+
+# find the models that have max(pareto k) < 0.7
+good.models <- filenames[which(max.pareto.k < 0.7)]
+good.models.pareto.k <- pareto.k[which(max.pareto.k < 0.7)]
+```
+
+
+Compare the results using LOOIC:
+
+```{r}
+looic.esimates <- lapply(lapply(loo.out[which(max.pareto.k < 0.7)], 
+                                FUN = function(x) x$loo.out),
+                         FUN = function(x) x$estimates)
+
+looic <- unlist(lapply(looic.esimates, 
+                       FUN = function(x) x["looic", "Estimate"]))
+
+loo.out.list <- lapply(loo.out[which(max.pareto.k < 0.7)], 
+                       FUN = function(x) x$loo.out)
+
+# calculate model weights
+model.weights <- loo_model_weights(loo.out.list)
+
+model.names.abb <- lapply(good.models, 
+                          FUN = function(x) strsplit(x, split = "SSAR1_")[[1]][2]) %>%  
+  lapply(FUN = function(x) strsplit(x, split = "_W6")[[1]][1]) %>% unlist() 
+
+options(scipen = 999)
+
+looic.table <- data.frame(model = model.names.abb,
+                          looic = looic,
+                          weights = as.vector(model.weights)) %>% 
+  arrange(by = desc(weights)) %>%
+  mutate(delta.looic = looic - min(looic)) %>%
+  mutate_if(is.numeric, round, digits = 4)
+
+best.model <- good.models[which(looic == min(looic))]
+pareto.k.best <- good.models.pareto.k[[which(looic == min(looic))]]
+```
+

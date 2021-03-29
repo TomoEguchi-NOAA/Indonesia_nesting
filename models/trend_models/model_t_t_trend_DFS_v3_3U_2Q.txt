@@ -37,12 +37,15 @@ model{
     # Initial states
     for(j in 1:n.states) {
             
-        N0[j] ~ dnorm(N0_mean[j], 1/(N0_sd[j]^2))    # prior on init state
-        pred.N[j,1] <- N0[j] + U[j]  
-        N[j,1] ~ dt(pred.N[j,1], tau.Q[j], df.N[j])
+        N0[j, season[1]] ~ dnorm(N0_mean[j, season[1]], 1/(N0_sd[j, season[1]]^2))    # prior on init state; season = season[1]
+        
+        pred.N[j,1, season[1]] <- N0[j] + U[j, season[1]] # N0 is still N0
 
+        N[j,1,season[1]] ~ dt(pred.N[j,1,season[1]], tau.Q[j], df.N[j])
+        
+        N.all[j, 1] <- N[j,1,1] + N[j,1,2]
         for (t in 1:n.months){
-           pred.X[1,t,j] <- log(p[j, t]) + N[j,1]
+           pred.X[1,t,j] <- log(p[j, t]) + N.all[j,1]
 
            # observation
            y[1,t,j] ~  dt(pred.X[1,t,j], tau.R[j], df.y[j])
@@ -56,11 +59,16 @@ model{
     
     for (s in 2:n.years){
         for (j in 1:n.states){
-            N[j, s] ~ dt(pred.N[j, s], tau.Q[j], df.N[j])
-            pred.N[j, s] <- U[j] + N[j, s-1]
+            N[j, s, 1] ~ dt(pred.N[j, s, 1], tau.Q[j], df.N[j])
+            pred.N[j, s, 1] <- U[j, 1] + N[j, s-1, 1]
+
+            N[j, s, 2] ~ dt(pred.N[j, s, 2], tau.Q[j], df.N[j])
+            pred.N[j, s, 2] <- U[j, 2] + N[j, s-1, 2]
+
+            N.all[j,s] <- N[j,s,1] + N[j,s,2]
 
             for (t in 1:n.months){
-                pred.X[s,t,j] <- log(p[j, t]) + N[j,s]
+                pred.X[s,t,j] <- log(p[j, t]) + N.all[j,s]
 
                 # observation
                 y[s,t,j] ~  dt(pred.X[s,t,j], tau.R[j], df.y[j])

@@ -14,7 +14,7 @@ library(loo)
 #base_theme <- ggplot2::theme_get()
 library(bayesplot)
 
-save.fig <- T
+save.fig <- F
 
 fig.height <- 4
 fig.width <- 6
@@ -591,7 +591,7 @@ Tapilatu.JM.1993.data$fitted <- Tapilatu.1993.fit$fitted.values
 #summary(Tapilatu.fit)
 ```
 
-Tapilatu et al. stated that "Trend analysis for nest count estimates between 1984 and 2011 at Jamursba Medi indicates an overall significant decline of 78.3% over the 27 year period ($R^2$ = 0.65)." This meant that estimated U was ```r signif(log(1-0.783)/27, 3)```, which is a bit off from what I found here (estimated U = ```r signif(Tapilatu.fit$coefficients[2], 3)``` and $R^2$ = ```r signif(summary(Tapilatu.fit)$adj.r.squared, 3)```). If they used $R^2$, rather than adjusted $R^2$, the $R^2$ values match well. From our estimate (U = ```signif(Tapilatu.fit$coefficients[2], 3)```, SE = ```r signif(summary(Tapilatu.fit)$coefficients[2,2], 3)```), the overall decline was ```r signif(((1 - exp(Tapilatu.fit$coefficients[2] * 27)) * 100), 3)``` % (off by 1%). 
+Tapilatu et al. stated that "Trend analysis for nest count estimates between 1984 and 2011 at Jamursba Medi indicates an overall significant decline of 78.3% over the 27 year period ($R^2$ = 0.65)." This meant that estimated U was ```r signif(log(1-0.783)/27, 3)```, which is a bit off from what I found here (estimated U = ```r signif(Tapilatu.fit$coefficients[2], 3)``` and $R^2$ = ```r signif(summary(Tapilatu.fit)$adj.r.squared, 3)```). If they used $R^2$, rather than adjusted $R^2$, the $R^2$ values match well. From our estimate (U = ```signif(Tapilatu.fit$coefficients[2], 3)```, SE = ```r signif(summary(Tapilatu.fit)$coefficients[2,2], 3)```), the overall decline was ```r signif(((1 - exp(Tapilatu.fit$coefficients[2] * 27)) * 100), 3)``` %. 
 
 ```{r Tapilatu_fit_2012, echo=FALSE}
 Tapilatu.fit.2 <- lm(log(Nests) ~ Year.shifted, data = Tapilatu.JM.data.2)
@@ -756,6 +756,8 @@ knitr::include_graphics("figures/JM_posterior_1U.png")
 
 Tapilatu et al. (2013) published the declining trend of leatherback turtle nests at the Wermon nesting beach. We used additional data since the publication to estimate new trend for the same nesting beach. 
 
+"There was also a 62.8% decline at Wermon from 2,994 nests in 2002 to 1,096 in 2011 (GLM, r^2 = 0.78, p < 0.01;Table 1, Fig. 3). In comparison, during our current study (2005–2011), nesting declined 29.0% at Jamursba Medi (GLM; r^2 = 0.92, p < 0.01), and 52.2% at Wermon (GLM; r^2 = 0.52, p < 0.01)."
+
 ```{r compare_Tapilatu_W, echo=FALSE}
 Tapilatu.W.data <- data.frame(Year = c(2002:2011),
                               Nests = c(2994, 2786, 2805, 1497, 1335,
@@ -789,11 +791,24 @@ Tapilatu.W.data %>% mutate(Year.shifted = Year - min(Year)) -> Tapilatu.W.data
 Tapilatu.W.fit <- lm(log(Nests) ~ Year.shifted, data = Tapilatu.W.data)
 Tapilatu.W.data$fitted <- Tapilatu.W.fit$fitted.values
 
-#summary(Tapilatu.fit)
+#summary(Tapilatu.W.fit)
 ```
 
-# THIS PARAGRAPH NEEDS TO BE REWRITTEN WITH WERMON RESULTS.
-Tapilatu et al. stated that "Trend analysis for nest count estimates between 1984 and 2011 at Jamursba Medi indicates an overall significant decline of 78.3% over the 27 year period ($R^2$ = 0.65)." This meant that estimated U was ```r signif(log(1-0.783)/27, 3)```, which is a bit off from what I found here (estimated U = ```r signif(Tapilatu.fit$coefficients[2], 3)``` and $R^2$ = ```r signif(summary(Tapilatu.fit)$adj.r.squared, 3)```). If they used $R^2$, rather than adjusted $R^2$, the $R^2$ values match well. From our estimate (U = ```signif(Tapilatu.fit$coefficients[2], 3)```, SE = ```r signif(summary(Tapilatu.fit)$coefficients[2,2], 3)```), the overall decline was ```r signif(((1 - exp(Tapilatu.fit$coefficients[2] * 27)) * 100), 3)``` % (off by 1%). 
+Tapilatu et al. stated that "There was also a 62.8% decline at Wermon from 2,994 nests in 2002 to 1,096 in 2011 (GLM, r^2 = 0.78)." This meant that estimated U was ```r signif(log(1-0.628)/9, 3)```, which is a little different from what I got here (estimated U = ```r signif(Tapilatu.W.fit$coefficients[2], 3)``` and $R^2$ = ```r signif(summary(Tapilatu.W.fit)$adj.r.squared, 3)```). They used multiple R-squared rather than adjusted R-squared for small sample size ($R^2$ = ```r summary(Tapilatu.W.fit)$r.squared```, Adjusted $R^2$ = ```r summary(Tapilatu.W.fit)$adj.r.squared```).  
+
+
+```{r Tapilatu_fit_2005to2011, echo=FALSE}
+Tapilatu.W.data %>% filter(Year > 2004) %>% 
+  mutate(Year.shifted = Year - min(Year)) -> Tapilatu.W.data.2005
+
+Tapilatu.W.fit.2005 <- lm(log(Nests) ~ Year.shifted, data = Tapilatu.W.data.2005)
+Tapilatu.W.data.2005$fitted <- Tapilatu.W.fit.2005$fitted.values
+
+
+
+```
+
+They also stated that "In comparison, during our current study (2005–2011), nesting declined 29.0% at Jamursba Medi (GLM; r^2 = 0.92, p < 0.01), and 52.2% at Wermon (GLM; r^2 = 0.52, p < 0.01)." 52.2% decline over 6 years equates to U = ```r signif(log(1-0.522)/6, 3```, which is quite different from what I got in this GLM (```r signif(Tapilatu.W.fit.2005$coefficients[2], 3)``` and $R^2$ = ```r signif(summary(Tapilatu.W.fit.2005)$adj.r.squared, 3)```).) Again, they used multiple R-squared instead of adjusted R-squared. 
 
 ```{r Tapilatu_fit_W_2012, echo=FALSE}
 Tapilatu.W.fit.2 <- lm(log(Nests) ~ Year.shifted, data = Tapilatu.W.data.2)
@@ -802,11 +817,7 @@ Tapilatu.W.data.2$fitted <- Tapilatu.W.fit.2$fitted.values
 
 ```
 
-# THIS PARAGRAPH NEEDS TO BE REWRITTEN WITH WERMON RESULTS
-When eight more years of data were added (2012-2019) to the dataset in Tapilatu et al. (2013), estimated growth rate decreased by ```r signif(abs(Tapilatu.fit.2$coefficients[2] - Tapilatu.fit$coefficients[2]) * 100, 3)``` % per year (r = ```r signif(Tapilatu.fit.2$coefficients[2], 3)```, SE = ```r signif(summary(Tapilatu.fit.2)$coefficients[2,2], 3)```. This is equivalent of ```r signif(((1 - exp(Tapilatu.fit.2$coefficients[2] * 27)) * 100), 3)``` % decline over the 35 years.
-
-# THIS PARAGRAPH NEEDS TO BE REWRITTEN WITH WERMON RESULTS
-When the first value (```r format(Tapilatu.JM.data[1, "Nests"], big.mark = ",")``` in ```r Tapilatu.JM.data[1, "Year"]```), which was greater than twice the next largest count (```r arrange(Tapilatu.JM.data, by = desc(Nests))[2, "Nests"]```), was removed, the estimated growth rate (U) was ```r signif(Tapilatu.1993.fit$coefficients[2], 3)```, SE = ```r signif(summary(Tapilatu.1993.fit)$coefficients[2,2], 3)```. 
+When eight more years of data were added (2012-2019) to the dataset in Tapilatu et al. (2013), estimated growth rate increased by ```r signif(abs(Tapilatu.W.fit.2$coefficients[2] - Tapilatu.W.fit$coefficients[2]) * 100, 3)``` % per year (r = ```r signif(Tapilatu.W.fit.2$coefficients[2], 3)```, SE = ```r signif(summary(Tapilatu.W.fit.2)$coefficients[2,2], 3)```. This is equivalent of ```r signif(((1 - exp(Tapilatu.W.fit.2$coefficients[2] * 17)) * 100), 3)``` % decline over the 17 years.
 
 ```{r Tapilatu_new_regression_W, echo=FALSE}
 p.GLM.W <- ggplot() + 
@@ -834,15 +845,17 @@ if (save.fig)
 
 
 ```{r plot_GLM_W, echo=FALSE, cache=TRUE, fig.cap = "Fitted general linear models to the Wermon data in Tapilatu et al. 2013 (orange), with new data (blue)."}
-knitr::include_graphics("figures/GLM_fit.png")
+knitr::include_graphics("figures/GLM_fit_W.png")
 ```
 
-I also fitted Bayesian hierarchical models to the nest counts data from the Jamursba Medi nesting beach only. The set of models are similar to the ones above but restricted to one slope (1 U) and one variance (1 Q) models.
+The numbers of nests since 2014 may indicate potential increase (Figure x).
 
-```{r BayesianRegression, echo=F}
-# Use JM data only and run the models
-loo.out.JM <- readRDS(file = "RData/loo_all_W_only_Mar2021.rds")
-filenames.JM <- readRDS(file = "RData/filenames_W_only_Mar2021.rds")
+I also fitted Bayesian hierarchical models to the nest counts data from the Wermon nesting beach only. The set of models are similar to the ones above but restricted to one slope (1 U) and one variance (1 Q) models.
+
+```{r BayesianRegression_W, echo=F}
+# Use W data only and run the models
+loo.out.W <- readRDS(file = "RData/loo_all_W_only_Mar2021.rds")
+filenames.W <- readRDS(file = "RData/filenames_W_only_Mar2021.rds")
 
 pareto.k.W <- lapply(loo.out.W, 
                    FUN = function(x) x$loo.out)
@@ -853,7 +866,7 @@ max.pareto.k.W <- unlist(lapply(pareto.k.W,
 
 # find the models that have max(pareto k) < 0.7
 good.models.W <- filenames.W[which(max.pareto.k.W < 0.7)]
-good.models.pareto.k.JM <- pareto.k.JM[which(max.pareto.k.JM < 0.7)]
+good.models.pareto.k.W <- pareto.k.W[which(max.pareto.k.W < 0.7)]
 good.models.max.pareto.k.W <- max.pareto.k.W[which(max.pareto.k.W < 0.7)]
 
 looic.esimates.W <- lapply(lapply(loo.out.W[which(max.pareto.k.W < 0.7)], 
@@ -904,7 +917,7 @@ p.post.U.W.1 <- bayesplot::mcmc_dens(jm$samples, c("U")) +
   xlab("Annual growth rate") + ylab("Density")
 
 if (save.fig)
-  ggsave(filename = 'figures/W_posterior_1U.png', 
+  ggsave(filename = 'figures/W_posterior_t_t_1U.png', 
          plot = p.post.U.W.1,
          dpi = 600, height = fig.height, 
          width = fig.width, 
@@ -923,33 +936,28 @@ p.post.U.W.2 <- bayesplot::mcmc_dens(jm$samples, c("U")) +
   xlab("Annual growth rate") + ylab("Density")
 
 if (save.fig)
-  ggsave(filename = 'figures/W_posterior_1U_2.png', 
+  ggsave(filename = 'figures/W_posterior_norm_t_1U.png', 
          plot = p.post.U.W.2,
          dpi = 600, height = fig.height, 
          width = fig.width, 
          units = "in")
 ```
 
-NEED TO FIX THIS PARAGRAPH AFTER WERMON ANALYSIS IS DONE
-Among the 16 models fit to the Jamursba-Medi dataset, only four model was found appropriate based on the Pareto k statistic (Table x) (maximum Rhat = ```r signif(rhat.max.JM.1, digits = 5)```). We use the joint posterior distributions from this model for the inference.
+Among the 8 models fit to the Wermon dataset, only ```r length(good.models.W)``` models were found appropriate based on the Pareto k statistic (Table x). The best model included Student's t distribution for state and observation processes, whereas the second best model was with the normal disttibution for the state and Student's t distribution for the observation. Convergence was reached for both models, where maximum Rhat < 1.01. 
 
 
 ```{r looic_table_W, echo=F}
 knitr::kable(looic.table.W, 
              digits = 2,
-             caption = "A comparison of models that were fit to the Jamursba Medi dataset and passed the goodness-of-fit test using Pareto k statistics.")
+             caption = "A comparison of models that were fit to the Wermon dataset and passed the goodness-of-fit test using Pareto k statistics.")
 ```
 
-FIX THIS PARAGRAPH
-The estimated mean growth rate at Jamursba Medi ```r signif(U.stats.JM.1[1,"mean"], digits = 2)``` (SE = ```r signif(U.stats.JM.1[1, "sd"], digits = 2)```, p(U < 0.0) = ```r signif(U.stats.JM.1[1, "f"], digits = 2)```, Figure 12)
+The estimated mean growth rate at Wermon ```r signif(U.stats.W.1[1,"mean"], digits = 2)``` (SE = ```r signif(U.stats.W.1[1, "sd"], digits = 2)```, p(U < 0.0) = ```r signif(U.stats.W.1[1, "f"], digits = 2)```, Figure 12). The second best model showed similar results: ```r signif(U.stats.W.2[1,"mean"], digits = 2)``` (SE = ```r signif(U.stats.W.2[1, "sd"], digits = 2)```, p(U < 0.0) = ```r signif(U.stats.W.2[1, "f"], digits = 2)```.
 
 
-```{r plot_posterior_W_1U, echo=FALSE, cache=TRUE, fig.cap = "The posterior distribution of the growth rate (U) from the best model based on LOOIC. "}
+```{r plot_posterior_W_1U, echo=FALSE, cache=TRUE, fig.cap = "The posterior distribution of the growth rate (U) at Wermon from the best model based on LOOIC. "}
 knitr::include_graphics("figures/W_posterior_1U.png")
 ```
-
-
-
 
 
 

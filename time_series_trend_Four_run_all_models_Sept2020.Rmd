@@ -24,8 +24,8 @@ library(loo)
 
 
 ```{r}
-save.data <- T
-save.fig <- T
+save.data <- F
+save.fig <- F
 run.date <- "2020-09-24" #Sys.Date() #"2019-06-25" #
 
 year.begin <- 2002
