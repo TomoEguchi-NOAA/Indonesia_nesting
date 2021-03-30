@@ -808,7 +808,7 @@ Tapilatu.W.data.2005$fitted <- Tapilatu.W.fit.2005$fitted.values
 
 ```
 
-They also stated that "In comparison, during our current study (2005–2011), nesting declined 29.0% at Jamursba Medi (GLM; r^2 = 0.92, p < 0.01), and 52.2% at Wermon (GLM; r^2 = 0.52, p < 0.01)." 52.2% decline over 6 years equates to U = ```r signif(log(1-0.522)/6, 3```, which is quite different from what I got in this GLM (```r signif(Tapilatu.W.fit.2005$coefficients[2], 3)``` and $R^2$ = ```r signif(summary(Tapilatu.W.fit.2005)$adj.r.squared, 3)```).) Again, they used multiple R-squared instead of adjusted R-squared. 
+They also stated that "In comparison, during our current study (2005–2011), nesting declined 29.0% at Jamursba Medi (GLM; r^2 = 0.92, p < 0.01), and 52.2% at Wermon (GLM; r^2 = 0.52, p < 0.01)." 52.2% decline over 6 years equates to U = ```r signif(log(1-0.522)/6, 3)```, which is quite different from what I got in this GLM (```r signif(Tapilatu.W.fit.2005$coefficients[2], 3)``` and $R^2$ = ```r signif(summary(Tapilatu.W.fit.2005)$adj.r.squared, 3)```).) Again, they used multiple R-squared instead of adjusted R-squared. 
 
 ```{r Tapilatu_fit_W_2012, echo=FALSE}
 Tapilatu.W.fit.2 <- lm(log(Nests) ~ Year.shifted, data = Tapilatu.W.data.2)
