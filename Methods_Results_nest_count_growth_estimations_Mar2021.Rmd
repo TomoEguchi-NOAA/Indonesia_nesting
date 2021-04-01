@@ -111,6 +111,8 @@ Data for this analysis came from two leatherback nesting beaches in Indonesia  (
 ```{r JM_data, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 p.JM.all <- ggplot(data.jags.JM$data.0) + 
   geom_point(aes(x = Frac.Year, y = Nests)) + 
+  geom_vline(data = data.frame(x = 1999+4/12, y = 0),
+             aes(xintercept = x)) +
   #geom_path(aes(x = Frac.Year, y = Nests)) +
   scale_x_continuous(breaks = seq(min(data.jags.JM$data.0$Year_begin), 2020, 5),
                      limits = c(min(data.jags.JM$data.0$Year_begin), 2020)) +
@@ -183,6 +185,8 @@ knitr::include_graphics("figures/JM_monthly_1999.png")
 ```{r W_data, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
 p.W.all <- ggplot(data.jags.W$data.0) + 
   geom_point(aes(x = Frac.Year, y = Nests)) + 
+  geom_vline(data = data.frame(x = 2006 + 4/12, y = 0),
+             aes(xintercept = x)) +
   #geom_path(aes(x = Frac.Year, y = Nests)) + 
   labs(title = 'Wermon', x = '', 
        y = "Nest counts")
@@ -591,7 +595,7 @@ Tapilatu.JM.1993.data$fitted <- Tapilatu.1993.fit$fitted.values
 #summary(Tapilatu.fit)
 ```
 
-Tapilatu et al. stated that "Trend analysis for nest count estimates between 1984 and 2011 at Jamursba Medi indicates an overall significant decline of 78.3% over the 27 year period ($R^2$ = 0.65)." This meant that estimated U was ```r signif(log(1-0.783)/27, 3)```, which is a bit off from what I found here (estimated U = ```r signif(Tapilatu.fit$coefficients[2], 3)``` and $R^2$ = ```r signif(summary(Tapilatu.fit)$adj.r.squared, 3)```). If they used $R^2$, rather than adjusted $R^2$, the $R^2$ values match well. From our estimate (U = ```signif(Tapilatu.fit$coefficients[2], 3)```, SE = ```r signif(summary(Tapilatu.fit)$coefficients[2,2], 3)```), the overall decline was ```r signif(((1 - exp(Tapilatu.fit$coefficients[2] * 27)) * 100), 3)``` %. 
+Tapilatu et al. stated that "Trend analysis for nest count estimates between 1984 and 2011 at Jamursba Medi indicates an overall significant decline of 78.3% over the 27 year period ($R^2$ = 0.65)." This meant that estimated U was ```r signif(log(1-0.783)/27, 3)```, which is a bit off from what I found here (estimated U = ```r signif(Tapilatu.fit$coefficients[2], 3)``` and $R^2$ = ```r signif(summary(Tapilatu.fit)$adj.r.squared, 3)```). If they used $R^2$, rather than adjusted $R^2$, the $R^2$ values match well. From our estimate (U = ```r signif(Tapilatu.fit$coefficients[2], 3)```, SE = ```r signif(summary(Tapilatu.fit)$coefficients[2,2], 3)```), the overall decline was ```r signif(((1 - exp(Tapilatu.fit$coefficients[2] * 27)) * 100), 3)``` %. 
 
 ```{r Tapilatu_fit_2012, echo=FALSE}
 Tapilatu.fit.2 <- lm(log(Nests) ~ Year.shifted, data = Tapilatu.JM.data.2)
