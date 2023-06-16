@@ -19,10 +19,10 @@ MCMC.params <- list(n.chains = MCMC.n.chains,
                     n.thin = MCMC.n.thin)
 
 year.begin <- 2001
-year.end <- 2018
+year.end <- 2023
 #year.end <- 2019
 season.begin <- 2001
-season.end <- 2017
+season.end <- 2023
 loc <- "JM"
 data.jags <- data.extract(location = loc, 
                           year.begin = year.begin, 

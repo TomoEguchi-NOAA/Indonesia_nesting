@@ -13,6 +13,7 @@ library(tidyverse)
 library(lubridate)
 library(loo)
 library(dplyr)
+library(readxl)
 
 save.fig <- F
 
@@ -169,23 +170,32 @@ data.extract <- function(location, year.begin, year.end, season.begin = year.beg
   # has been updated.  
   # On 16 April 2019, the last few data points for 2019 were received
   # so the data files have been updated. 
+  # New data were received 2023-06-09. Need to be updated. Also, stopped editing
+  # Excel files and start using library(readxl) for reading Excel files directly
+  
   if (is.null(season.begin)) season.begin <- year.begin
   if (is.null(season.end)) season.end <- year.end
   
+  xls.file <- "data/NestCounts_JM &W_Modified_31Mei2023.xlsx"
+  data.0 <- read_excel(xls.file,
+                       sheet = "Sheet1",
+                       col_types = c("numeric", "numeric", "numeric", "numeric", "numeric", "text",
+                                     "numeric", "text", "numeric"),
+                       col_names = TRUE) 
+  
   if (location == "JM"){
-    data.0 <- read.csv("data/JM_nests_Sept2020.csv")
-    
+    #data.0 <- read.csv("data/JM_nests_Sept2020.csv")
     data.0 %>% 
-      select(Year_begin, Month_begin, JM_Nests) %>%
-      mutate(Nests = JM_Nests,
+     select(Year_begin, Month_begin, J_M) %>%
+      mutate(Nests = J_M,
              Frac.Year = Year_begin + (Month_begin-0.5)/12) -> data.0
     
   } else if (location == "W"){
-    data.0 <- read.csv("data/W_nests_Sept2020.csv")
     data.0 %>% 
-      select(Year_begin, Month_begin, W_Nests) %>%
-      mutate(Nests = W_Nests,
+      select(Year_begin, Month_begin, W) %>%
+      mutate(Nests = W,
              Frac.Year = Year_begin + (Month_begin-0.5)/12) -> data.0
+    
   }
   
   # create regularly spaced time series:
