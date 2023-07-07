@@ -165,7 +165,14 @@ sum.posterior <- function(yr, months = c(1:12), Xs.stats, zm) {
   return(list(samples = zm.yr, var.names = Xs.name))
 }
 
-data.extract <- function(location, year.begin, year.end, season.begin = year.begin, season.end = year.end){
+# year.begin <- 1999
+# year.end <- 2023
+# location <- "JM"
+# season.begin <- year.begin
+# season.end <- year.end
+
+data.extract <- function(location, year.begin, year.end, 
+                         season.begin = year.begin, season.end = year.end){
   # In March 2019, we received new data for 2018. So, the raw data file
   # has been updated.  
   # On 16 April 2019, the last few data points for 2019 were received
@@ -176,12 +183,16 @@ data.extract <- function(location, year.begin, year.end, season.begin = year.beg
   if (is.null(season.begin)) season.begin <- year.begin
   if (is.null(season.end)) season.end <- year.end
   
-  xls.file <- "data/NestCounts_JM &W_Modified_31Mei2023.xlsx"
+  # "TE" file was created because there was a 9th column with some summed
+  # values, which were not useful and deleted.
+  xls.file <- "data/NestCounts_JM &W_Modified_31Mei2023 TE.xlsx"
+  
   data.0 <- read_excel(xls.file,
                        sheet = "Sheet1",
                        col_types = c("numeric", "numeric", "numeric", "numeric", "numeric", "text",
-                                     "numeric", "text", "numeric"),
-                       col_names = TRUE) 
+                                     "numeric", "text"),
+                       col_names = TRUE,
+                       na = c("", NA)) 
   
   if (location == "JM"){
     #data.0 <- read.csv("data/JM_nests_Sept2020.csv")

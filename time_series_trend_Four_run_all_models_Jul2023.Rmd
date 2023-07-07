@@ -26,9 +26,9 @@ library(loo)
 
 
 ```{r}
-save.data <- T
-save.fig <- T
-run.date <- Sys.Date() #"2020-10-14" #"2019-06-25" #
+save.data <- F
+save.fig <- F
+run.date <- "2023-07-06" #Sys.Date() #"2020-10-14" #"2019-06-25" #
 
 year.begin.JM <- 1999
 year.begin.W <- 2006
@@ -237,8 +237,8 @@ pareto.k <- lapply(loo.out,
 
 # These have been saved so commenting out 2020-10-23
 # Running again with new data in July 2023
-saveRDS(loo.out, file = "RData/loo_all_Jul2023.rds")
-saveRDS(filenames, file = "RData/filenames_Jul2023.rds")
+# saveRDS(loo.out, file = "RData/loo_all_Jul2023.rds")
+# saveRDS(filenames, file = "RData/filenames_Jul2023.rds")
 
 # find maximum pareto k values
 max.pareto.k <- unlist(lapply(pareto.k,
@@ -275,8 +275,8 @@ options(scipen = 999)
 looic.table <- data.frame(model = model.names.abb,
                           looic = looic,
                           weights = as.vector(model.weights)) %>% 
-  arrange(by = desc(weights)) %>%
   mutate(delta.looic = looic - min(looic)) %>%
+  arrange(by = desc(weights)) %>%
   mutate_if(is.numeric, round, digits = 4)
 
 best.model <- good.models[which(looic == min(looic))]
@@ -300,7 +300,7 @@ p.post.U <- bayesplot::mcmc_dens(jm$samples, c("U")) +
   xlab("Annual growth rate") + ylab("Density")
 
 if (save.fig)
-  ggsave(filename = 'figures/U_posterior_2Us.png', 
+  ggsave(filename = 'figures/U_posterior.png', 
          plot = p.post.U,
          dpi = 600, height = 6, 
          width = 8, units = "in")
@@ -348,6 +348,18 @@ Ns.stats.W$location <- "Wermon"
           
 Ns.stats <- rbind(Ns.stats.JM, Ns.stats.W)
 
+all.results.list <- list(jm = jm,
+                         looic.table = looic.table,
+                         good.models = good.models,
+                         good.models.pareto.k = good.models.pareto.k,
+                         best.model = best.model,
+                         pareto.k.best = pareto.k.best,
+                         ys.stats = ys.stats,
+                         Ns.stats = Ns.stats,
+                         all.models = filenames)
+
+saveRDS(all.results.list, file = "RData/all_results.rds")
+
 p.estimated_y_N <- ggplot() + 
   geom_ribbon(data = ys.stats,
               aes(x = time, ymin = low, ymax = high),
@@ -379,14 +391,6 @@ if (save.fig)
 
 
 # Season specific analyses
-
-Enter NAs in Wermon winter data and run the models using period = 12 to see summer only analysis.
-
-Do the same with winter only by NA in summer data... 
-
-The imputation will be different... will that be a problem? 
-
-I already have season-specific data. Using 6 months as the period, try running the same models to see what happens...
 
 Summer only
 
@@ -531,8 +535,8 @@ pareto.k.summer <- lapply(loo.out.summer,
 
 # These have been saved so commenting out 2020-10-23
 # Running again with new data in July 2023
-saveRDS(loo.out.summer, file = "RData/loo_summer_Jul2023.rds")
-saveRDS(filenames.summer, file = "RData/filenames_summer_Jul2023.rds")
+# saveRDS(loo.out.summer, file = "RData/loo_summer_Jul2023.rds")
+# saveRDS(filenames.summer, file = "RData/filenames_summer_Jul2023.rds")
 
 # find maximum pareto k values
 max.pareto.k.summer <- unlist(lapply(pareto.k.summer,
@@ -547,11 +551,11 @@ good.models.pareto.k.summer <- pareto.k.summer[which(max.pareto.k.summer < 0.7)]
 Compare the results using LOOIC:
 
 ```{r}
-looic.esimates.summer <- lapply(lapply(loo.out.summer[which(max.pareto.k.summer < 0.7)], 
+looic.estimates.summer <- lapply(lapply(loo.out.summer[which(max.pareto.k.summer < 0.7)], 
                                 FUN = function(x) x$loo.out),
                          FUN = function(x) x$estimates)
 
-looic.summer <- unlist(lapply(looic.esimates.summer, 
+looic.summer <- unlist(lapply(looic.estimates.summer, 
                        FUN = function(x) x["looic", "Estimate"]))
 
 loo.out.list.summer <- lapply(loo.out.summer[which(max.pareto.k.summer < 0.7)], 
@@ -579,9 +583,9 @@ pareto.k.best.summer <- good.models.pareto.k.summer[[which(looic.summer == min(l
 
 
 Check posteriors
-According to LOOIC, t_t_v2_1U_2Q is the best but t_t_v2_2U_2Q is best when using model weights. 
+According to LOOIC, t_t_v2_2U_2Q is the best. 
 ```{r}
-# One U model:
+# best model:
 jm <- readRDS(file = paste0("RData/", best.model.summer[[1]], ".rds"))
 #max(unlist(lapply(jm$Rhat, FUN = max, na.rm = T)))
 data.frame(jm$summary) %>% rownames_to_column("Parameter") -> summary.summer.df
@@ -643,6 +647,18 @@ Ns.stats.W$location <- "Wermon"
           
 Ns.stats <- rbind(Ns.stats.JM, Ns.stats.W)
 
+summer.results.list <- list(jm = jm,
+                         looic.table = looic.table.summer,
+                         good.models = good.models.summer,
+                         good.models.pareto.k = good.models.pareto.k.summer,
+                         best.model = best.model.summer,
+                         pareto.k.best = pareto.k.best.summer,
+                         ys.stats = ys.stats,
+                         Ns.stats = Ns.stats,
+                         all.models = filenames.summer)
+
+saveRDS(summer.results.list, file = "RData/summer_results.rds")
+
 p.estimated_y_N <- ggplot() + 
   geom_ribbon(data = ys.stats,
               aes(x = time, ymin = low, ymax = high),
@@ -672,101 +688,6 @@ if (save.fig)
          width = 8, units = "in")
 ```
 
-
-2 U model
-```{r}
-# Two U model:
-# jm <- readRDS(file = paste0("RData/SSAR1_", looic.table.summer[1,"model"], 
-#                             "_JM6_W6_", year.begin.JM, "_",
-#                             year.end, "_2023-07-05.rds"))
-# #max(unlist(lapply(jm$Rhat, FUN = max, na.rm = T)))
-# data.frame(jm$summary) %>% rownames_to_column("Parameter") -> summary.df
-# 
-# # check convergence 
-# rhat.max <- max(unlist(lapply(jm$Rhat, FUN = max, na.rm = T)))
-# 
-# # look at some posteriors
-# U.stats <- summary.df[grep(summary.df$Parameter, pattern = "U"),]
-# p.post.U <- bayesplot::mcmc_dens(jm$samples, c("U[1]", "U[2]")) + 
-#   xlab("Annual growth rate") + ylab("Density")
-# 
-# if (save.fig)
-#   ggsave(filename = 'figures/U_posterior_summer_2Us.png', 
-#          plot = p.post.U,
-#          dpi = 600, height = 6, 
-#          width = 8, units = "in")
-```
-
-
-```{r}
-# ys.stats.JM <- data.frame(low = as.vector(t(jm$q2.5$y[,,1])),
-#                           median = as.vector(t(jm$q50$y[,,1])),
-#                           high = as.vector(t(jm$q97.5$y[,,1])))
-# 
-# ys.stats.JM$time <- data.jags.JM$data.summer$Frac.Year
-# ys.stats.JM$obsY <- data.jags.JM$data.summer$Nests
-# ys.stats.JM$month <- data.jags.JM$data.summer$Month
-# ys.stats.JM$year <- data.jags.JM$data.summer$Year
-# ys.stats.JM$Season <- data.jags.JM$data.summer$Season
-# ys.stats.JM$location <- "Jamursba-Medi"
-# 
-# # Wermon has shorter time series so obsY need NAs and other
-# # variables taken from JM datasets
-# ys.stats.W <- data.frame(low = as.vector(t(jm$q2.5$y[,,2])),
-#                          median = as.vector(t(jm$q50$y[,,2])),
-#                          high = as.vector(t(jm$q97.5$y[,,2])))
-# ys.stats.W$time <- data.jags.JM$data.summer$Frac.Year
-# ys.stats.W$obsY <- c(rep(NA, nrow(data.jags.JM$data.summer) - nrow(data.jags.W$data.summer)), 
-#                      data.jags.W$data.summer$Nests) #data.jags.W$data.1$Nests #
-# ys.stats.W$month <- data.jags.JM$data.summer$Month
-# ys.stats.W$year <- data.jags.JM$data.summer$Year
-# ys.stats.W$Season <- data.jags.JM$data.summer$Season
-# ys.stats.W$location <- "Wermon"
-#           
-# ys.stats <- rbind(ys.stats.JM, ys.stats.W)
-# 
-# Ns.stats.JM <- data.frame(time = year.begin.JM:year.end,
-#                           low = as.vector(t(jm$q2.5$N[1,])),
-#                           median = as.vector(t(jm$q50$N[1,])),
-#                           high = as.vector(t(jm$q97.5$N[1,])))
-# Ns.stats.JM$location <- "Jamursba-Medi"
-#           
-# Ns.stats.W <- data.frame(time = year.begin.JM:year.end,
-#                          low = as.vector(t(jm$q2.5$N[2,])),
-#                          median = as.vector(t(jm$q50$N[2,])),
-#                          high = as.vector(t(jm$q97.5$N[2,])))
-# Ns.stats.W$location <- "Wermon"
-#           
-# Ns.stats <- rbind(Ns.stats.JM, Ns.stats.W)
-# 
-# p.estimated_y_N <- ggplot() + 
-#   geom_ribbon(data = ys.stats,
-#               aes(x = time, ymin = low, ymax = high),
-#               alpha = 0.4)+
-#   geom_path(data = ys.stats,
-#              aes(x = time, y = median)) + 
-#   geom_point(data = ys.stats,
-#              aes(x = time, y = median),
-#              color = "yellow") + 
-#   geom_point(data = ys.stats,
-#              aes(x = time, y = log(obsY)),
-#              color = "red") + 
-#   geom_ribbon(data = Ns.stats,
-#               aes(x = time+0.5, ymin = low, ymax = high),
-#               alpha = 0.4) +
-#   geom_path(data = Ns.stats,
-#             aes(x = time+0.5, y = median)) +
-#   geom_point(data = Ns.stats,
-#              aes(x = time+0.5, y = median),
-#              color = "yellow") +
-#   facet_grid(vars(location))
-# 
-# if (save.fig)
-#   ggsave(filename = 'figures/estimated_y_N_summer_2Us.png', 
-#          plot = p.estimated_y_N,
-#          dpi = 600, height = 6, 
-#          width = 8, units = "in")
-```
 
 Wermon winter
 
@@ -907,8 +828,8 @@ pareto.k.winter <- lapply(loo.out.winter,
 
 # These have been saved so commenting out 2020-10-23
 # Running again with new data in July 2023
-saveRDS(loo.out.winter, file = "RData/loo_winter_Jul2023.rds")
-saveRDS(filenames.winter, file = "RData/filenames_winter_Jul2023.rds")
+# saveRDS(loo.out.winter, file = "RData/loo_winter_Jul2023.rds")
+# saveRDS(filenames.winter, file = "RData/filenames_winter_Jul2023.rds")
 
 # find maximum pareto k values
 max.pareto.k.winter <- unlist(lapply(pareto.k.winter,
@@ -927,11 +848,11 @@ good.models.pareto.k.winter <- pareto.k.winter[which(max.pareto.k.winter < 0.8)]
 Compare the results using LOOIC:
 
 ```{r}
-looic.esimates.winter <- lapply(lapply(loo.out.winter[which(max.pareto.k.winter < 0.8)],
+looic.estimates.winter <- lapply(lapply(loo.out.winter[which(max.pareto.k.winter < 0.8)],
                                 FUN = function(x) x$loo.out),
                          FUN = function(x) x$estimates)
 
-looic.winter <- unlist(lapply(looic.esimates.winter,
+looic.winter <- unlist(lapply(looic.estimates.winter,
                        FUN = function(x) x["looic", "Estimate"]))
 
 loo.out.list.winter <- lapply(loo.out.winter[which(max.pareto.k.winter < 0.8)],
@@ -942,15 +863,15 @@ model.weights.winter <- loo_model_weights(loo.out.list.winter)
 
 model.names.abb.winter <- lapply(good.models.winter,
                           FUN = function(x) strsplit(x, split = "SSAR1_")[[1]][2]) %>%
-  lapply(FUN = function(x) strsplit(x, split = "_JM6")[[1]][1]) %>% unlist()
+  lapply(FUN = function(x) strsplit(x, split = "_W6")[[1]][1]) %>% unlist()
 
 options(scipen = 999)
 
 looic.table.winter <- data.frame(model = model.names.abb.winter,
-                          looic = looic.winter,
-                          weights = as.vector(model.weights.winter)) %>%
-  arrange(by = desc(weights)) %>%
+                                 looic = looic.winter,
+                                 weights = as.vector(model.weights.winter)) %>%
   mutate(delta.looic = looic.winter - min(looic.winter)) %>%
+  arrange(by = desc(weights)) %>%
   mutate_if(is.numeric, round, digits = 4)
 
 best.model.winter <- good.models.winter[which(looic.winter == min(looic.winter))]
@@ -998,6 +919,18 @@ Ns.stats <- data.frame(time = year.begin.W:season.end,
                          high = as.vector(t(jm$q97.5$N[1,])))
 Ns.stats$location <- "Wermon"
           
+winter.results.list <- list(jm = jm,
+                         looic.table = looic.table.winter,
+                         good.models = good.models.winter,
+                         good.models.pareto.k = good.models.pareto.k.winter,
+                         best.model = best.model.winter,
+                         pareto.k.best = pareto.k.best.winter,
+                         ys.stats = ys.stats,
+                         Ns.stats = Ns.stats,
+                         all.models = filenames.winter)
+
+saveRDS(winter.results.list, file = "RData/winter_results.rds")
+
 p.estimated_y_N <- ggplot() + 
   geom_ribbon(data = ys.stats,
               aes(x = time, ymin = low, ymax = high),

@@ -23,12 +23,13 @@ library(loo)
 ```{r}
 save.data <- T
 save.fig <- T
-run.date <-  Sys.Date() #"2019-06-25" #
+run.date <- "2023-07-06" #Sys.Date() #"2019-06-25" #
 
 #year.begin.JM <- 1999
 year.begin.W <- 2006
 #year.begin <- 2002
-year.end <- 2019
+year.end <- 2023
+season.end <- 2022
 
 #period.JM <- 12
 period.W <- 6
@@ -65,7 +66,8 @@ Bring in the data
 # Begining year for Wermon is 2006.
 data.jags.W <- data.extract(location = "W", 
                              year.begin = year.begin.W, 
-                             year.end = year.end)
+                             year.end = year.end,
+                            season.end = season.end)
 
 y <- array(data= NA, dim = c(nrow(data.jags.W$jags.data2$y),
                              ncol(data.jags.W$jags.data2$y), 1))
@@ -184,8 +186,9 @@ pareto.k <- lapply(loo.out,
                    FUN = function(x) x$loo.out)
 
 # These have been saved so commenting out 2021-03-25
-#saveRDS(loo.out, file = "RData/loo_all_W_only_Mar2021.rds")
-#saveRDS(filenames, file = "RData/filenames_W_only_Mar2021.rds")
+# Running again with new data July 2023
+saveRDS(loo.out, file = "RData/loo_all_W_only_Jul2023.rds")
+saveRDS(filenames, file = "RData/filenames_W_only_Jul2023.rds")
 
 # find maximum pareto k values
 max.pareto.k <- unlist(lapply(pareto.k,
@@ -222,11 +225,24 @@ options(scipen = 999)
 looic.table <- data.frame(model = model.names.abb,
                           looic = looic,
                           weights = as.vector(model.weights)) %>% 
-  arrange(by = desc(weights)) %>%
   mutate(delta.looic = looic - min(looic)) %>%
+  arrange(by = desc(weights)) %>%
   mutate_if(is.numeric, round, digits = 4)
 
 best.model <- good.models[which(looic == min(looic))]
 pareto.k.best <- good.models.pareto.k[[which(looic == min(looic))]]
+
+jm <- readRDS(file = paste0("RData/", best.model[[1]], ".rds"))
+
+results.list <- list(jm = jm,
+                     looic.table = looic.table,
+                     good.models = good.models,
+                     good.models.pareto.k = good.models.pareto.k,
+                     best.model = best.model,
+                     pareto.k.best = pareto.k.best,
+                     all.models = filenames)
+
+saveRDS(results.list, file = "RData/W_only_results.rds")
+
 ```
 
