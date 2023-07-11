@@ -197,13 +197,13 @@ data.extract <- function(location, year.begin, year.end,
   if (location == "JM"){
     #data.0 <- read.csv("data/JM_nests_Sept2020.csv")
     data.0 %>% 
-     select(Year_begin, Month_begin, J_M) %>%
+     dplyr::select(Year_begin, Month_begin, J_M) %>%
       mutate(Nests = J_M,
              Frac.Year = Year_begin + (Month_begin-0.5)/12) -> data.0
     
   } else if (location == "W"){
     data.0 %>% 
-      select(Year_begin, Month_begin, W) %>%
+      dplyr::select(Year_begin, Month_begin, W) %>%
       mutate(Nests = W,
              Frac.Year = Year_begin + (Month_begin-0.5)/12) -> data.0
     
@@ -222,7 +222,7 @@ data.extract <- function(location, year.begin, year.end,
                                       '01', sep = "-"),
                                 format = "%Y-%m-%d"),
            Frac.Year = Year + (Month_begin-0.5)/12) %>%
-    select(Year, Month_begin, begin_date, Frac.Year) -> data.2
+    dplyr::select(Year, Month_begin, begin_date, Frac.Year) -> data.2
 
   # also make "nesting season" that starts April and ends March
   data.0 %>% mutate(begin_date = as.Date(paste(Year_begin,
@@ -234,7 +234,7 @@ data.extract <- function(location, year.begin, year.end,
            f_month = as.factor(Month),
            f_year = as.factor(Year),
            Frac.Year = Year + (Month_begin-0.5)/12) %>%
-    select(Year, Month, Frac.Year, begin_date, Nests) %>%
+    dplyr::select(Year, Month, Frac.Year, begin_date, Nests) %>%
     na.omit() %>%
     right_join(.,data.2, by = "begin_date") %>%
     transmute(Year = Year.y,

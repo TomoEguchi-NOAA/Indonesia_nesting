@@ -1,0 +1,1081 @@
+---
+title: "Method and Results of Nest Count Imputation and Populatoin Growth Rate Estimation"
+author: "Tomo Eguchi"
+date: "`r Sys.Date()`"
+output: 
+  bookdown::word_document2: default
+  header-includes:
+  - \usepackage{ragged2e}
+  - \renewcommand{\footnotesize}{\10 \justify}
+
+---
+
+```{r setup, include=FALSE}
+rm(list=ls())
+knitr::opts_chunk$set(echo = TRUE)
+source('Dc_Indonesia_nesting_fcns.R')
+
+library(tidyverse)
+library(lubridate)
+library(flextable)
+library(readr)
+library(knitr)
+library(jagsUI)
+library(loo)
+library(bayesplot)
+
+# knit_hooks$set(inline = function(x) {
+#   prettyNum(x, big.mark = ",")
+# })
+
+format.big.number <- function(x) {
+  format(x, scientific=F, digits = 6, big.mark = ",")
+}
+
+set_flextable_defaults(font.size = 9,
+                       font.family = "Cambria")
+
+save.fig <- F
+
+fig.height <- 4
+fig.width <- 6
+
+run.date <- "2023-07-06" #"2020-10-14" #Sys.Date() #"2019-06-25" #
+run.date.JM.only <- "2023-07-06" #"2021-03-08"
+
+year.begin.JM <- 1999
+year.begin.W <- 2006
+#year.begin <- 2002
+year.end <- 2023
+season.end <- 2022
+
+```
+
+## Methods {-}
+
+### Models {-}
+
+To estimate the growth rates of nest abundance over time, the discrete geometric growth model was fitted to the annual nest counts ($N_{t,j}$ at the two nesting beaches (Wermon, Jamursba Medi). 
+
+$N_{t+1, j} = \lambda N_{t,j}$,
+
+where t indicates nesting season and j indicates nesting beach. 
+
+Analyses were conducted in the natural log scale:
+
+$ln(N_{t+1, j}) = ln(\lambda) + ln(N_{t,j}) = U + ln(N_{t,j})$
+
+Annual nest abundance for the t-th nesting season at the j-th nesting beach ($N_{t, j}$) was obtained from monthly (m) nest abundance ($X_{t,m,j}$) at the two nesting beaches, where the observed data are denoted as ($y_{t,m,j}$). For some years, not all monthly counts ($y_{t,m,j}$) were available. We imputed missing monthly abundances using the observed cyclical nature of nesting activities and a Bayesian hierarchical modeling approach. Various models with differing assumptions were developed and fitted to the datasets from the two nesting beaches. We developed two groups of statistical models, where one treated the total annual abundance of nests ($N_{t,j}$) as a non-stochastic variable whereas the other treated it as a stochastic variable.
+
+#### Model Set 1 {-}
+The observed monthly nest count during the t-th season of the m-th month at beach j ($y_{t,m,j}$) was modeled as a random variable from a distribution function (*g()*).
+
+$y_{t,m,j} \sim g(X_{t,m,j}, \theta_{y})$
+
+where m is a sequential month within each nesting season, which starts on April and ends in March in the subsequent calendar year. Nesting beach (j) is either Jamursba-Medi (1) or Wermon (2). $X_{t,m,j}$ is the mean of the distribution (*g()*) and $\theta_{y}$ indicates other parameters that are necessary for the distribution function (*g()*). The mean ($X_{t,m,j}$) also was treated as a random variable.
+
+$X_{t,m,j} \sim f(\mu_{X(t,m,j)}, \theta_{X})$,
+
+Where *f()* indicates a distribution function, $\mu_{X(t,m,j)}$ indicates the mean, and $\theta_{X}$ indicates the other parameters that are necessary for the distribution function.
+
+The mean of the function ($\mu_{X(t,m,j)}$) was expressed as the proportion of the total abundance of nests for year t.
+
+$\mu_{X(t,m,j)} = p_{m,j} N_{t,j}$,
+
+where $\sum_{m = 1}^{12} p_{m,j} = 1$.
+
+The proportion of nest abundance during the m-th month ($p_{m,j}$) was modeled using the discrete Fourier series and assumed constant over years. 
+
+$p_{m,j}= (\beta_{0,j} + \beta_{1,j} cos(2m/L) + \beta_{2,j} sin(2m/L))/(12\beta_{0,j}+ \beta_{1,j}cos(2m/L) + \beta_{2,j} sin(2m/L))$
+
+Where $\beta$s are coefficients that are estimated from the data and L is period, where it was 12 for Jamursba-Medi and 6 for Wermon.  
+
+#### Model Set 2 {-}
+
+In the second group of models, the total abundance was treated as a random variable. 
+
+$N_{t,j} \sim h(\mu_{N(t,j)}, \theta_{N})$
+
+The state variables for monthly counts were treated as fixed.
+
+$X_{t,m,j} = p_{m,j} N_{t,j}$ 
+
+Where p and the observation (y) are defined as in Model Set 1.
+
+$y_{t,m,j} \sim g(X_{t,m,j}, \theta_{y})$
+
+For the distribution functions *f()*, *g()*, and *h()*, we considered the normal and Student’s t distributions. A total of 32 models were available for the complete dataset, which included all counts from the two nesting beaches.
+
+We assumed the observation error for each beach to be independent (i.e., $cov(y_{m,j=1}, y_{m,j=2}) = 0$). This decision simplified the distributions for the observation errors to be univariate distribution (rather than multivariate distribution). 
+
+Goodness of fit of each model to the data was assessed using Pareto k diagnostic statistics (Vehtari et al. 2018). Models that were deemed appropriate for the data (maximum Pareto k statistic < 0.7) were compared using the LOOIC (Vehtari et al. 2018).
+
+To determine if there was a difference in population growth rates between summer and winter nest abundances, we fit the models to different sets of data. The first set contained all available data (complete dataset). In the second dataset (summer dataset), all data between October and March were removed. In the third dataset (winter dataset), all data between April and September were removed. The winter dataset was for Wermon only because no winter nesting occurred at Jamursba Medi. Consequently, there was only one growth rate for the winter dataset. Finally, data for Jamursba Medi were analyzed separately. 
+
+
+# Results {-}
+## Data {-}
+
+```{r get-data, cache=T, echo=F, message=F, warning=F}
+# Bring in the data files - data.extract() function is in Dc_Indonesia_nesting_fcns.R
+# Beginning year for JM is 1999
+data.jags.JM <- data.extract(location = "JM", 
+                             year.begin = year.begin.JM, 
+                             year.end = year.end,
+                             season.end = season.end)
+
+# Begining year for Wermon is 2006.
+data.jags.W <- data.extract(location = "W", 
+                             year.begin = year.begin.W, 
+                             year.end = year.end,
+                            season.end = season.end)
+```
+
+Data for this analysis came from two leatherback nesting beaches in Indonesia  (Jamursba-Medi and Wermon) where the number of nests was counted monthly. No data were collected in several years due to various logistical and other reasons. At Jamursba Medi nesting beach, data collection started in `r min(data.jags.JM$data.0$Year_begin, na.rm = T)`, whereas at Wermon it started in `r min(data.jags.W$data.0 %>% na.omit() %>% select(Year_begin), na.rm = T)`. In the following analyses, the nesting season is defined as the beginning of each nesting season. For example, the 2005 nesting season starts on `r format(as.Date("2005-04-01"), "%d %B %Y")` and ends on `r format(as.Date("2006-03-31"), "%d %B %Y")`. 
+
+### Jamursba-Medi {-}
+```{r JM-data, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+p.JM.all <- ggplot(data.jags.JM$data.0) + 
+  geom_point(aes(x = Frac.Year, y = Nests)) + 
+  geom_vline(data = data.frame(x = 1999+4/12, y = 0),
+             aes(xintercept = x)) +
+  #geom_path(aes(x = Frac.Year, y = Nests)) +
+  # scale_x_continuous(breaks = seq(min(data.jags.JM$data.0$Year_begin), year.end, 5),
+  #                    limits = c(min(data.jags.JM$data.0$Year_begin), year.end)) +
+  labs(x = '', y = '# nests', title = "Jamursba-Medi")  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+
+if (save.fig)
+  ggsave(filename = 'figures/JM_all.png',
+         plot = p.JM.all,
+         dpi = 600, height = fig.height, 
+         width = fig.width, 
+         units = "in")
+```
+
+At Jamursba-Medi, no data were collected in many years between the mid 1980s and late 1990s (Figure \@ref(fig:plot-JM-data)). A somewhat consistent effort starts in early 2000s and continue to the recent years, where the most recent data are from the `r max(data.jags.JM$data.1$Season)` nesting season. The observed nest count in `r filter(data.jags.JM$data.0, Nests == max(data.jags.JM$data.0$Nests, na.rm = T))$Year_begin` was `r max(data.jags.JM$data.0$Nests, na.rm = T) %>% format.big.number()` and declined to less than 1000 since 2004. 
+
+```{r plot-JM-data, echo=FALSE, message=FALSE, fig.cap = "Nest counts at Jamursba-Medi. The vertical line indicates 1999."}
+knitr::include_graphics("figures/JM_all.png")
+```
+
+Since 1999 at least some data were collected within each nesting season. After analyzing datasets with different starting years, we found that starting at 1999 resulted in the longest dataset and good fit of statistical models. Consequently, we decided to use the data since 1999. The cyclical nature or seasonal fluctuations of counts is obvious in the raw data (Figure \@ref(fig:plot-JM-raw-since-1999)).
+
+```{r JM-raw-since-1999, echo=FALSE, cache=TRUE, warning=FALSE}
+p.JM.1999 <- ggplot(data.jags.JM$data.1) + 
+  geom_point(aes(x = Frac.Year, y = Nests)) + 
+  geom_line(aes(x = Frac.Year, y = Nests)) +
+  # scale_x_continuous(breaks = seq(1999, 2020, 5),
+                     # limits = c(1999, 2020)) +
+  labs(x = '', y = '# nests', 
+       title = "Jamursba-Medi")  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+
+if (save.fig)
+  ggsave(filename = 'figures/JM_1999.png',
+         plot = p.JM.1999,
+         dpi = 600, height = fig.height, 
+         width = fig.width, units = "in")
+
+p.JM.monthly.1999 <- ggplot(data.jags.JM$data.1 %>% na.omit()) + 
+  geom_point(aes(x = Month, y = Nests, 
+                 color = as.factor(Season))) + 
+  geom_line(aes(x = Month, y = Nests, 
+                color = as.factor(Season))) +
+  scale_x_continuous(breaks = seq(1, 12, 1)) +
+  labs(x = "Month", y = '# nests', 
+       title = "Jamursba-Medi", color = "Season")  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+#        legend.position = c(0.9, 0.6))
+
+if (save.fig)
+  ggsave(filename = 'figures/JM_monthly_1999.png', 
+         plot = p.JM.monthly.1999,
+         dpi = 600, height = fig.height, 
+         width = fig.width, units = "in")
+```
+
+```{r plot-JM-raw-since-1999, echo=FALSE, fig.cap = "Nest counts at Jamursba-Medi since 1999. Consecutive sampling years are connected by solid lines."}
+knitr::include_graphics("figures/JM_1999.png")
+```
+
+
+When the number of nests is plotted by month, the seasonal fluctuations become more obvious (Figure \@ref(fig:plot-JM-by-month)). In general, high counts within a year are seen from April to August, whereas low counts are found from September through March.   
+
+```{r plot-JM-by-month, echo=FALSE, fig.cap = "Monthly nest counts at Jamursba-Medi"}
+knitr::include_graphics("figures/JM_monthly_1999.png")
+```
+
+### Wermon {-}
+```{r W-data, cache=TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+p.W.all <- ggplot(data.jags.W$data.0) + 
+  geom_point(aes(x = Frac.Year, y = Nests)) + 
+  geom_vline(data = data.frame(x = 2006 + 4/12, y = 0),
+             aes(xintercept = x)) +
+  #geom_path(aes(x = Frac.Year, y = Nests)) + 
+  labs(title = 'Wermon', x = '', 
+       y = "Nest counts")
+
+if (save.fig)
+  ggsave(filename = 'figures/W_all.png', 
+         plot = p.W.all,
+         dpi = 600, height = fig.height, 
+         width = fig.width, units = "in")
+```
+
+At Wermon, no data were collected between July 2013 and December 2015. The largest nest count was `r max(data.jags.W$data.0$Nests, na.rm=T)` in `r filter(data.jags.W$data.0, Nests == max(data.jags.W$data.0$Nests, na.rm = T))$Year_begin` (Figure \@ref(fig:plot-W-all)).   
+
+```{r plot-W-all, echo=FALSE, fig.cap = "Nest counts at Wermon. The vertical line indicates April 2006. Please see text for the significance of this line."}
+knitr::include_graphics("figures/W_all.png")
+```
+
+
+The temporal nest count pattern at Wermon is different from that at Jamursba-Medi (Figure 3 vs. Figure 5). At Wermon, there are two peaks within each nesting season: higher values are found between May and September and between October and April.  
+
+```{r W-raw-by-month, echo=FALSE, cache = TRUE, warning=FALSE}
+data.jags.W$data.0 %>% filter(Nests < 1500) %>%
+  mutate(Season = ifelse(Month_begin < 4, Year_begin-1, Year_begin),
+         Seq.Month = ifelse(Month_begin < 4, Month_begin + 9, Month_begin - 3)) -> data.2.W
+
+p.W.monthly <- ggplot(data.2.W) + 
+  geom_point(aes(x = Month_begin, 
+                 y = Nests, 
+                 color = as.factor(Season))) + 
+  geom_line(aes(x = Month_begin, 
+                y = Nests, 
+                color = as.factor(Season))) +
+  scale_x_continuous(breaks = seq(1, 12, 1)) +
+  labs(x = 'Month', y = '# nests', title = "Wermon",
+       color = "Season")  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+
+if (save.fig)
+  ggsave(filename = 'figures/W_monthly.png', 
+         plot = p.W.monthly,
+         dpi = 600, 
+         height = fig.height, 
+         width = fig.width, 
+         units = "in")
+
+```
+
+
+```{r plot-W-by-month, echo=FALSE, fig.cap = "Monthly nest counts at Wermon. A large large count (>1500) was removed. "}
+knitr::include_graphics("figures/W_monthly.png")
+```
+
+Annual patterns of Observed counts at Wermon before the 2006 season were not consistent with those since the 2006 season (Figure \@ref(fig:plot-W-by-month)). Because this analysis used observed patterns to impute missing values, we removed these years from the data for the following analysis.  
+
+```{r W-by-month-since-2006, echo=FALSE, cache = TRUE, warning=FALSE}
+p.W.monthly.2006 <- ggplot(data.jags.W$data.1) + 
+  geom_point(aes(x = Month, y = Nests, color = as.factor(Season))) + 
+  geom_line(aes(x = Month, y = Nests, color = as.factor(Season))) +
+  scale_x_continuous(breaks = seq(1, 12, 1)) +
+  labs(x = 'Month', 
+       y = '# nests', title = "Wermon",
+       color = "Season")  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+
+if (save.fig)
+  ggsave(filename = 'figures/W_monthly_2006.png', 
+         plot = p.W.monthly.2006,
+         dpi = 600, height = fig.height, 
+         width = fig.width, 
+         units = "in")
+```
+
+
+```{r plot-W-by-month-2006, echo=FALSE, fig.cap = "Monthly nest counts at Wermon. A large count (>1500) and counts for 2003 and 2004 were removed. April of each year is considered to be the beginning of the nesting season and March of the next year is the end of the nesting season."}
+knitr::include_graphics("figures/W_monthly_2006.png")
+```
+
+The two datasets (counts since `r year.begin.JM` for Jamursba-Medi and since `r year.begin.W` for Wermon) were used in the following analysis for imputing missing counts and estimating the population growth rates. 
+
+```{r annual-counts, echo=FALSE}
+data.jags.JM$data.1 %>%
+  filter(Season > 1998) %>%
+  group_by(Season) %>%
+  summarize(Counts = sum(Nests, na.rm = T),
+            Season = first(Season)) %>%
+  mutate(location = "JM",
+         Counts = ifelse(Counts > 0, Counts, NA)) -> annual.data.JM #%>%
+  #na.omit() %>% 
+  #filter(Counts > 0) -> annual.data.JM
+
+data.jags.W$data.1 %>%
+  filter(Season > 2005) %>%
+  group_by(Season) %>%
+  summarize(Counts = sum(Nests),
+            Season = first(Season)) %>%
+  mutate(location = "W",
+          Counts = ifelse(Counts > 0, Counts, NA)) -> annual.data.W #%>%
+  #na.omit() -> annual.data.W
+
+annual.data <- rbind(annual.data.JM, annual.data.W)
+
+p.annual.counts <- ggplot(annual.data) +
+  geom_point(aes(x = Season, y = Counts, 
+                 color = as.factor(location))) +
+  geom_line(aes(x = Season, y = Counts, 
+                color = as.factor(location))) +
+  labs(x = "Season", y = "Nest counts", 
+       color = "location")  +
+  theme(axis.text = element_text(size = 12),
+        text = element_text(size = 12))
+
+```
+
+
+### Two beaches in one analysis (summer and winter together; complete dataset) {-}
+
+The first analysis included data from the both beaches. 
+
+```{r load-results-complete, echo=F, cache=T}
+# These results are from time_series_trend_Four_run_all_models_Jul2023.Rmd
+# 
+# loo.out <- readRDS(file = "RData/loo_all_Jul2023.rds")
+# filenames <- readRDS(file = "RData/filenames_Jul2023.rds")
+all.results <- readRDS(file = "RData/all_results.rds")
+
+pareto.k <- lapply(all.results$good.models.pareto.k,
+                   FUN = function(x) max(x$diagnostics$pareto_k)) %>%
+  unlist()
+
+looic.table <- all.results$looic.table
+looic.table$Max.Pareto <- pareto.k
+
+all.models <- unlist(all.results$all.models)
+
+all.models.parts <- lapply(as.list(looic.table$model), 
+                       FUN = function(x) strsplit(x, split = "_") %>% 
+                         unlist() %>% 
+                         as.vector() )
+
+models.part.names <- do.call(rbind, 
+                             lapply(all.models.parts,
+                                    FUN = function(x) x[c(1,2,5,6,7)])) %>% 
+  as.data.frame() %>%
+  transmute(State = V1,
+            Observation = V2, 
+            Set = V3, 
+            U = V4, 
+            Q = V5)
+
+looic.table.out <- cbind(models.part.names, looic.table) %>%
+  select(-c(model, looic))
+
+data.frame(all.results$jm$summary) %>% 
+  rownames_to_column("Parameter") -> summary.df
+
+U.stats <- summary.df[grep(summary.df$Parameter, pattern = "U"),]
+rhat.max <- max(unlist(lapply(all.results$jm$Rhat, FUN = max, na.rm = T)))
+
+```
+
+According to Pareto k diagnostic statistics, Model set 2 (v2: annual nest abundance as a random variable) was better than Model set 1 (v1: annual nest abundance as a non-random variable). Sixteen models were considered acceptable according to Pareto-k diagnostics (max(Pareto-k) < 0.7; Table \@ref(tab:looic-table-1)). Among the 16 models within Model Set 2, the lowest LOOIC value was found for the model with Student's t distribution for abundance (N) with location specific variance (Q), Student's t distribution for observations (y), and a common growth parameter (U). Gelman-Rubin Rhat statistics indicated successful convergence of all parameters (maximum Rhat = `r signif(rhat.max, digits=3)`). We use the joint posterior distribution from this model for the inference.  
+
+```{r looic-table-1, echo=F}
+flextable(looic.table.out) %>%
+  set_caption("A comparison of models that were fit to the complete dataset and passed the LOOIC goodness-of-fit test using Pareto k statistics. In the State and Observation columns, norm and t indicate normal and Student's t distributions, respectively. Set indicates either Set 1 (v1) or Set 2 (v2) (see text for details), U indicates the number of U (slope) parameters and Q indicates the number of Q (variance) parameters. weights is model weight, delta.looic indicates the difference in LOOIC values from the smallest LOOIC value, and Max.Pareto indicates the maximum Pareto k statistics value for each model.") %>%
+  colformat_double(j = c("weights", "delta.looic", "Max.Pareto"),
+                   digits = 3) %>%
+  set_table_properties(width = 0.5, layout = "autofit")
+
+
+```
+
+```{r imputed-counts, echo=FALSE}
+
+all.results$ys.stats %>%
+  mutate(CL2.5 = exp(low),
+         Median = exp(median),
+         CL97.5 = exp(high)) %>%
+  data.frame() -> estimated.counts
+
+ggplot(estimated.counts %>% filter(Season > 2010)) +
+  geom_point(aes(x = time, y = Median, color = as.factor(location))) +
+  geom_path(aes(x = time, y = Median, color = as.factor(location))) +
+  geom_errorbar(aes(x = time, ymin = CL2.5, ymax = CL97.5, color = as.factor(location)))
+
+```
+
+
+
+The estimated mean growth rates at two beaches were `r signif(U.stats[1,"mean"], digits = 2)` (SE = `r signif(U.stats[1, "sd"], digits = 2)`, p(U < 0.0) = `r signif(U.stats[1, "f"], digits = 2)`) for Jamursba Medi and for Wermon (Figure \@ref(fig:plot-complete-U)). 
+
+```{r plot-complete-U, echo=FALSE, fig.cap = "The posteior distributions of the geometric growth rates for Jamursba Medi and Wermon (U) when the complete dataset was used. "}
+knitr::include_graphics("figures/U_posterior.png")
+```
+
+### Summer dataset
+
+```{r load-results-summer, echo=F, cache=T}
+summer.results <- readRDS(file = "RData/summer_results.rds")
+
+data.frame(summer.results$jm$summary) %>% 
+  rownames_to_column("Parameter") -> summary.df
+
+U.stats <- summary.df[grep(summary.df$Parameter, pattern = "U"),]
+rhat.max <- max(unlist(lapply(summer.results$jm$Rhat, FUN = max, na.rm = T)))
+
+pareto.k <- lapply(summer.results$good.models.pareto.k,
+                   FUN = function(x) max(x$diagnostics$pareto_k)) %>%
+  unlist()
+
+looic.table <- summer.results$looic.table
+looic.table$Max.Pareto <- pareto.k
+
+models.parts <- lapply(as.list(looic.table$model), 
+                       FUN = function(x) strsplit(x, split = "_") %>% 
+                         unlist() %>% 
+                         as.vector() )
+
+summer.models.part.names <- do.call(rbind, 
+                             lapply(models.parts,
+                                    FUN = function(x) x[c(2,3,6,7,8)])) %>% 
+  as.data.frame() %>%
+  transmute(State = V1,
+            Observation = V2, 
+            Set = V3, 
+            U = V4, 
+            Q = V5)
+
+looic.table.out.summer <- cbind(summer.models.part.names, looic.table) %>%
+  select(-c(model, looic))
+
+```
+
+As it was the case with the complete dataset, Model Set 2 (v2: annual nest abundance as a random variable) fit better than Model Set 1 (v1: annual nest abundance as a non-random variable) according to the Pareto k statistics. Among the 16 models within Model Set 2, the lowest LOOIC value was found for the model with Student's t distribution for abundance (N) with location specific variance (2 Qs), Student's t distribution for observations (y), and two growth parameters (2 Us) (Table \@ref(tab:looic-table-summer)).  Gelman-Rubin Rhat statistics indicated successful convergence of all parameters (maximum Rhat = `r signif(rhat.max, digits=5)`. We use the joint posterior distributions from these two models for the inference.  
+
+```{r looic-table-summer, echo=F}
+
+flextable(looic.table.out.summer) %>%
+  set_caption("A comparison of models that were fit to the summer dataset and passed the LOOIC goodness-of-fit test using Pareto k statistics. In the State and Observation columns, norm and t indicate normal and Student's t distributions, respectively. Set indicates either Set 1 (v1) or Set 2 (v2) (see text for details), U indicates the number of U (slope) parameters and Q indicates the number of Q (variance) parameters. weights is model weight, delta.looic indicates the difference in LOOIC values from the smallest LOOIC value, and Max.Pareto indicates the maximum Pareto k statistics value for each model.") %>%
+   colformat_double(j = c("weights", "delta.looic", "Max.Pareto"),
+                   digits = 3) %>%
+  set_table_properties(width = 0.5, layout = "autofit")
+
+
+```
+
+
+The estimated mean growth rates at two beaches were `r signif(U.stats[1,"mean"], digits = 3)` (SE = `r signif(U.stats[1, "sd"], digits = 3)`, p(U < 0.0) = `r signif(U.stats[1, "f"], digits = 3)`) for Jamursba Medi and `r signif(U.stats[2,"mean"], digits = 3)` (SE = `r signif(U.stats[2, "sd"], digits = 3)`, p(U < 0.0) = `r signif(U.stats[2, "f"], digits = 3)`) for Wermon (Figure \@ref(fig:plot-summer-2Us)). 
+
+
+```{r plot-summer-2Us, echo=FALSE, fig.cap = "The posteior distributions of the geometric growth rates (U[1] = Jamursba Medi and U[2] = Wermon) when the summer dataset was used. "}
+knitr::include_graphics("figures/U_posterior_summer.png")
+```
+
+### Winter dataset
+
+```{r load-results-winter, echo=F, cache=T}
+winter.results <- readRDS(file = "RData/winter_results.rds")
+
+data.frame(winter.results$jm$summary) %>% 
+  rownames_to_column("Parameter") -> summary.df
+
+U.stats <- summary.df[grep(summary.df$Parameter, pattern = "U"),]
+rhat.max <- max(unlist(lapply(winter.results$jm$Rhat, FUN = max, na.rm = T)))
+
+pareto.k <- lapply(winter.results$good.models.pareto.k,
+                   FUN = function(x) max(x$diagnostics$pareto_k)) %>%
+  unlist()
+
+looic.table <- winter.results$looic.table
+looic.table$Max.Pareto <- pareto.k
+
+models.parts <- lapply(as.list(looic.table$model), 
+                       FUN = function(x) strsplit(x, split = "_") %>% 
+                         unlist() %>% 
+                         as.vector() )
+
+winter.models.part.names <- do.call(rbind, 
+                             lapply(models.parts,
+                                    FUN = function(x) x[c(2,3,6,7,8)])) %>% 
+  as.data.frame() %>%
+  transmute(State = V1,
+            Observation = V2, 
+            Set = V3, 
+            U = V4, 
+            Q = V5)
+
+looic.table.out.winter <- cbind(winter.models.part.names, looic.table) %>%
+  select(-c(model, looic))
+
+```
+
+Among the 16 models fit to the winter dataset, no model had the largest Pareto k value of less than 0.7. Four models had Pareto k values of < 0.8 (Table \@ref(tab:looic-table-winter)). According to LOOIC weights and delta LOOIC values, the best model was Model Set 2 with normal distribution for abundance (N) with location specific variance (2 Qs), and Student's t distribution for observations (y) was the best. Gelman-Rubin Rhat statistics indicated successful convergence of all parameters (maximum Rhat = `r signif(rhat.max, digits = 5)`). 
+
+
+```{r looic-table-winter, echo=F}
+flextable(looic.table.out.winter) %>%
+  set_caption("A comparison of models that were fit to the winter dataset and passed the LOOIC goodness-of-fit test using Pareto k statistics. In the State and Observation columns, norm and t indicate normal and Student's t distributions, respectively. Set indicates either Set 1 (v1) or Set 2 (v2) (see text for details), U indicates the number of U (slope) parameters and Q indicates the number of Q (variance) parameters. weights is model weight, delta.looic indicates the difference in LOOIC values from the smallest LOOIC value, and Max.Pareto indicates the maximum Pareto k statistics value for each model.") %>%
+   colformat_double(j = c("weights", "delta.looic", "Max.Pareto"),
+                   digits = 3) %>%
+  set_table_properties(width = 0.5, layout = "autofit")
+
+```
+
+
+The estimated mean growth rate at Wermon was `r signif(U.stats[1,"mean"], digits = 2)` (SE = `r signif(U.stats[1, "sd"], digits = 2)`, p(U < 0.0) = `r signif(U.stats[1, "f"], digits = 2)`, Figure \@ref(fig:plot-winter-U))
+
+
+```{r plot-winter-U, echo=FALSE, fig.cap = "The posteior distribution of the geometric growth rate when the winter dataset was used. "}
+knitr::include_graphics("figures/U_posterior_winter.png")
+```
+
+
+### Comparing Jamursba-Medi results to Tapilatu et al. {-}
+
+Tapilatu et al. (2013) published the declining trend of leatherback turtle nests at the Jamiursba-Medi nesting beach. We used additional data since the publication to estimate new trend for the same nesting beach. 
+
+```{r compare-Tapilatu, echo=FALSE}
+Tapilatu.JM.data <- data.frame(Season = c(1984, 1985, 1993:1997, 1999:2011),
+                               Nests = c(14522, 3261, 4448, 4517, 4633, 6929,
+                                         4879, 3429, 2383, 3321, 2143, 3790,
+                                         3597, 2626, 2674, 2107, 2077, 2055, 
+                                         1720, 1596))
+
+# They also looked at pop growth rate from 1993.
+Tapilatu.JM.1993.data <- filter(Tapilatu.JM.data, Season > 1992)
+
+# New data 
+data.jags.JM$data.1 %>% 
+  mutate(Season.f = as.factor(Season)) %>%
+  select(Season, Nests) %>%
+  group_by(Season) %>%
+  summarize(Nests = sum(Nests, na.rm = T)) -> JM.data.year
+
+# Take just the new part - since 2012
+JM.data.year.2012 <- filter(JM.data.year, Season > 2011) %>%
+  transmute(Season = Season,
+            Nests = Nests) 
+#  mutate(Year.shifted = Year - min(Tapilatu.JM.1993.data$Year))
+
+Tapilatu.JM.data.2 <- rbind(Tapilatu.JM.data, JM.data.year.2012) %>%
+  mutate(Season.shifted = Season - min(Tapilatu.JM.data$Season))
+Tapilatu.JM.1993.data.2 <- rbind(Tapilatu.JM.1993.data, JM.data.year.2012) %>%
+  mutate(Season.shifted = Season - min(Tapilatu.JM.1993.data$Season))
+
+# ggplot() +
+#   geom_point(data = Tapilatu.JM.data,
+#              aes(x = Year, y = Nests), color = "orange") + 
+#   geom_point(data = JM.data.year,
+#              aes(x = Season, y = Nests), color = "blue")
+
+# Move the year so the first year is zero.
+Tapilatu.JM.data %>% mutate(Season.shifted = Season - min(Season)) -> Tapilatu.JM.data
+Tapilatu.JM.1993.data %>% mutate(Season.shifted = Season - min(Season)) -> Tapilatu.JM.1993.data
+
+Tapilatu.fit <- lm(log(Nests) ~ Season.shifted, data = Tapilatu.JM.data)
+Tapilatu.JM.data$fitted <- Tapilatu.fit$fitted.values
+
+Tapilatu.1993.fit <- lm(log(Nests) ~ Season.shifted, data = Tapilatu.JM.1993.data)
+Tapilatu.JM.1993.data$fitted <- Tapilatu.1993.fit$fitted.values
+#summary(Tapilatu.fit)
+```
+
+Tapilatu et al. stated that "Trend analysis for nest count estimates between 1984 and 2011 at Jamursba Medi indicates an overall significant decline of 78.3% over the 27 year period ($R^2$ = 0.65)." This meant that estimated U was `r signif(log(1-0.783)/27, 3)`, which is a bit off from what I found here (estimated U = `r signif(Tapilatu.fit$coefficients[2], 3)` and $R^2$ = `r signif(summary(Tapilatu.fit)$adj.r.squared, 3)`). If they used $R^2$, rather than adjusted $R^2$, the $R^2$ values match well. From our estimate (U = `r signif(Tapilatu.fit$coefficients[2], 3)`, SE = `r signif(summary(Tapilatu.fit)$coefficients[2,2], 3)`), the overall decline was `r signif(((1 - exp(Tapilatu.fit$coefficients[2] * 27)) * 100), 3)` %. 
+
+```{r Tapilatu-fit-2012, echo=FALSE}
+Tapilatu.fit.2 <- lm(log(Nests) ~ Season.shifted, data = Tapilatu.JM.data.2)
+#summary(Tapilatu.fit.2)
+Tapilatu.JM.data.2$fitted <- Tapilatu.fit.2$fitted.values
+
+Tapilatu.fit.1993.2 <- lm(log(Nests) ~ Season.shifted, data = Tapilatu.JM.1993.data.2)
+#summary(Tapilatu.fit.2)
+Tapilatu.JM.1993.data.2$fitted <- Tapilatu.fit.1993.2$fitted.values
+
+```
+
+When 12 more years of data were added (2012-2023) to the dataset in Tapilatu et al. (2013), estimated growth rate decreased by `r signif(abs(Tapilatu.fit.2$coefficients[2] - Tapilatu.fit$coefficients[2]) * 100, 3)` % per year (r = `r signif(Tapilatu.fit.2$coefficients[2], 3)`, SE = `r signif(summary(Tapilatu.fit.2)$coefficients[2,2], 3)`. This is equivalent of `r signif(((1 - exp(Tapilatu.fit.2$coefficients[2] * 27)) * 100), 3)` % decline over the 35 years.
+
+When the first value (`r format(Tapilatu.JM.data[1, "Nests"], big.mark = ",")` in `r Tapilatu.JM.data[1, "Year"]`), which was greater than twice the next largest count (`r arrange(Tapilatu.JM.data, by = desc(Nests))[2, "Nests"]`), was removed, the estimated growth rate (U) was `r signif(Tapilatu.1993.fit$coefficients[2], 3)`, SE = `r signif(summary(Tapilatu.1993.fit)$coefficients[2,2], 3)`. 
+
+```{r Tapilatu_new_regression, echo=FALSE}
+p.GLM <- ggplot() + 
+  geom_point(data = Tapilatu.JM.data,
+             aes(x = Season, y = Nests),
+             color = "orange") + 
+  geom_line(data = Tapilatu.JM.data,
+            aes(x = Season, y = exp(fitted)),
+            color = "orange") +
+  geom_point(data = Tapilatu.JM.data.2 %>% filter(Season > 2011),
+             aes(Season, y = Nests),
+             color = "blue") +
+  geom_line(data = Tapilatu.JM.data.2,
+            aes(x = Season, y = exp(fitted)),
+            color = "blue") +
+  geom_line(data = Tapilatu.JM.1993.data.2,
+            aes(x = Season, y = exp(fitted)),
+            color = "red")
+
+
+if (save.fig)
+  ggsave(filename = 'figures/GLM_fit.png', 
+         plot = p.GLM,
+         dpi = 600, height = fig.height, 
+         width = fig.width, 
+         units = "in")
+
+```
+
+
+```{r plot-GLM, echo=FALSE, fig.cap = "Fitted general linear models to the data in Tapilatu et al. 2013 (orange), with new data (blue), starting from 1993 with new data (red)."}
+knitr::include_graphics("figures/GLM_fit.png")
+```
+
+### Segmented regression for Jamursba-Medi {-}
+
+
+
+```{r JM-segmented-regression, echo=FALSE}
+
+Tapilatu.fit.2.seg <- segmented::segmented(Tapilatu.fit.2,
+                                           seg.Z = ~Season.shifted,
+                                           psi = list(Season.shifted = c(26, 31)))
+
+#npsi = 2,
+#                                           adjX = TRUE)
+
+                                           
+
+slopes <- segmented::slope(Tapilatu.fit.2.seg, conf.level = 0.95)
+
+fitted.seg <- predict(Tapilatu.fit.2.seg, se.fit = T)
+
+seg.1.fitted <- data.frame(fitted = fitted.seg$fit,
+                           SE = fitted.seg$se.fit,
+                           LCL = fitted.seg$fit - 1.96 * fitted.seg$se.fit,
+                           UCL = fitted.seg$fit + 1.96 * fitted.seg$se.fit,
+                           Season = Tapilatu.JM.data.2$Season)
+
+p.GLM.seg.JM <- ggplot() + 
+  geom_point(data = Tapilatu.JM.data,
+             aes(x = Season, y = Nests),
+             color = "blue") + 
+  geom_point(data = Tapilatu.JM.data.2 %>% filter(Season > 2011),
+             aes(Season, y = Nests),
+             color = "blue") +
+  geom_line(data = Tapilatu.JM.data.2,
+            aes(x = Season, y = exp(fitted)),
+            color = "blue", linewidth = 1.2) +
+  geom_line(data = seg.1.fitted,
+            aes(x = Season, y = exp(fitted)),
+            linewidth = 1.2, color = "darkblue") +
+  geom_ribbon(data = seg.1.fitted,
+              aes(x = Season, ymin = exp(LCL), ymax = exp(UCL)),
+              fill = "darkblue", alpha = 0.4)
+
+
+if (save.fig)
+  ggsave(filename = 'figures/GLM_seg_fit_JM.png', 
+         plot = p.GLM.seg.JM,
+         dpi = 600, height = fig.height, 
+         width = fig.width, 
+         units = "in")
+
+```
+
+
+Because a linear model with one slope is not able to detect the possible recent increase in nest counts, I used a segmented regression analysis to find a possible change in the slope. Two change points were estimated at `r Tapilatu.JM.data.2 %>% filter(Season.shifted == round(Tapilatu.fit.2.seg$psi[1,2])) %>% pull(Season)` and `r Tapilatu.JM.data.2 %>% filter(Season.shifted == round(Tapilatu.fit.2.seg$psi[2,2])) %>% pull(Season)`. The slope changes from `r signif(slopes$Season.shifted[1,1], 3)` (95%CI = [`r signif(slopes$Season.shifted[1,4], 3)` - `r signif(slopes$Season.shifted[1,5], 3)`]), to `r signif(slopes$Season.shifted[2,1], 3)` (95%CI = [`r signif(slopes$Season.shifted[2,4], 3)` - `r signif(slopes$Season.shifted[2,5], 3)`]), to `r signif(slopes$Season.shifted[3,1], 3)` (95%CI = [`r signif(slopes$Season.shifted[3,4], 3)` - `r signif(slopes$Season.shifted[3,5], 3)`]) (Figure \@ref(fig:plot-GLM-seg-JM)). 
+
+
+
+
+```{r plot-GLM-seg-JM, echo=FALSE, fig.cap = "Fitted segmented linear models to the data in Tapilatu et al. (2013) and new data."}
+knitr::include_graphics("figures/GLM_seg_fit_JM.png")
+```
+
+
+I also fitted Bayesian hierarchical models to the nest counts data from the Jamursba Medi nesting beach only. The set of models are similar to the ones above but restricted to one slope (1 U) and one variance (1 Q) models.
+
+```{r BayesianRegression, echo=F}
+# get results from time_series_DFS_JM_only.Rmd
+JM.only <- readRDS(file = "RData/JM_only_results.rds")
+JM.only$jm$summary %>%
+  data.frame() %>% 
+  rownames_to_column("Parameter") -> JM.only.summary.df
+
+# check convergence 
+rhat.max.JM.1 <- max(unlist(lapply(JM.only$jm$Rhat, 
+                                   FUN = max, na.rm = T)))
+
+# look at some posteriors
+U.stats.JM <- JM.only.summary.df[grep(JM.only.summary.df$Parameter, pattern = "U"),]
+p.post.U.JM <- bayesplot::mcmc_dens(JM.only$jm$samples, c("U")) + 
+  xlab("Annual growth rate") + ylab("Density")
+
+if (save.fig)
+  ggsave(filename = 'figures/U_JM_posterior_1.png', 
+         plot = p.post.U.JM,
+         dpi = 600, height = fig.height, 
+         width = fig.width, 
+         units = "in")
+
+# Second best model:
+jm.2 <- readRDS(file = paste0("RData/SSAR1_", 
+                              JM.only$looic.table[2, "model"],
+                            "_JM12_1999_2023_2023-07-06.rds"))
+
+#max(unlist(lapply(jm$Rhat, FUN = max, na.rm = T)))
+data.frame(jm.2$summary) %>% rownames_to_column("Parameter") -> JM.only.summary.df.2
+
+# check convergence 
+rhat.max.JM.2 <- max(unlist(lapply(jm.2$Rhat, FUN = max, na.rm = T)))
+
+U.stats.JM.2 <- JM.only.summary.df.2[grep(JM.only.summary.df.2$Parameter, pattern = "U"),]
+p.post.U.JM.2 <- bayesplot::mcmc_dens(jm.2$samples, c("U")) + 
+  xlab("Annual growth rate") + ylab("Density")
+
+pareto.k <- lapply(JM.only$good.models.pareto.k,
+                   FUN = function(x) max(x$diagnostics$pareto_k)) %>%
+  unlist()
+
+looic.table <- JM.only$looic.table
+looic.table$Max.Pareto <- pareto.k
+
+models.parts <- lapply(as.list(looic.table$model), 
+                       FUN = function(x) strsplit(x, split = "_") %>% 
+                         unlist() %>% 
+                         as.vector() )
+
+JM.models.part.names <- do.call(rbind, 
+                             lapply(models.parts,
+                                    FUN = function(x) x[c(1,2,5)])) %>% 
+  as.data.frame() %>%
+  transmute(State = V1,
+            Observation = V2, 
+            Set = V3)
+
+looic.table.out.JM <- cbind(JM.models.part.names, looic.table) %>%
+  select(-c(model, looic))
+
+if (save.fig)
+  ggsave(filename = 'figures/U_JM_posterior_2.png', 
+         plot = p.post.U.JM.2,
+         dpi = 600, height = fig.height, 
+         width = fig.width, 
+         units = "in")
+```
+
+Among the 8 models fit to the Jamursba-Medi dataset, only four models were found appropriate based on the Pareto k statistic (Table \@ref(tab:looic-table-JM)) (maximum Rhat = `r signif(rhat.max.JM.1, digits = 5)`). Two models were similar in the fit. We use the joint posterior distributions from the first model (`r JM.only$looic.table[1, "model"]`) for the inference.
+
+
+```{r looic-table-JM, echo=F}
+
+flextable(looic.table.out.JM) %>%
+  set_caption("A comparison of models that were fit to the Jamursba Medi dataset and passed the LOOIC goodness-of-fit test using Pareto k statistics. In the State and Observation columns, norm and t indicate normal and Student's t distributions, respectively. Set indicates either Set 1 (v1) or Set 2 (v2) (see text for details). weights is model weight, delta.looic indicates the difference in LOOIC values from the smallest LOOIC value, and Max.Pareto indicates the maximum Pareto k statistics value for each model.") %>%
+  colformat_double(j = c("weights", "delta.looic", "Max.Pareto"),
+                   digits = 3) %>%
+  set_table_properties(width = 0.5, layout = "autofit")
+
+```
+
+The estimated mean growth rate at Jamursba Medi was `r signif(U.stats.JM[1,"mean"], digits = 2)` (SE = `r signif(U.stats.JM[1, "sd"], digits = 2)`, p(U < 0.0) = `r signif(U.stats.JM[1, "f"], digits = 2)`, Figure \@ref(fig:plot-posterior-JM))
+
+
+```{r plot-posterior-JM, echo=FALSE, fig.cap = "The posterior distribution of the growth rate (U) from the best model and data from Jamursba-Medi only based on LOOIC. "}
+knitr::include_graphics("figures/U_JM_posterior_1.png")
+```
+
+
+
+### Comparing Wermon results to Tapilatu et al. {-}
+
+Tapilatu et al. (2013) published the declining trend of leatherback turtle nests at the Wermon nesting beach. We used additional data since the publication to estimate new trend for the same nesting beach. 
+
+
+```{r compare-Tapilatu-W, echo=FALSE}
+Tapilatu.W.data <- data.frame(Season = c(2002:2011),
+                              Nests = c(2994, 2786, 2805, 1497, 1335,
+                                        1483, 1287, 1080, 1354, 1096))
+
+# New data 
+data.jags.W$data.1 %>% 
+  mutate(Season.f = as.factor(Season)) %>%
+  select(Season, Nests) %>%
+  group_by(Season) %>%
+  summarize(Nests = sum(Nests, na.rm = T)) %>%
+  na.omit() -> W.data.year
+
+# Take just the new part - since 2012
+W.data.year.2012 <- filter(W.data.year, Season > 2011) %>%
+  transmute(Season = Season,
+            Nests = Nests) 
+
+Tapilatu.W.data.2 <- rbind(Tapilatu.W.data, W.data.year.2012) %>%
+  mutate(Season.shifted = Season - min(Tapilatu.W.data$Season))
+
+# ggplot() +
+#   geom_point(data = Tapilatu.JM.data,
+#              aes(x = Year, y = Nests), color = "orange") + 
+#   geom_point(data = JM.data.year,
+#              aes(x = Season, y = Nests), color = "blue")
+
+# Move the year so the first year is zero.
+Tapilatu.W.data %>% mutate(Season.shifted = Season - min(Season)) -> Tapilatu.W.data
+
+Tapilatu.W.fit <- lm(log(Nests) ~ Season.shifted, data = Tapilatu.W.data)
+Tapilatu.W.data$fitted <- Tapilatu.W.fit$fitted.values
+
+#summary(Tapilatu.W.fit)
+```
+
+Tapilatu et al. stated that "There was also a 62.8% decline at Wermon from 2,994 nests in 2002 to 1,096 in 2011 (GLM, r^2 = 0.78)." This meant that estimated U was `r signif(log(1-0.628)/9, 3)`, which is a little different from what I got here (estimated U = `r signif(Tapilatu.W.fit$coefficients[2], 3)` and $R^2$ = `r signif(summary(Tapilatu.W.fit)$adj.r.squared, 3)`). They used multiple R-squared rather than adjusted R-squared for small sample size ($R^2$ = `r signif(summary(Tapilatu.W.fit)$r.squared, 3)`, Adjusted $R^2$ = `r signif(summary(Tapilatu.W.fit)$adj.r.squared, 3)`).  
+
+
+```{r Tapilatu-fit-2005to2011, echo=FALSE}
+Tapilatu.W.data %>% filter(Season > 2004) %>% 
+  mutate(Season.shifted = Season - min(Season)) -> Tapilatu.W.data.2005
+
+Tapilatu.W.fit.2005 <- lm(log(Nests) ~ Season.shifted, data = Tapilatu.W.data.2005)
+Tapilatu.W.data.2005$fitted <- Tapilatu.W.fit.2005$fitted.values
+
+```
+
+They also stated that "In comparison, during our current study (2005–2011), nesting declined 29.0% at Jamursba Medi (GLM; $r^2$ = 0.92, p < 0.01), and 52.2% at Wermon (GLM; $r^2$ = 0.52, p < 0.01)." 52.2% decline over 6 years equates to U = `r signif(log(1-0.522)/6, 3)`, which is quite different from what I got in this GLM (`r signif(Tapilatu.W.fit.2005$coefficients[2], 3)` and $R^2$ = `r signif(summary(Tapilatu.W.fit.2005)$adj.r.squared, 3)`).) Again, they used multiple R-squared instead of adjusted R-squared. 
+
+```{r Tapilatu-fit-W-2012, echo=FALSE}
+Tapilatu.W.fit.2 <- lm(log(Nests) ~ Season.shifted, data = Tapilatu.W.data.2)
+#summary(Tapilatu.fit.2)
+Tapilatu.W.data.2$fitted <- Tapilatu.W.fit.2$fitted.values
+
+```
+
+When 12 more years of data were added (2012-2022) to the dataset in Tapilatu et al. (2013), estimated growth rate increased by `r signif(abs(Tapilatu.W.fit.2$coefficients[2] - Tapilatu.W.fit$coefficients[2]) * 100, 3)` % per year (U = `r signif(Tapilatu.W.fit.2$coefficients[2], 3)`, SE = `r signif(summary(Tapilatu.W.fit.2)$coefficients[2,2], 3)`). This is equivalent of `r signif(((1 - exp(Tapilatu.W.fit.2$coefficients[2] * nrow(Tapilatu.W.data.2))) * 100), 3)` % decline over the `r nrow(Tapilatu.W.data.2)` years.
+
+```{r Tapilatu-new-regression-W, echo=FALSE}
+p.GLM.W <- ggplot() + 
+  geom_point(data = Tapilatu.W.data,
+             aes(x = Season, y = Nests),
+             color = "orange") + 
+  geom_line(data = Tapilatu.W.data,
+            aes(x = Season, y = exp(fitted)),
+            color = "orange") +
+  geom_point(data = Tapilatu.W.data.2 %>% filter(Season > 2011),
+             aes(Season, y = Nests),
+             color = "blue") +
+  geom_line(data = Tapilatu.W.data.2,
+            aes(x = Season, y = exp(fitted)),
+            color = "blue") 
+
+if (save.fig)
+  ggsave(filename = 'figures/GLM_fit_W.png', 
+         plot = p.GLM.W,
+         dpi = 600, height = fig.height, 
+         width = fig.width, 
+         units = "in")
+
+```
+
+
+```{r plot-GLM-W, echo=FALSE, fig.cap = "Fitted general linear models to the Wermon data in Tapilatu et al. 2013 (orange), with new data (blue)."}
+knitr::include_graphics("figures/GLM_fit_W.png")
+```
+
+The numbers of nests since the 2014 season may indicate a potential increase (Figure \@ref(fig:plot-GLM-W)).
+
+
+
+```{r W-segmented-regression, echo=FALSE}
+
+Tapilatu.fit.2.seg <- segmented::segmented(Tapilatu.W.fit.2,
+                                           seg.Z = ~Season.shifted,
+                                           psi = list(Season.shifted = c(12, 15)))
+
+
+                                           
+
+slopes <- segmented::slope(Tapilatu.fit.2.seg, conf.level = 0.95)
+
+fitted.seg <- predict(Tapilatu.fit.2.seg, se.fit = T)
+
+seg.1.fitted <- data.frame(fitted = fitted.seg$fit,
+                           SE = fitted.seg$se.fit,
+                           LCL = fitted.seg$fit - 1.96 * fitted.seg$se.fit,
+                           UCL = fitted.seg$fit + 1.96 * fitted.seg$se.fit,
+                           Season = Tapilatu.W.data.2$Season)
+
+p.GLM.seg.W <- ggplot() + 
+  geom_point(data = Tapilatu.W.data.2,
+             aes(x = Season, y = Nests),
+             color = "blue") + 
+  # geom_point(data = Tapilatu.JM.data.2 %>% filter(Season > 2011),
+  #            aes(Season, y = Nests),
+  #            color = "blue") +
+  geom_line(data = Tapilatu.W.data.2,
+            aes(x = Season, y = exp(fitted)),
+            color = "blue", linewidth = 1.2) +
+  geom_line(data = seg.1.fitted,
+            aes(x = Season, y = exp(fitted)),
+            linewidth = 1.2, color = "darkblue") +
+  geom_ribbon(data = seg.1.fitted,
+              aes(x = Season, ymin = exp(LCL), ymax = exp(UCL)),
+              fill = "darkblue", alpha = 0.4)
+
+
+if (save.fig)
+  ggsave(filename = 'figures/GLM_seg_fit_W.png', 
+         plot = p.GLM.seg.W,
+         dpi = 600, height = fig.height, 
+         width = fig.width, 
+         units = "in")
+
+```
+
+
+Because a linear model with one slope is not able to detect the possible recent increase in nest counts, I used a segmented regression analysis to find a possible change in the slope. Two change points were estimated at `r Tapilatu.W.data.2 %>% filter(Season.shifted == round(Tapilatu.fit.2.seg$psi[1,2])) %>% pull(Season)` and `r Tapilatu.JM.data.2 %>% filter(Season.shifted == round(Tapilatu.fit.2.seg$psi[2,2])) %>% pull(Season)`. The slope changes from `r signif(slopes$Season.shifted[1,1], 3)` (95%CI = [`r signif(slopes$Season.shifted[1,4], 3)` - `r signif(slopes$Season.shifted[1,5], 3)`]), to `r signif(slopes$Season.shifted[2,1], 3)` (95%CI = [`r signif(slopes$Season.shifted[2,4], 3)` - `r signif(slopes$Season.shifted[2,5], 3)`]), to `r signif(slopes$Season.shifted[3,1], 3)` (95%CI = [`r signif(slopes$Season.shifted[3,4], 3)` - `r signif(slopes$Season.shifted[3,5], 3)`]) (Figure \@ref(fig:plot-GLM-seg-W)). 
+
+
+
+```{r plot-GLM-seg-W, echo=FALSE, fig.cap = "Fitted segmented linear models to the data in Tapilatu et al. (2013) and new data."}
+knitr::include_graphics("figures/GLM_seg_fit_W.png")
+```
+
+
+
+I also fitted Bayesian hierarchical models to the nest counts data from the Wermon nesting beach only. The set of models are similar to the ones above but restricted to one slope (1 U) and one variance (1 Q) models.
+
+
+```{r BayesianRegression-W, echo=F}
+
+# get results from time_series_DFS_W_only.Rmd
+W.only <- readRDS(file = "RData/W_only_results.rds")
+W.only$jm$summary %>%
+  data.frame() %>% 
+  rownames_to_column("Parameter") -> W.only.summary.df
+
+# check convergence 
+rhat.max.W <- max(unlist(lapply(W.only$jm$Rhat, 
+                                   FUN = max, na.rm = T)))
+
+# look at some posteriors
+U.stats.W <- W.only.summary.df[grep(W.only.summary.df$Parameter, pattern = "U"),]
+p.post.U.W <- bayesplot::mcmc_dens(W.only$jm$samples, c("U")) + 
+  xlab("Annual growth rate") + ylab("Density")
+
+pareto.k <- lapply(W.only$good.models.pareto.k,
+                   FUN = function(x) max(x$diagnostics$pareto_k)) %>%
+  unlist()
+
+looic.table <- W.only$looic.table
+looic.table$Max.Pareto <- pareto.k
+
+models.parts <- lapply(as.list(looic.table$model), 
+                       FUN = function(x) strsplit(x, split = "_") %>% 
+                         unlist() %>% 
+                         as.vector() )
+
+W.models.part.names <- do.call(rbind, 
+                             lapply(models.parts,
+                                    FUN = function(x) x[c(1,2,5)])) %>% 
+  as.data.frame() %>%
+  transmute(State = V1,
+            Observation = V2, 
+            Set = V3)
+
+looic.table.out.W <- cbind(JM.models.part.names, looic.table) %>%
+  select(-c(model, looic))
+
+if (save.fig)
+  ggsave(filename = 'figures/U_W_posterior.png', 
+         plot = p.post.U.W,
+         dpi = 600, height = fig.height, 
+         width = fig.width, 
+         units = "in")
+
+
+```
+
+Among the 8 models fit to the Wermon dataset, only `r length(W.only$good.models)` models were found appropriate based on the Pareto k statistic (Table \@ref(tab:looic-table-W)). The best model included Student's t distributions for state and observation processes. Convergence was reached where maximum Rhat was `r signif(rhat.max.W, 3)`. 
+
+
+```{r looic-table-W, echo=F}
+
+flextable(looic.table.out.W) %>%
+  set_caption("A comparison of models that were fit to the Wermon dataset and passed the LOOIC goodness-of-fit test using Pareto k statistics. In the State and Observation columns, norm and t indicate normal and Student's t distributions, respectively. Set indicates either Set 1 (v1) or Set 2 (v2) (see text for details). weights is model weight, delta.looic indicates the difference in LOOIC values from the smallest LOOIC value, and Max.Pareto indicates the maximum Pareto k statistics value for each model.") %>%
+  colformat_double(j = c("weights", "delta.looic", "Max.Pareto"),
+                   digits = 3) %>%
+  set_table_properties(width = 0.5, layout = "autofit")
+
+
+```
+
+The estimated mean growth rate (U) at Wermon `r signif(U.stats.W[1,"mean"], digits = 2)` (SE = `r signif(U.stats.W[1, "sd"], digits = 2)`, p(U < 0.0) = `r signif(U.stats.W[1, "f"], digits = 2)`, Figure \@ref(fig:plot-posterior-W-U)). 
+
+
+```{r plot-posterior-W-U, echo=FALSE,  fig.cap = "The posterior distribution of the growth rate (U) at Wermon from the best model using data from Wermon only based on LOOIC. "}
+knitr::include_graphics("figures/U_W_posterior.png")
+```
+
+
+#### Additional analysis {-}
+
+Rather than running the models with no growth rates, I decided to extract the imputed y's and combine them with the observed ys. 
+
+
+```{r additional-analaysis, echo=FALSE}
+best.model <- readRDS(file = paste0("RData/", all.results$best.model[[1]], ".rds"))
+
+# get all data
+stats.JM <- data.frame(time = data.jags.JM$data.0$Frac.Year,
+                       obsY = data.jags.JM$data.0$Nests,
+                       month = data.jags.JM$data.0$Month_begin,
+                       year = data.jags.JM$data.0$Year_begin) %>%
+  mutate(year_month = paste(year, month, sep = "_"),
+         Season = ifelse(month < 4, year-1, year)) %>%
+  select(!c(month, year))
+
+# imputed and observed in one dataframe
+data.frame(low = as.vector(t(best.model$q2.5$y[,,1])),
+           median = as.vector(t(best.model$q50$y[,,1])),
+           high = as.vector(t(best.model$q97.5$y[,,1])),
+           year = data.jags.JM$data.1$Year,
+           month = data.jags.JM$data.1$Month) %>% #-> tmp
+  mutate(year_month = paste(year, month, sep = "_")) %>% #-> tmp # 
+  right_join(., stats.JM, by = "year_month") %>%
+  arrange(time) -> ys.stats.JM
+ys.stats.JM$location <- "Jamursba-Medi"
+
+# Wermon has a shorter time series so we set things up with available data
+stats.W <- data.frame(time = data.jags.W$data.0$Frac.Year,
+                       obsY = data.jags.W$data.0$Nests,
+                       month = data.jags.W$data.0$Month_begin,
+                       year = data.jags.W$data.0$Year_begin) %>%
+  mutate(year_month = paste(year, month, sep = "_"),
+         Season = ifelse(month < 4, year-1, year)) %>%
+  select(!c(month, year))
+
+data.frame(low = as.vector(t(best.model$q2.5$y[,,2])),
+           median = as.vector(t(best.model$q50$y[,,2])),
+           high = as.vector(t(best.model$q97.5$y[,,2])),
+           year = data.jags.JM$data.1$Year,
+           month = data.jags.JM$data.1$Month) %>%
+  mutate(year_month = paste(year, month, sep = "_")) %>%
+  right_join(., stats.W, by = "year_month") %>%
+  arrange(time) -> ys.stats.W
+ys.stats.W$location <- "Wermon"
+
+ys.stats <- rbind(ys.stats.JM, ys.stats.W) %>%
+  na.omit()
+
+ggplot(data = ys.stats) + 
+  geom_point(aes(x = time, y = log(obsY), color = location),
+             alpha = 0.5) + 
+  geom_point(aes(x = time, y = median, color = location),
+             alpha = 0.5, shape = 5)  +
+  
+  geom_errorbar(aes(x = time, 
+                    ymin = (low), 
+                    ymax = (high),
+                    color = location))
+
+```
+
+

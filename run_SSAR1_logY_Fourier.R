@@ -3,12 +3,14 @@
 rm(list=ls())
 
 source("Dc_Indonesia_nesting_fcns.R")
+library(tidyverse)
+library(readxl)
 library(jagsUI)
 library(coda)
 # library(ggplot2)
 library(loo)
 
-run.date <- "2019-04-30" #Sys.Date() #"2019-04-29" #
+run.date <- "2023-07-11" #  "2019-04-30" #Sys.Date() #"2019-04-29" #
 
 MCMC.params <- list(n.chains = 5,
                     n.samples = 500000,
@@ -20,8 +22,8 @@ if (loc == "JM"){
   year.begin <- 1999
   season.begin <- 1999
   period <- 12   # should be 12 for Jamusrba-Medi
-  year.end <- 2019
-  season.end <- 2018
+  year.end <- 2023
+  season.end <- 2022
   
 } else if (loc == "W"){
   year.begin <- 2003  
@@ -32,8 +34,8 @@ if (loc == "JM"){
   #season.begin <- 2006
   period <- 6   # should be 6 for Wermon 
   
-  year.end <- 2019
-  season.end <- 2018
+  year.end <- 2023
+  season.end <- 2022
 }
 
 # year.end <- 2019
@@ -45,19 +47,24 @@ data.jags <- data.extract(location = loc,
                           season.begin = season.begin,
                           season.end = season.end)
 
+models.df <- model.names()
+START HERE. RATHER THAN LISTING ALL MODELS HERE, USE models.df, WHICH IS DEFINED
+IN Dc_Indonesia_nesting_fcns.R. THAT WAY, SUBSEQUENT SUMMARY (NestCountsImputation_W.Rmd and NestCountsImputation_JM.Rmd)
+CAN BE RUN EASILY. THERE IS NO NEED FOR TRYING TO FIND WHICH MODEL NAMES TO BE USED IN THOSE SCRIPTS.
 
-norm.norm.models <- c("models/model_SSAR1_logY_norm_norm_theta_Four.txt",
-                      "models/model_SSAR1_logY_norm_norm_theta_Four_constCV.txt",
-                      "models/model_SSAR1_logY_norm_norm_theta_Four_varM.txt")
+
+# norm.norm.models <- c("models/model_SSAR1_logY_norm_norm_theta_Four.txt",
+#                       "models/model_SSAR1_logY_norm_norm_theta_Four_constCV.txt",
+#                       "models/model_SSAR1_logY_norm_norm_theta_Four_varM.txt", #)
 #                       "models/model_SSAR1_logY_norm_norm_varM_thetaM.txt",
 #                       "models/model_SSAR1_W_logY_norm_norm_varM_theta.txt",
 #                       "models/model_SSAR1_W_logY_norm_norm_var_thetaM.txt",
 #                       "models/model_SSAR1_logY_norm_norm_thetaM.txt",
 #                       "models/model_SSAR1_logY_norm_norm_varM.txt")
-# 
-norm.t.models <- c("models/model_SSAR1_logY_norm_t_theta_Four.txt",
-                   "models/model_SSAR1_logY_norm_t_theta_Four_constCV.txt",
-                   "models/model_SSAR1_logY_norm_t_theta_Four_varM.txt")
+# # 
+# norm.t.models <- c("models/model_SSAR1_logY_norm_t_theta_Four.txt",
+#                    "models/model_SSAR1_logY_norm_t_theta_Four_constCV.txt",
+#                    "models/model_SSAR1_logY_norm_t_theta_Four_varM.txt", #)
 #                    "models/model_SSAR1_W_logY_norm_t_var.txt",
 #                    "models/model_SSAR1_W_logY_norm_t_var_theta.txt",
 #                    "models/model_SSAR1_logY_norm_t_varM_thetaM.txt",
@@ -65,8 +72,8 @@ norm.t.models <- c("models/model_SSAR1_logY_norm_t_theta_Four.txt",
 #                    "models/model_SSAR1_W_logY_norm_t_var_thetaM.txt",
 #                    "models/model_SSAR1_logY_norm_t_thetaM.txt",
 #                    "models/model_SSAR1_logY_norm_t_varM.txt")
-# 
-all.models <- c(norm.norm.models, norm.t.models)
+# # 
+# all.models <- c(norm.norm.models, norm.t.models)
 
 jags.params <- c("theta", 'sigma.pro1', "sigma.obs",
                 "mu", "y", "X", "theta.beta.sin",
@@ -80,8 +87,8 @@ jags.data <- list(y = data.jags$jags.data$y,
 
 k <- 2
 for (k in 1:length(all.models)){
-  print(paste("file", k, "of", length(all.models), "models"))
-  print(all.models[[k]])
+  #print(paste("file", k, "of", length(all.models), "models"))
+  #print(all.models[[k]])
   model.name <- all.models[[k]]
   
   filename.root <- strsplit(strsplit(all.models[[k]], 
@@ -190,7 +197,8 @@ for (k in 1:length(all.models)){
                     ys.stats = ys.stats,
                     MCMC.params = MCMC.params,
                     loo.out = loo.out,
-                    time = toc - tic)
+                    time = toc - tic,
+                    system = Sys.getenv())
     
     ggsave(plot = p.1,
            filename = paste0("figures/", "predicted_counts_", filename.out, ".png"),
