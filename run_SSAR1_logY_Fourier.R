@@ -48,10 +48,6 @@ data.jags <- data.extract(location = loc,
                           season.end = season.end)
 
 models.df <- model.names()
-START HERE. RATHER THAN LISTING ALL MODELS HERE, USE models.df, WHICH IS DEFINED
-IN Dc_Indonesia_nesting_fcns.R. THAT WAY, SUBSEQUENT SUMMARY (NestCountsImputation_W.Rmd and NestCountsImputation_JM.Rmd)
-CAN BE RUN EASILY. THERE IS NO NEED FOR TRYING TO FIND WHICH MODEL NAMES TO BE USED IN THOSE SCRIPTS.
-
 
 # norm.norm.models <- c("models/model_SSAR1_logY_norm_norm_theta_Four.txt",
 #                       "models/model_SSAR1_logY_norm_norm_theta_Four_constCV.txt",
@@ -86,12 +82,12 @@ jags.data <- list(y = data.jags$jags.data$y,
                   period = period)
 
 k <- 2
-for (k in 1:length(all.models)){
-  #print(paste("file", k, "of", length(all.models), "models"))
-  #print(all.models[[k]])
-  model.name <- all.models[[k]]
+for (k in 1:nrow(models.df)){
+  print(paste("file", k, "of", nrow(models.df), "models"))
+  print(models.df[k, "names"])
+  model.name <- models.df[k, "names"]
   
-  filename.root <- strsplit(strsplit(all.models[[k]], 
+  filename.root <- strsplit(strsplit(models.df[k, "names"], 
                                      'models/model_')[[1]][2], '.txt')[[1]][1]
   
   filename.out <- paste0(filename.root, "_", loc, "_", year.begin, "_", year.end)
@@ -100,11 +96,11 @@ for (k in 1:length(all.models)){
                             filename.out, "_", run.date, '.rds'))){
     tic <- Sys.time()
     
-    if (length(grep("_t_", all.models[[k]])) >0){
+    if (length(grep("_t_", models.df[k, "names"])) > 0){
       jags.params <- c(jags.params, "df")  # need df for norm-t models
     }
     
-    if (length(grep("_constCV", all.models[k])) > 0){
+    if (length(grep("_constCV", models.df[k, "names"])) > 0){
       jags.params <- c(jags.params, "cv.pro1")
     }
     
