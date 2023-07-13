@@ -17,7 +17,7 @@ MCMC.params <- list(n.chains = 5,
                     n.burnin = 350000,
                     n.thin = 50)
 
-loc <- "W"
+loc <- "JM"
 if (loc == "JM"){
   year.begin <- 1999
   season.begin <- 1999

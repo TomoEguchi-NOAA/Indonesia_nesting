@@ -7,8 +7,8 @@ output: html_document
 rm(list=ls())
 knitr::opts_chunk$set(echo = TRUE)
 source("Dc_Indonesia_nesting_fcns.R")
-run.date <- "2019-04-30"
-run.date2 <- "2019-04-29"
+run.date <- "2023-07-11"
+#run.date2 <- "2019-04-29"
 
 fill.color <-  "darkseagreen"
 fill.color.summer <- "darksalmon"
@@ -28,30 +28,29 @@ This document describes how leatherback turtle nest count data were imputed for 
 
 The raw data look like this.
 ```{r}
-year.begin <- 2006
+year.begin <- 2003
 year.begin2 <- 2003
 
-year.end <- 2019
+year.end <- 2023
 year.end2 <- 2019
 
-season.begin <- 2006
-season.begin <- 2006
+season.begin <- 2003
 
-season.end <- 2018
-season.end2 <- 2018
+season.end <- 2022
+season.end2 <- 2022
 
 loc <- "W"
-data.jags <- data.extract(location = loc, 
+data.jags <-  data.extract(location = loc, 
                           year.begin = year.begin, 
                           year.end = year.end,
                           season.begin = season.begin,
                           season.end = season.end)
 
-data.jags2 <- data.extract(location = loc, 
-                          year.begin = year.begin2, 
-                          year.end = year.end2,
-                          season.begin = season.begin,
-                          season.end = season.end2)
+# data.jags2 <- data.extract(location = loc, 
+#                           year.begin = year.begin2, 
+#                           year.end = year.end2,
+#                           season.begin = season.begin,
+#                           season.end = season.end2)
 
 p.0 <- ggplot() +
   geom_point(data = data.jags$data.1,
@@ -114,8 +113,8 @@ M <- readRDS(paste0("RData/jagsout_", str.root, "_W_", year.begin, "_", year.end
                     run.date, ".rds"))
 # M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_W_2006_2014_", 
 #                     run.date, ".rds"))
-M1.loo.out <- M$jags.out$loo.out$loo.out
-M1.jm <- M$jags.out$jm
+M1.loo.out <- M$loo.out$loo.out
+M1.jm <- M$jags.out
 ```
 
 Diagnostics of the expected log predictive density indicated that the model had poor predictive power, where the majority of estimated Pareto k statistics were greater than 0.7. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M$jags.out$jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M$jags.out$jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M$jags.out$jm$Rhat, FUN = max, na.rm = T))), 3)```). 
@@ -128,7 +127,7 @@ Looking at which data points resulted in high Pareto k values...
 
 ```{r}
 pareto.k <- M1.loo.out$diagnostics$pareto_k
-data.y <- na.omit(M$jags.out$jags.data$y)
+data.y <- na.omit(M$jags.data$y)
 
 pareto.df <- data.frame(y = data.y,
                         khat = pareto.k,
@@ -155,7 +154,7 @@ ggplot(data = pareto.df) +
 
 ```
 
-The worst offendes seem to be at the lowest or highest points.  
+The worst offenders seem to be at the lowest or highest points.  
 
 ##Model 2
 The next model contained one slope and two variances: one for September and October and another for the rest of the year (this was decided after looking at posteriors of variances when each month was given unique variance parameter - I think...). 
@@ -172,8 +171,8 @@ M <- readRDS(paste0("RData/jagsout_", str.root, "_W_", year.begin, "_", year.end
                     run.date, ".rds"))
 # M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_var_W_2006_2014_", 
 #                     run.date, ".rds"))
-M2.loo.out <- M$jags.out$loo.out$loo.out
-M2.jm <- M$jags.out$jm
+M2.loo.out <- M$loo.out$loo.out
+M2.jm <- M$jags.out
 
 ```
 
@@ -185,7 +184,7 @@ plot(M2.loo.out)
 
 ```{r}
 pareto.k <- M2.loo.out$diagnostics$pareto_k
-data.y <- na.omit(M$jags.out$jags.data$y)
+data.y <- na.omit(M$jags.data$y)
 
 pareto.df <- data.frame(y = data.y,
                         khat = pareto.k,
@@ -226,8 +225,8 @@ M <- readRDS(paste0("RData/jagsout_", str.root, "_W_", year.begin, "_", year.end
                     run.date, ".rds"))
 # M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_varM_W_2006_2014_", 
 #                     run.date, ".rds"))
-M3.loo.out <- M$jags.out$loo.out$loo.out
-M3.jm <- M$jags.out$jm
+M3.loo.out <- M$loo.out$loo.out
+M3.jm <- M$jags.out
 
 ```
 
@@ -239,7 +238,7 @@ plot(M3.loo.out)
 
 ```{r}
 pareto.k <- M3.loo.out$diagnostics$pareto_k
-data.y <- na.omit(M$jags.out$jags.data$y)
+data.y <- na.omit(M$jags.data$y)
 
 pareto.df <- data.frame(y = data.y,
                         khat = pareto.k,
@@ -281,8 +280,8 @@ M <- readRDS(paste0("RData/jagsout_", str.root, "_W_", year.begin, "_", year.end
                     run.date, ".rds"))
 # M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_theta_W_2006_2014_", 
 #                     run.date, ".rds"))
-M4.loo.out <- M$jags.out$loo.out$loo.out
-M4.jm <- M$jags.out$jm
+M4.loo.out <- M$loo.out$loo.out
+M4.jm <- M$jags.out
 ```
 
 Diagnostics of the expected log predictive density indicated that the model was considerably better than the first model. Many of estimated Pareto k parameter was less than 0.7 (```r sum(M4.loo.out$diagnostics$pareto_k < 0.7)``` out of ```r length(M4.loo.out$diagnostics$pareto_k)```).Although ```r sum(M4.loo.out$diagnostics$pareto_k > 0.7)``` were greater than 0.7.  Convergence was reached for all monitored parameters (minimum = ```r signif(min(unlist(lapply(M$jags.out$jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M$jags.out$jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M$jags.out$jm$Rhat, FUN = max, na.rm = T))), 3)```).  
@@ -293,7 +292,7 @@ plot(M4.loo.out)
 
 ```{r}
 pareto.k <- M4.loo.out$diagnostics$pareto_k
-data.y <- na.omit(M$jags.out$jags.data$y)
+data.y <- na.omit(M$jags.data$y)
 
 pareto.df <- data.frame(y = data.y,
                         khat = pareto.k,
@@ -347,8 +346,8 @@ M <- readRDS(paste0("RData/jagsout_", str.root, "_W_", year.begin, "_", year.end
                     run.date, ".rds"))
 # M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_var_theta_W_2006_2014_", 
 #                     run.date, ".rds"))
-M5.loo.out <- M$jags.out$loo.out$loo.out
-M5.jm <- M$jags.out$jm
+M5.loo.out <- M$loo.out$loo.out
+M5.jm <- M$jags.out
 
 ```
 
@@ -357,6 +356,30 @@ There were some large estimated Pareto k parameter values, where ```r sum(M5.loo
 ```{r PSIS_M5, fig.cap="Figure. PSIS diagnostic plot for M5"}
 plot(M5.loo.out)
 ```
+
+
+```{r}
+pareto.k <- M5.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.data$y)
+
+pareto.df <- data.frame(y = data.y,
+                        khat = pareto.k,
+                        datapoint = seq(from = 1, to = length(data.y)),
+                        k0.7 = cut(pareto.k,
+                                   breaks = c(0, 0.7, 1.5),
+                                   labels = c("<=0.7", ">0.7")))
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(y), 
+                 size = khat,
+                 color = k0.7)) +
+  scale_size_continuous(limits = c(0.0, 1.3),
+                        range = c(1, 4))+ 
+  scale_color_manual(values = c("<=0.7" = "black", 
+                                ">0.7" = "red")) 
+
+```
+
 
 ##Model 6
 In Model 6, a unique variance parameter was given to each month, whereas two seasonal slopes were defined as before.  
@@ -373,8 +396,8 @@ M <- readRDS(paste0("RData/jagsout_", str.root, "_W_", year.begin, "_", year.end
                     run.date, ".rds"))
 # M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_varM_theta_W_2006_2014_", 
 #                     run.date, ".rds"))
-M6.loo.out <- M$jags.out$loo.out$loo.out
-M6.jm <- M$jags.out$jm
+M6.loo.out <- M$loo.out$loo.out
+M6.jm <- M$jags.out
 
 ```
 
@@ -384,7 +407,30 @@ Majority of estimated Pareto k parameter values were large, where ```r sum(M6.lo
 plot(M6.loo.out)
 ```
 
-##Model 7
+```{r}
+pareto.k <- M6.loo.out$diagnostics$pareto_k
+data.y <- na.omit(M$jags.data$y)
+
+pareto.df <- data.frame(y = data.y,
+                        khat = pareto.k,
+                        datapoint = seq(from = 1, to = length(data.y)),
+                        k0.7 = cut(pareto.k,
+                                   breaks = c(0, 0.7, 1.5),
+                                   labels = c("<=0.7", ">0.7")))
+ggplot(data = pareto.df) +   
+  geom_path(aes(x = datapoint, y = exp(y)), alpha = 0.5) +
+  geom_point(aes(x = datapoint, y = exp(y), 
+                 size = khat,
+                 color = k0.7)) +
+  scale_size_continuous(limits = c(0.0, 1.3),
+                        range = c(1, 4))+ 
+  scale_color_manual(values = c("<=0.7" = "black", 
+                                ">0.7" = "red")) 
+
+```
+
+
+##Model 7 (Don't exist any longer)
 Model 8, a unique slope parameter was given to each month, whereas there was one variance. 
 
 m[t] = s[t] + x[t-1], s[t] = s[month], where month = 1, ..., 12.
@@ -399,8 +445,8 @@ M <- readRDS(paste0("RData/jagsout_", str.root, "_W_", year.begin, "_", year.end
                     run.date, ".rds"))
 # M <- readRDS(paste0("RData/jagsout_SSAR1_logY_norm_norm_thetaM_W_2006_2014_", 
 #                     run.date, ".rds"))
-M7.loo.out <- M$jags.out$loo.out$loo.out
-M7.jm <- M$jags.out$jm
+M7.loo.out <- M$loo.out$loo.out
+M7.jm <- M$jags.out
 ```
 
 There were some large estimated Pareto k parameter values, where ```r sum(M7.loo.out$diagnostics$pareto_k > 0.7)``` out of ```r length(M7.loo.out$diagnostics$pareto_k)``` were larger than 0.7. Convergence statistics indicated acceptable convergence among the monitored parameters (minimum = ```r signif(min(unlist(lapply(M$jags.out$jm$Rhat, FUN = min, na.rm = T))), 3)```, mean = ```r signif(min(unlist(lapply(M$jags.out$jm$Rhat, FUN = mean, na.rm = T))), 3)```, and maximum = ```r signif(min(unlist(lapply(M$jags.out$jm$Rhat, FUN = max, na.rm = T))), 3)```). 
