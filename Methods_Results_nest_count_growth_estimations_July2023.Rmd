@@ -35,7 +35,7 @@ format.big.number <- function(x) {
 set_flextable_defaults(font.size = 9,
                        font.family = "Cambria")
 
-save.fig <- F
+save.fig <- T
 
 fig.height <- 4
 fig.width <- 6
@@ -233,7 +233,7 @@ knitr::include_graphics("figures/W_all.png")
 ```
 
 
-The temporal nest count pattern at Wermon is different from that at Jamursba-Medi (Figure 3 vs. Figure 5). At Wermon, there are two peaks within each nesting season: higher values are found between May and September and between October and April.  
+The temporal nest count pattern at Wermon is different from that at Jamursba-Medi (Figure \@ref(fig:plot-JM-by-month) vs. Figure \@ref(fig:plot-W-by-month)). At Wermon, there are two peaks within each nesting season: higher values are found between May and September and between October and April.  
 
 ```{r W-raw-by-month, echo=FALSE, cache = TRUE, warning=FALSE}
 data.jags.W$data.0 %>% filter(Nests < 1500) %>%
@@ -268,7 +268,7 @@ if (save.fig)
 knitr::include_graphics("figures/W_monthly.png")
 ```
 
-Annual patterns of Observed counts at Wermon before the 2006 season were not consistent with those since the 2006 season (Figure \@ref(fig:plot-W-by-month)). Because this analysis used observed patterns to impute missing values, we removed these years from the data for the following analysis.  
+Annual patterns of Observed counts at Wermon before the 2006 season were not consistent with those since the 2006 season (Figure \@ref(fig:plot-W-by-month)). Because this analysis used observed patterns to impute missing values, we removed the data before 2006 from the data for the following analysis (Figure \@ref(fig:plot-W-by-month-2006)).  
 
 ```{r W-by-month-since-2006, echo=FALSE, cache = TRUE, warning=FALSE}
 p.W.monthly.2006 <- ggplot(data.jags.W$data.1) + 
@@ -328,6 +328,12 @@ p.annual.counts <- ggplot(annual.data) +
   theme(axis.text = element_text(size = 12),
         text = element_text(size = 12))
 
+if (save.fig)
+  ggsave(filename = 'figures/annual_counts.png', 
+         plot = p.annual.counts,
+         dpi = 600, height = fig.height, 
+         width = fig.width, 
+         units = "in")
 ```
 
 
@@ -367,7 +373,8 @@ models.part.names <- do.call(rbind,
             Q = V5)
 
 looic.table.out <- cbind(models.part.names, looic.table) %>%
-  select(-c(model, looic))
+  select(-c(model, looic, weights)) %>%
+  rename(N = State, y = Observation)
 
 data.frame(all.results$jm$summary) %>% 
   rownames_to_column("Parameter") -> summary.df
@@ -377,12 +384,12 @@ rhat.max <- max(unlist(lapply(all.results$jm$Rhat, FUN = max, na.rm = T)))
 
 ```
 
-According to Pareto k diagnostic statistics, Model set 2 (v2: annual nest abundance as a random variable) was better than Model set 1 (v1: annual nest abundance as a non-random variable). Sixteen models were considered acceptable according to Pareto-k diagnostics (max(Pareto-k) < 0.7; Table \@ref(tab:looic-table-1)). Among the 16 models within Model Set 2, the lowest LOOIC value was found for the model with Student's t distribution for abundance (N) with location specific variance (Q), Student's t distribution for observations (y), and a common growth parameter (U). Gelman-Rubin Rhat statistics indicated successful convergence of all parameters (maximum Rhat = `r signif(rhat.max, digits=3)`). We use the joint posterior distribution from this model for the inference.  
+According to Pareto k diagnostic statistics, Model set 2 (v2: annual nest abundance as a random variable) was better than Model set 1 (v1: annual nest abundance as a non-random variable). Sixteen models were considered acceptable according to the Pareto-k diagnostics (max(Pareto-k) < 0.7; Table \@ref(tab:looic-table-1)). Among the 16 models within Model Set 2, the lowest LOOIC value was found for the model with Student's t distribution for abundance (N) Student's t distribution for observations (y), a common growth parameter (1U), and location specific variance (2Q). Gelman-Rubin Rhat statistics indicated successful convergence of all parameters (maximum Rhat = `r signif(rhat.max, digits=3)`). We use the joint posterior distribution from this model for the inference.  
 
 ```{r looic-table-1, echo=F}
 flextable(looic.table.out) %>%
-  set_caption("A comparison of models that were fit to the complete dataset and passed the LOOIC goodness-of-fit test using Pareto k statistics. In the State and Observation columns, norm and t indicate normal and Student's t distributions, respectively. Set indicates either Set 1 (v1) or Set 2 (v2) (see text for details), U indicates the number of U (slope) parameters and Q indicates the number of Q (variance) parameters. weights is model weight, delta.looic indicates the difference in LOOIC values from the smallest LOOIC value, and Max.Pareto indicates the maximum Pareto k statistics value for each model.") %>%
-  colformat_double(j = c("weights", "delta.looic", "Max.Pareto"),
+  set_caption("A comparison of models that were fit to the complete dataset and passed the LOOIC goodness-of-fit test using Pareto k statistics. In the State and Observation columns, norm and t indicate normal and Student's t distributions, respectively. Set indicates either Set 1 (v1) or Set 2 (v2) (see text for details), U indicates the number of U (slope) parameters and Q indicates the number of Q (variance) parameters. delta.looic indicates the difference in LOOIC values from the smallest LOOIC value, and Max.Pareto indicates the maximum Pareto k statistics value for each model.") %>%
+  colformat_double(j = c("delta.looic", "Max.Pareto"),
                    digits = 3) %>%
   set_table_properties(width = 0.5, layout = "autofit")
 
@@ -397,16 +404,21 @@ all.results$ys.stats %>%
          CL97.5 = exp(high)) %>%
   data.frame() -> estimated.counts
 
-ggplot(estimated.counts %>% filter(Season > 2010)) +
+p.imputed.2beaches <- ggplot(estimated.counts %>% filter(Season > 2010)) +
   geom_point(aes(x = time, y = Median, color = as.factor(location))) +
   geom_path(aes(x = time, y = Median, color = as.factor(location))) +
   geom_errorbar(aes(x = time, ymin = CL2.5, ymax = CL97.5, color = as.factor(location)))
 
+if (save.fig)
+  ggsave(filename = 'figures/imputed_2beaches.png', 
+         plot = p.imputed.2beaches,
+         dpi = 600, height = fig.height, 
+         width = fig.width, 
+         units = "in")
+
 ```
 
-
-
-The estimated mean growth rates at two beaches were `r signif(U.stats[1,"mean"], digits = 2)` (SE = `r signif(U.stats[1, "sd"], digits = 2)`, p(U < 0.0) = `r signif(U.stats[1, "f"], digits = 2)`) for Jamursba Medi and for Wermon (Figure \@ref(fig:plot-complete-U)). 
+The estimated mean growth rates (U) at two beaches were `r signif(U.stats[1,"mean"], digits = 2)` (SE = `r signif(U.stats[1, "sd"], digits = 2)`, p(U < 0.0) = `r signif(U.stats[1, "f"], digits = 2)`) for Jamursba Medi and for Wermon (Figure \@ref(fig:plot-complete-U)). 
 
 ```{r plot-complete-U, echo=FALSE, fig.cap = "The posteior distributions of the geometric growth rates for Jamursba Medi and Wermon (U) when the complete dataset was used. "}
 knitr::include_graphics("figures/U_posterior.png")
@@ -446,17 +458,20 @@ summer.models.part.names <- do.call(rbind,
             Q = V5)
 
 looic.table.out.summer <- cbind(summer.models.part.names, looic.table) %>%
-  select(-c(model, looic))
+  select(-c(model, looic, weights)) %>%
+   rename(N = State, y = Observation)
+
+#select(-c(model, looic))
 
 ```
 
-As it was the case with the complete dataset, Model Set 2 (v2: annual nest abundance as a random variable) fit better than Model Set 1 (v1: annual nest abundance as a non-random variable) according to the Pareto k statistics. Among the 16 models within Model Set 2, the lowest LOOIC value was found for the model with Student's t distribution for abundance (N) with location specific variance (2 Qs), Student's t distribution for observations (y), and two growth parameters (2 Us) (Table \@ref(tab:looic-table-summer)).  Gelman-Rubin Rhat statistics indicated successful convergence of all parameters (maximum Rhat = `r signif(rhat.max, digits=5)`. We use the joint posterior distributions from these two models for the inference.  
+As it was the case with the complete dataset, Model Set 2 (v2: annual nest abundance as a random variable) fit better than Model Set 1 (v1: annual nest abundance as a non-random variable) according to the Pareto k statistics. Among the 16 models within Model Set 2, the lowest LOOIC value was found for the model with Student's t distribution for abundance (N), Student's t distribution for observations (y), two growth parameters (2U), and with location specific variance (2Q). (Table \@ref(tab:looic-table-summer)). Gelman-Rubin Rhat statistics indicated successful convergence of all parameters (maximum Rhat = `r signif(rhat.max, digits=5)`. We use the joint posterior distributions from these two models for the inference.  
 
 ```{r looic-table-summer, echo=F}
 
 flextable(looic.table.out.summer) %>%
-  set_caption("A comparison of models that were fit to the summer dataset and passed the LOOIC goodness-of-fit test using Pareto k statistics. In the State and Observation columns, norm and t indicate normal and Student's t distributions, respectively. Set indicates either Set 1 (v1) or Set 2 (v2) (see text for details), U indicates the number of U (slope) parameters and Q indicates the number of Q (variance) parameters. weights is model weight, delta.looic indicates the difference in LOOIC values from the smallest LOOIC value, and Max.Pareto indicates the maximum Pareto k statistics value for each model.") %>%
-   colformat_double(j = c("weights", "delta.looic", "Max.Pareto"),
+  set_caption("A comparison of models that were fit to the summer dataset and passed the LOOIC goodness-of-fit test using Pareto k statistics. In the State and Observation columns, norm and t indicate normal and Student's t distributions, respectively. Set indicates either Set 1 (v1) or Set 2 (v2) (see text for details), U indicates the number of U (slope) parameters and Q indicates the number of Q (variance) parameters. delta.looic indicates the difference in LOOIC values from the smallest LOOIC value, and Max.Pareto indicates the maximum Pareto k statistics value for each model.") %>%
+   colformat_double(j = c("delta.looic", "Max.Pareto"),
                    digits = 3) %>%
   set_table_properties(width = 0.5, layout = "autofit")
 
@@ -471,7 +486,7 @@ The estimated mean growth rates at two beaches were `r signif(U.stats[1,"mean"],
 knitr::include_graphics("figures/U_posterior_summer.png")
 ```
 
-### Winter dataset
+### Winter dataset {-}
 
 ```{r load-results-winter, echo=F, cache=T}
 winter.results <- readRDS(file = "RData/winter_results.rds")
@@ -505,7 +520,10 @@ winter.models.part.names <- do.call(rbind,
             Q = V5)
 
 looic.table.out.winter <- cbind(winter.models.part.names, looic.table) %>%
-  select(-c(model, looic))
+  select(-c(model, looic, weights)) %>%
+  rename(N = State, y = Observation)
+
+#select(-c(model, looic))
 
 ```
 
@@ -514,8 +532,8 @@ Among the 16 models fit to the winter dataset, no model had the largest Pareto k
 
 ```{r looic-table-winter, echo=F}
 flextable(looic.table.out.winter) %>%
-  set_caption("A comparison of models that were fit to the winter dataset and passed the LOOIC goodness-of-fit test using Pareto k statistics. In the State and Observation columns, norm and t indicate normal and Student's t distributions, respectively. Set indicates either Set 1 (v1) or Set 2 (v2) (see text for details), U indicates the number of U (slope) parameters and Q indicates the number of Q (variance) parameters. weights is model weight, delta.looic indicates the difference in LOOIC values from the smallest LOOIC value, and Max.Pareto indicates the maximum Pareto k statistics value for each model.") %>%
-   colformat_double(j = c("weights", "delta.looic", "Max.Pareto"),
+  set_caption("A comparison of models that were fit to the winter dataset and passed the LOOIC goodness-of-fit test using Pareto k statistics. In the N and y (observation) columns, norm and t indicate normal and Student's t distributions, respectively. Set indicates either Set 1 (v1) or Set 2 (v2) (see text for details), U indicates the number of U (slope) parameters and Q indicates the number of Q (variance) parameters. delta.looic indicates the difference in LOOIC values from the smallest LOOIC value, and Max.Pareto indicates the maximum Pareto k statistics value for each model.") %>%
+   colformat_double(j = c("delta.looic", "Max.Pareto"),
                    digits = 3) %>%
   set_table_properties(width = 0.5, layout = "autofit")
 
@@ -632,18 +650,11 @@ knitr::include_graphics("figures/GLM_fit.png")
 
 ### Segmented regression for Jamursba-Medi {-}
 
-
-
 ```{r JM-segmented-regression, echo=FALSE}
 
 Tapilatu.fit.2.seg <- segmented::segmented(Tapilatu.fit.2,
                                            seg.Z = ~Season.shifted,
                                            psi = list(Season.shifted = c(26, 31)))
-
-#npsi = 2,
-#                                           adjX = TRUE)
-
-                                           
 
 slopes <- segmented::slope(Tapilatu.fit.2.seg, conf.level = 0.95)
 
@@ -683,15 +694,12 @@ if (save.fig)
 ```
 
 
-Because a linear model with one slope is not able to detect the possible recent increase in nest counts, I used a segmented regression analysis to find a possible change in the slope. Two change points were estimated at `r Tapilatu.JM.data.2 %>% filter(Season.shifted == round(Tapilatu.fit.2.seg$psi[1,2])) %>% pull(Season)` and `r Tapilatu.JM.data.2 %>% filter(Season.shifted == round(Tapilatu.fit.2.seg$psi[2,2])) %>% pull(Season)`. The slope changes from `r signif(slopes$Season.shifted[1,1], 3)` (95%CI = [`r signif(slopes$Season.shifted[1,4], 3)` - `r signif(slopes$Season.shifted[1,5], 3)`]), to `r signif(slopes$Season.shifted[2,1], 3)` (95%CI = [`r signif(slopes$Season.shifted[2,4], 3)` - `r signif(slopes$Season.shifted[2,5], 3)`]), to `r signif(slopes$Season.shifted[3,1], 3)` (95%CI = [`r signif(slopes$Season.shifted[3,4], 3)` - `r signif(slopes$Season.shifted[3,5], 3)`]) (Figure \@ref(fig:plot-GLM-seg-JM)). 
-
-
+Because a linear model with one slope is not able to detect the possible recent increase in nest counts, I used a segmented regression analysis to find possible changes in the slope. Two change points were estimated at `r Tapilatu.JM.data.2 %>% filter(Season.shifted == round(Tapilatu.fit.2.seg$psi[1,2])) %>% pull(Season)` and `r Tapilatu.JM.data.2 %>% filter(Season.shifted == round(Tapilatu.fit.2.seg$psi[2,2])) %>% pull(Season)`. The slope changes from `r signif(slopes$Season.shifted[1,1], 3)` (95%CI = [`r signif(slopes$Season.shifted[1,4], 3)` - `r signif(slopes$Season.shifted[1,5], 3)`]), to `r signif(slopes$Season.shifted[2,1], 3)` (95%CI = [`r signif(slopes$Season.shifted[2,4], 3)` - `r signif(slopes$Season.shifted[2,5], 3)`]), to `r signif(slopes$Season.shifted[3,1], 3)` (95%CI = [`r signif(slopes$Season.shifted[3,4], 3)` - `r signif(slopes$Season.shifted[3,5], 3)`]) (Figure \@ref(fig:plot-GLM-seg-JM)). 
 
 
 ```{r plot-GLM-seg-JM, echo=FALSE, fig.cap = "Fitted segmented linear models to the data in Tapilatu et al. (2013) and new data."}
 knitr::include_graphics("figures/GLM_seg_fit_JM.png")
 ```
-
 
 I also fitted Bayesian hierarchical models to the nest counts data from the Jamursba Medi nesting beach only. The set of models are similar to the ones above but restricted to one slope (1 U) and one variance (1 Q) models.
 
@@ -754,7 +762,8 @@ JM.models.part.names <- do.call(rbind,
             Set = V3)
 
 looic.table.out.JM <- cbind(JM.models.part.names, looic.table) %>%
-  select(-c(model, looic))
+  select(-c(model, looic, weights)) %>%
+  rename(N = State, y = Observation)
 
 if (save.fig)
   ggsave(filename = 'figures/U_JM_posterior_2.png', 
@@ -770,8 +779,8 @@ Among the 8 models fit to the Jamursba-Medi dataset, only four models were found
 ```{r looic-table-JM, echo=F}
 
 flextable(looic.table.out.JM) %>%
-  set_caption("A comparison of models that were fit to the Jamursba Medi dataset and passed the LOOIC goodness-of-fit test using Pareto k statistics. In the State and Observation columns, norm and t indicate normal and Student's t distributions, respectively. Set indicates either Set 1 (v1) or Set 2 (v2) (see text for details). weights is model weight, delta.looic indicates the difference in LOOIC values from the smallest LOOIC value, and Max.Pareto indicates the maximum Pareto k statistics value for each model.") %>%
-  colformat_double(j = c("weights", "delta.looic", "Max.Pareto"),
+  set_caption("A comparison of models that were fit to the Jamursba Medi dataset and passed the LOOIC goodness-of-fit test using Pareto k statistics. In the N and y (observation) columns, norm and t indicate normal and Student's t distributions, respectively. Set indicates either Set 1 (v1) or Set 2 (v2) (see text for details). delta.looic indicates the difference in LOOIC values from the smallest LOOIC value, and Max.Pareto indicates the maximum Pareto k statistics value for each model.") %>%
+  colformat_double(j = c("delta.looic", "Max.Pareto"),
                    digits = 3) %>%
   set_table_properties(width = 0.5, layout = "autofit")
 
@@ -938,8 +947,6 @@ Because a linear model with one slope is not able to detect the possible recent 
 knitr::include_graphics("figures/GLM_seg_fit_W.png")
 ```
 
-
-
 I also fitted Bayesian hierarchical models to the nest counts data from the Wermon nesting beach only. The set of models are similar to the ones above but restricted to one slope (1 U) and one variance (1 Q) models.
 
 
@@ -981,7 +988,8 @@ W.models.part.names <- do.call(rbind,
             Set = V3)
 
 looic.table.out.W <- cbind(JM.models.part.names, looic.table) %>%
-  select(-c(model, looic))
+  select(-c(model, looic, weights)) %>%
+  rename(N = State, y = Observation)
 
 if (save.fig)
   ggsave(filename = 'figures/U_W_posterior.png', 
@@ -999,8 +1007,8 @@ Among the 8 models fit to the Wermon dataset, only `r length(W.only$good.models)
 ```{r looic-table-W, echo=F}
 
 flextable(looic.table.out.W) %>%
-  set_caption("A comparison of models that were fit to the Wermon dataset and passed the LOOIC goodness-of-fit test using Pareto k statistics. In the State and Observation columns, norm and t indicate normal and Student's t distributions, respectively. Set indicates either Set 1 (v1) or Set 2 (v2) (see text for details). weights is model weight, delta.looic indicates the difference in LOOIC values from the smallest LOOIC value, and Max.Pareto indicates the maximum Pareto k statistics value for each model.") %>%
-  colformat_double(j = c("weights", "delta.looic", "Max.Pareto"),
+  set_caption("A comparison of models that were fit to the Wermon dataset and passed the LOOIC goodness-of-fit test using Pareto k statistics. In the N and y (observation) columns, norm and t indicate normal and Student's t distributions, respectively. Set indicates either Set 1 (v1) or Set 2 (v2) (see text for details). delta.looic indicates the difference in LOOIC values from the smallest LOOIC value, and Max.Pareto indicates the maximum Pareto k statistics value for each model.") %>%
+  colformat_double(j = c( "delta.looic", "Max.Pareto"),
                    digits = 3) %>%
   set_table_properties(width = 0.5, layout = "autofit")
 
