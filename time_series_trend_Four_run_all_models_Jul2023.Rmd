@@ -26,9 +26,9 @@ library(loo)
 
 
 ```{r}
-save.data <- F
-save.fig <- F
-run.date <- "2023-07-06" #Sys.Date() #"2020-10-14" #"2019-06-25" #
+save.data <- T
+save.fig <- T
+run.date <- Sys.Date() #"2020-10-14" #"2019-06-25" #"2023-07-06" #
 
 year.begin.JM <- 1999
 year.begin.W <- 2006
@@ -358,7 +358,7 @@ all.results.list <- list(jm = jm,
                          Ns.stats = Ns.stats,
                          all.models = filenames)
 
-saveRDS(all.results.list, file = "RData/all_results.rds")
+saveRDS(all.results.list, file = paste0("RData/all_results_", run.date, ".rds"))
 
 p.estimated_y_N <- ggplot() + 
   geom_ribbon(data = ys.stats,
@@ -657,7 +657,7 @@ summer.results.list <- list(jm = jm,
                          Ns.stats = Ns.stats,
                          all.models = filenames.summer)
 
-saveRDS(summer.results.list, file = "RData/summer_results.rds")
+saveRDS(summer.results.list, file = paste0("RData/summer_results_", run.date, ".rds"))
 
 p.estimated_y_N <- ggplot() + 
   geom_ribbon(data = ys.stats,
@@ -929,7 +929,7 @@ winter.results.list <- list(jm = jm,
                          Ns.stats = Ns.stats,
                          all.models = filenames.winter)
 
-saveRDS(winter.results.list, file = "RData/winter_results.rds")
+saveRDS(winter.results.list, file = paste0("RData/winter_results_", run.date, ".rds"))
 
 p.estimated_y_N <- ggplot() + 
   geom_ribbon(data = ys.stats,
