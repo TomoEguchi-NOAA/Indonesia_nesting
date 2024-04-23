@@ -40,8 +40,8 @@ save.fig <- T
 fig.height <- 4
 fig.width <- 6
 
-run.date <- "2023-07-06" #"2020-10-14" #Sys.Date() #"2019-06-25" #
-run.date.JM.only <- "2023-07-06" #"2021-03-08"
+run.date <- "2024-04-22"# "2023-07-06" #"2020-10-14" #Sys.Date() #"2019-06-25" #
+run.date.JM.only <- "2024-04-22" # "2023-07-06" #"2021-03-08"
 
 year.begin.JM <- 1999
 year.begin.W <- 2006
@@ -55,7 +55,7 @@ season.end <- 2022
 
 ### Models {-}
 
-To estimate the growth rates of nest abundance over time, the discrete geometric growth model was fitted to the annual nest counts ($N_{t,j}$ at the two nesting beaches (Wermon, Jamursba Medi). 
+To estimate the growth rates of nest abundance over time, the discrete geometric growth model was fitted to the annual nest counts ($N_{t,j}$) at the two nesting beaches (Wermon, Jamursba Medi). 
 
 $N_{t+1, j} = \lambda N_{t,j}$,
 
