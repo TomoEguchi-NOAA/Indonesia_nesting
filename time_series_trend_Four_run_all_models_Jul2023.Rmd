@@ -26,9 +26,9 @@ library(loo)
 
 
 ```{r}
-save.data <- T
-save.fig <- T
-run.date <- Sys.Date() #"2020-10-14" #"2019-06-25" #"2023-07-06" #
+save.data <- F
+save.fig <- F
+run.date <- "2023-07-06" #Sys.Date() #"2020-10-14" #"2019-06-25" #
 
 year.begin.JM <- 1999
 year.begin.W <- 2006
@@ -296,6 +296,13 @@ rhat.max <- max(unlist(lapply(jm$Rhat, FUN = max, na.rm = T)))
 
 # look at some posteriors
 U.stats <- summary.df[grep(summary.df$Parameter, pattern = "U"),]
+#bayesplot::color_scheme_set("darkgray")
+
+# collect all U samples in one dataframe for plotting later:
+df.1U <- data.frame(dataset = "Jeen Yessa and Jeen Syuab",
+                    U = jm$sims.list$U,
+                    Dataset.idx = "A")
+
 p.post.U <- bayesplot::mcmc_dens(jm$samples, c("U")) + 
   xlab("Annual growth rate") + ylab("Density")
 
@@ -595,6 +602,12 @@ rhat.max <- max(unlist(lapply(jm$Rhat, FUN = max, na.rm = T)))
 
 # look at some posteriors
 U.stats <- summary.summer.df[grep(summary.summer.df$Parameter, pattern = "U"),]
+
+df.summer.U <- data.frame(dataset = rep(c("Jeen Yessa Boreal Summer", "Jeen Syuab Boreal Summer"), 
+                                        each = nrow(jm$sims.list$U)),
+                          U = c(jm$sims.list$U[,1], jm$sims.list$U[,2]),
+                          Dataset.idx = rep(c("B", "C"), each = nrow(jm$sims.list$U)))
+
 p.post.U <- bayesplot::mcmc_dens(jm$samples, c("U[1]", "U[2]")) + 
   xlab("Annual growth rate") + ylab("Density")
 
@@ -893,6 +906,10 @@ U.stats <- summary.winter.df[grep(summary.winter.df$Parameter, pattern = "U"),]
 p.post.U <- bayesplot::mcmc_dens(jm$samples, c("U")) + 
   xlab("Annual growth rate") + ylab("Density")
 
+df.Wermon.Winter <- data.frame(dataset = "Jeen Syuab Austral Summer",
+                               U = jm$sims.list$U,
+                               Dataset.idx = "D")
+
 if (save.fig)
   ggsave(filename = 'figures/U_posterior_winter.png', 
          plot = p.post.U,
@@ -957,5 +974,31 @@ if (save.fig)
          plot = p.estimated_y_N,
          dpi = 600, height = 6, 
          width = 8, units = "in")
+```
+
+Create a plot for all Us
+```{r}
+library(ggh4x)
+df.U <- rbind(df.1U, df.summer.U, df.Wermon.Winter)
+
+p.allUs <- ggplot(df.U) +
+  geom_density(aes(x = U, y = after_stat(scaled))) +
+  facet_wrap2(~Dataset.idx, ncol = 1,
+              axes = "all",
+              strip.position = "right") +
+  theme_bw() +
+  theme(panel.border = element_rect(fill = NA, colour = "white"),
+        panel.background = element_rect(fill = "white", colour = "black"),
+        axis.line = element_line("black"),
+        strip.background = element_blank())+
+  xlab("Annual growth rate") +
+  ylab("")
+  #xlim(c(-0.7, 0.7))
+
+if (save.fig)
+  ggsave(plot = p.allUs,
+         filename = "figures/all_Us.png",
+         dpi = 600)
+
 ```
 

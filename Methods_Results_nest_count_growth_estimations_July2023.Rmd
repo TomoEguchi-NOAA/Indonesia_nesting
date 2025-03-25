@@ -619,19 +619,23 @@ When the first value (`r format(Tapilatu.JM.data[1, "Nests"], big.mark = ",")` i
 p.GLM <- ggplot() + 
   geom_point(data = Tapilatu.JM.data,
              aes(x = Season, y = Nests),
-             color = "orange") + 
+             shape = 1, size = 2) + 
   geom_line(data = Tapilatu.JM.data,
             aes(x = Season, y = exp(fitted)),
-            color = "orange") +
+            linetype = "dashed", linewidth = 1.2) +
   geom_point(data = Tapilatu.JM.data.2 %>% filter(Season > 2011),
              aes(Season, y = Nests),
-             color = "blue") +
+             shape = 2, size = 2) +
   geom_line(data = Tapilatu.JM.data.2,
             aes(x = Season, y = exp(fitted)),
-            color = "blue") +
+            linetype = "dotted", linewidth = 1.2) +
   geom_line(data = Tapilatu.JM.1993.data.2,
             aes(x = Season, y = exp(fitted)),
-            color = "red")
+            linetype = "solid", linewidth = 1.2) + 
+  theme_bw() +
+  theme(panel.border = element_rect(fill = NA, colour = "white"),
+        panel.background = element_rect(fill = "white", colour = "black"),
+        axis.line = element_line("black"))
 
 
 if (save.fig)
@@ -669,19 +673,23 @@ seg.1.fitted <- data.frame(fitted = fitted.seg$fit,
 p.GLM.seg.JM <- ggplot() + 
   geom_point(data = Tapilatu.JM.data,
              aes(x = Season, y = Nests),
-             color = "blue") + 
+             shape = 1) + 
   geom_point(data = Tapilatu.JM.data.2 %>% filter(Season > 2011),
              aes(Season, y = Nests),
-             color = "blue") +
+             shape = 2) +
   geom_line(data = Tapilatu.JM.data.2,
             aes(x = Season, y = exp(fitted)),
-            color = "blue", linewidth = 1.2) +
+            linetype = "dotted", linewidth = 1.2) +
   geom_line(data = seg.1.fitted,
             aes(x = Season, y = exp(fitted)),
-            linewidth = 1.2, color = "darkblue") +
+            linewidth = 1.2, linetype = "solid") +
   geom_ribbon(data = seg.1.fitted,
               aes(x = Season, ymin = exp(LCL), ymax = exp(UCL)),
-              fill = "darkblue", alpha = 0.4)
+              fill = "lightgray", alpha = 0.3) + 
+  theme_bw() +
+  theme(panel.border = element_rect(fill = NA, colour = "white"),
+        panel.background = element_rect(fill = "white", colour = "black"),
+        axis.line = element_line("black"))
 
 
 if (save.fig)
@@ -740,6 +748,10 @@ rhat.max.JM.2 <- max(unlist(lapply(jm.2$Rhat, FUN = max, na.rm = T)))
 U.stats.JM.2 <- JM.only.summary.df.2[grep(JM.only.summary.df.2$Parameter, pattern = "U"),]
 p.post.U.JM.2 <- bayesplot::mcmc_dens(jm.2$samples, c("U")) + 
   xlab("Annual growth rate") + ylab("Density")
+
+df.JM.U <- data.frame(dataset = "Jeen Yessa",
+                      U = JM.only$jm$sims.list$U,
+                      Dataset.idx = "A")
 
 pareto.k <- lapply(JM.only$good.models.pareto.k,
                    FUN = function(x) max(x$diagnostics$pareto_k)) %>%
@@ -863,16 +875,21 @@ When 12 more years of data were added (2012-2022) to the dataset in Tapilatu et 
 p.GLM.W <- ggplot() + 
   geom_point(data = Tapilatu.W.data,
              aes(x = Season, y = Nests),
-             color = "orange") + 
+             shape = 1, size = 2) + 
   geom_line(data = Tapilatu.W.data,
             aes(x = Season, y = exp(fitted)),
-            color = "orange") +
+            linetype = "dashed", linewidth = 1.2) +
   geom_point(data = Tapilatu.W.data.2 %>% filter(Season > 2011),
              aes(Season, y = Nests),
-             color = "blue") +
+             shape = 2, size = 2) +
   geom_line(data = Tapilatu.W.data.2,
             aes(x = Season, y = exp(fitted)),
-            color = "blue") 
+            linetype = "dotted", linewidth = 1.2) +
+  theme_bw() +
+  theme(panel.border = element_rect(fill = NA, colour = "white"),
+        panel.background = element_rect(fill = "white", colour = "black"),
+        axis.line = element_line("black"))
+
 
 if (save.fig)
   ggsave(filename = 'figures/GLM_fit_W.png', 
@@ -914,19 +931,23 @@ seg.1.fitted <- data.frame(fitted = fitted.seg$fit,
 p.GLM.seg.W <- ggplot() + 
   geom_point(data = Tapilatu.W.data.2,
              aes(x = Season, y = Nests),
-             color = "blue") + 
+             shape = 1, size = 2) + 
   # geom_point(data = Tapilatu.JM.data.2 %>% filter(Season > 2011),
   #            aes(Season, y = Nests),
   #            color = "blue") +
   geom_line(data = Tapilatu.W.data.2,
             aes(x = Season, y = exp(fitted)),
-            color = "blue", linewidth = 1.2) +
+            linetype = "dashed", linewidth = 1.2) +
   geom_line(data = seg.1.fitted,
             aes(x = Season, y = exp(fitted)),
-            linewidth = 1.2, color = "darkblue") +
+            linewidth = 1.2, linetype = "solid") +
   geom_ribbon(data = seg.1.fitted,
               aes(x = Season, ymin = exp(LCL), ymax = exp(UCL)),
-              fill = "darkblue", alpha = 0.4)
+              fill = "lightgray", alpha = 0.4) +
+  theme_bw() +
+  theme(panel.border = element_rect(fill = NA, colour = "white"),
+        panel.background = element_rect(fill = "white", colour = "black"),
+        axis.line = element_line("black"))
 
 
 if (save.fig)
@@ -967,6 +988,25 @@ U.stats.W <- W.only.summary.df[grep(W.only.summary.df$Parameter, pattern = "U"),
 p.post.U.W <- bayesplot::mcmc_dens(W.only$jm$samples, c("U")) + 
   xlab("Annual growth rate") + ylab("Density")
 
+df.W.U <- data.frame(dataset = "Jeen Syuab",
+                     U = W.only$jm$sims.list$U,
+                     Dataset.idx = "B")
+
+df.W.JM.U <- rbind(df.JM.U, df.W.U)
+
+p.U.W.JM <- ggplot(df.W.JM.U) +
+  geom_density(aes(x = U, y = after_stat(scaled))) +
+  facet_wrap2(~Dataset.idx, ncol = 1,
+              axes = "all",
+              strip.position = "right") +
+  theme_bw() +
+  theme(panel.border = element_rect(fill = NA, colour = "white"),
+        panel.background = element_rect(fill = "white", colour = "black"),
+        axis.line = element_line("black"),
+        strip.background = element_blank())+
+  xlab("Annual growth rate") +
+  ylab("")
+
 pareto.k <- lapply(W.only$good.models.pareto.k,
                    FUN = function(x) max(x$diagnostics$pareto_k)) %>%
   unlist()
@@ -998,7 +1038,13 @@ if (save.fig)
          width = fig.width, 
          units = "in")
 
-
+if (save.fig)
+  ggsave(filename = "figures/U_W_JM_posteriors.png",
+         plot = p.U.W.JM,
+         dpi = 600,
+         height = fig.height,
+         width = fig.width,
+         device = "png")
 ```
 
 Among the 8 models fit to the Wermon dataset, only `r length(W.only$good.models)` models were found appropriate based on the Pareto k statistic (Table \@ref(tab:looic-table-W)). The best model included Student's t distributions for state and observation processes. Convergence was reached where maximum Rhat was `r signif(rhat.max.W, 3)`. 
@@ -1018,8 +1064,8 @@ flextable(looic.table.out.W) %>%
 The estimated mean growth rate (U) at Wermon `r signif(U.stats.W[1,"mean"], digits = 2)` (SE = `r signif(U.stats.W[1, "sd"], digits = 2)`, p(U < 0.0) = `r signif(U.stats.W[1, "f"], digits = 2)`, Figure \@ref(fig:plot-posterior-W-U)). 
 
 
-```{r plot-posterior-W-U, echo=FALSE,  fig.cap = "The posterior distribution of the growth rate (U) at Wermon from the best model using data from Wermon only based on LOOIC. "}
-knitr::include_graphics("figures/U_W_posterior.png")
+```{r plot-posterior-W-U, echo=FALSE,  fig.cap = "The posterior distribution of the growth rate (U) at Jamursba Medi (A) and Wermon (B) from the best model using data based on LOOIC. "}
+knitr::include_graphics("figures/U_W_JM_posteriors.png")
 ```
 
 
